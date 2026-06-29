@@ -113,9 +113,13 @@ export default function LiquidGlass({
     if (!wrapper || !pane) return;
 
     const update = () => {
-      const rect = wrapper.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width));
-      const h = Math.max(1, Math.round(rect.height));
+      // Use offsetWidth/offsetHeight (layout dimensions) instead of getBoundingClientRect,
+      // which would return POST-TRANSFORM size. If any ancestor applies a CSS transform
+      // (e.g. our scroll-driven scale on .app-header-morph), getBoundingClientRect reports
+      // the scaled rect — JS sizes the pane to that scaled value, then the pane scales AGAIN
+      // at render and ends up smaller than the wrapper's content box.
+      const w = Math.max(1, wrapper.offsetWidth);
+      const h = Math.max(1, wrapper.offsetHeight);
       const r = Math.min(radius, Math.min(w, h) / 2);
       pane.style.width = `${w}px`;
       pane.style.height = `${h}px`;

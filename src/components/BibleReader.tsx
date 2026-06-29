@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import BottomNav from "./BottomNav";
 import VersePlayerCard from "./VersePlayerCard";
 import PlaybackControls from "./PlaybackControls";
 import VerseActionSheet from "./VerseActionSheet";
 import BooksSheet from "./BooksSheet";
 import PersonaliseSheet from "./PersonaliseSheet";
+import LiquidGlass from "./LiquidGlass";
 
 interface Verse {
   number: number;
@@ -63,6 +64,19 @@ export default function BibleReader({
   // Any sheet open → BibleReader recedes (scale + corner radius) behind the sheet's blurred scrim
   const anySheetOpen = !!selectedVerse || showBooks || showPersonalise;
 
+  // iOS 26 toolbar morph — as verses scroll under the floating header, the pill
+  // row shrinks ~4% and its glass panes saturate slightly. Threshold (80px)
+  // matches the UINavigationBar large-title→inline transition iOS uses.
+  const versesScrollRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  useEffect(() => {
+    const el = versesScrollRef.current;
+    if (!el) return;
+    const onScroll = () => setScrollProgress(Math.min(1, el.scrollTop / 80));
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [activeTab]); // re-attach when switching between read/listen (ref node changes)
+
   return (
     <>
       {/* Fixed background for Safari safe area */}
@@ -71,35 +85,58 @@ export default function BibleReader({
       <div className={`app-shell relative w-full md:max-w-[390px] h-[100dvh] bg-black mx-auto flex flex-col overflow-hidden ${anySheetOpen ? "sheet-open" : ""}`}>
         {/* Header Section */}
         <div className="flex-shrink-0 px-[15.5px] pt-[44.52px]">
-          {/* Verse Artwork + Title Row */}
-          <div className="relative h-[63.925px]">
-            <button
-              type="button"
-              onClick={() => setShowBooks(true)}
-              className="flex items-center gap-[10px] bg-[#1c1c1e] rounded-[22px] pr-[10px] h-[63.925px] w-[162px] active:opacity-70 transition-opacity">
-              {/* Artwork Thumbnail */}
-              <div className="w-[48px] h-[48px] rounded-[12px] border-[0.5px] border-[rgba(120,120,128,0.2)] overflow-hidden ml-[10px]">
-                <img
-                  src={artworkSrc}
-                  alt={chapterTitle}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {/* Chapter Title */}
-              <span className="text-[17px] font-bold text-white tracking-[-0.408px] leading-[22px]">
-                {chapterTitle}
-              </span>
-            </button>
+          {/* Verse Artwork + Title Row — iOS 26 morph: scales with scroll, glass saturates */}
+          <div
+            className="app-header-morph relative h-[63.925px]"
+            style={{ ["--scroll-progress" as string]: scrollProgress } as React.CSSProperties}
+            data-scrolled={scrollProgress > 0.05 ? "" : undefined}
+          >
+            <LiquidGlass
+              radius={22}
+              depth={6}
+              strength={50}
+              chromaticAberration={3}
+              blur={4}
+              className="rounded-[22px] w-[162px] h-[63.925px]"
+            >
+              <button
+                type="button"
+                onClick={() => setShowBooks(true)}
+                className="relative flex items-center gap-[10px] rounded-[22px] pr-[10px] h-[63.925px] w-[162px] active:opacity-70 transition-opacity"
+              >
+                {/* Artwork Thumbnail */}
+                <div className="w-[48px] h-[48px] rounded-[12px] border-[0.5px] border-[rgba(120,120,128,0.2)] overflow-hidden ml-[10px]">
+                  <img
+                    src={artworkSrc}
+                    alt={chapterTitle}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {/* Chapter Title */}
+                <span className="text-[17px] font-bold text-white tracking-[-0.408px] leading-[22px]">
+                  {chapterTitle}
+                </span>
+              </button>
+            </LiquidGlass>
 
             {/* Version Selector — absolutely placed to match Figma left:299px */}
-            <button
-              type="button"
-              className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#1c1c1e] rounded-[19.252px] px-[16px] pt-[8px] pb-[9px] h-[38px] flex items-center justify-center"
+            <LiquidGlass
+              radius={19}
+              depth={4}
+              strength={30}
+              chromaticAberration={2}
+              blur={3}
+              className="absolute right-0 top-1/2 -translate-y-1/2 rounded-[19.252px] h-[38px]"
             >
-              <span className="text-[17px] font-normal text-white tracking-[-0.408px] leading-[22px]">
-                {version}
-              </span>
-            </button>
+              <button
+                type="button"
+                className="relative rounded-[19.252px] px-[16px] pt-[8px] pb-[9px] h-[38px] flex items-center justify-center"
+              >
+                <span className="text-[17px] font-normal text-white tracking-[-0.408px] leading-[22px]">
+                  {version}
+                </span>
+              </button>
+            </LiquidGlass>
           </div>
 
           {/* Read/Listen Toggle — segmented control with a single sliding pill */}
@@ -143,7 +180,7 @@ export default function BibleReader({
         {/* Content Area */}
         {activeTab === "read" ? (
           /* READ MODE - Scrollable verses */
-          <div className="flex-1 overflow-y-auto px-[15.5px] pt-[40px] pb-[140px] scrollbar-hide">
+          <div ref={versesScrollRef} className="flex-1 overflow-y-auto px-[15.5px] pt-[40px] pb-[140px] scrollbar-hide">
             {verses.map((verse) => (
               <div
                 key={verse.number}

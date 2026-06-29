@@ -40,12 +40,12 @@ export default function PlaybackControls({
   };
 
   return (
-    <div className="flex items-center justify-center gap-[40px]">
-      {/* Previous Button - Figma exported icon with background */}
+    <div className="flex items-end justify-center w-full px-[12.5px]">
+      {/* Previous Button */}
       <button
         type="button"
         onClick={handlePrevious}
-        className="active:scale-95 transition-transform"
+        className="active:scale-95 transition-transform flex-shrink-0"
       >
         <img
           src="/assets/prev-icon.svg"
@@ -55,25 +55,25 @@ export default function PlaybackControls({
         />
       </button>
 
-      {/* Play/Pause Button - Figma exported icon with background */}
+      {/* Play/Pause Button - sits 18px higher than prev/next */}
       <button
         type="button"
         onClick={handlePlayPause}
-        className="active:scale-95 transition-transform"
+        className="active:scale-95 transition-transform mb-[-18px] mx-auto"
       >
         <img
           src={playing ? "/assets/pause-icon.svg" : "/assets/play-icon.svg"}
           alt={playing ? "Pause" : "Play"}
-          width={86}
-          height={86}
+          width={85}
+          height={85}
         />
       </button>
 
-      {/* Next Button - Figma exported icon with background */}
+      {/* Next Button */}
       <button
         type="button"
         onClick={handleNext}
-        className="active:scale-95 transition-transform"
+        className="active:scale-95 transition-transform flex-shrink-0"
       >
         <img
           src="/assets/next-icon.svg"

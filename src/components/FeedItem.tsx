@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import HeartAnimation from "./HeartAnimation";
+import VideoSubtitles from "./VideoSubtitles";
+import { Subtitle } from "@/data/psalm23-subtitles";
 
 interface FeedItemProps {
   title: string;
@@ -9,6 +11,7 @@ interface FeedItemProps {
   videoSrc?: string;
   posterVideoSrc?: string;
   isActive?: boolean;
+  subtitles?: Subtitle[];
 }
 
 interface HeartPosition {
@@ -23,6 +26,7 @@ export default function FeedItem({
   videoSrc,
   posterVideoSrc,
   isActive = false,
+  subtitles,
 }: FeedItemProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -31,6 +35,7 @@ export default function FeedItem({
   const [shareAnimating, setShareAnimating] = useState(false);
   const [hearts, setHearts] = useState<HeartPosition[]>([]);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const heartIdRef = useRef(0);
   const lastTapRef = useRef(0);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -56,6 +61,26 @@ export default function FeedItem({
       }
     }
   }, [isActive]);
+
+  // Track video playing state for subtitles
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handlePlay = () => setIsVideoPlaying(true);
+    const handlePause = () => setIsVideoPlaying(false);
+    const handleEnded = () => setIsVideoPlaying(false);
+
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("ended", handleEnded);
+
+    return () => {
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("ended", handleEnded);
+    };
+  }, []);
 
   const handleDoubleTap = useCallback(
     (x: number, y: number) => {
@@ -197,6 +222,15 @@ export default function FeedItem({
           onComplete={() => removeHeart(heart.id)}
         />
       ))}
+
+      {/* Video Subtitles */}
+      {subtitles && subtitles.length > 0 && (
+        <VideoSubtitles
+          videoRef={videoRef}
+          subtitles={subtitles}
+          isPlaying={isVideoPlaying}
+        />
+      )}
 
       {/* Action Icons */}
       <div className="absolute right-[20px] bottom-[24px] flex flex-col gap-[32px] z-[100]">

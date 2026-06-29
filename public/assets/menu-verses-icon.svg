@@ -1,0 +1,8 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 28.6667 28.6667" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Chart">
+<path id="Line_182" d="M8.16195 11.9355V21.0823" stroke="var(--stroke-0, white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Line_183" d="M14.3843 7.55868V21.0823" stroke="var(--stroke-0, white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Line_184" d="M20.505 16.769V21.0823" stroke="var(--stroke-0, white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Path" fill-rule="evenodd" clip-rule="evenodd" d="M20.581 1H8.08571C3.73016 1 1 4.08278 1 8.44688V20.2198C1 24.5839 3.71746 27.6667 8.08571 27.6667H20.581C24.9492 27.6667 27.6667 24.5839 27.6667 20.2198V8.44688C27.6667 4.08278 24.9492 1 20.581 1Z" stroke="var(--stroke-0, white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

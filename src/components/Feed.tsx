@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import FeedItem from "./FeedItem";
 import BottomNav from "./BottomNav";
+import { psalm23Subtitles } from "@/data/psalm23-subtitles";
 
 const posts = [
   {
@@ -11,6 +12,7 @@ const posts = [
     backgroundImage: "/assets/feed-poster-frame.jpg",
     videoSrc: "/assets/feed-video.mp4",
     posterVideoSrc: "/assets/feed-poster-video-loop.mp4",
+    subtitles: psalm23Subtitles,
   },
   {
     id: 2,
@@ -18,6 +20,7 @@ const posts = [
     backgroundImage: "/assets/feed-poster-frame.jpg",
     videoSrc: "/assets/feed-video.mp4",
     posterVideoSrc: "/assets/feed-poster-video-loop.mp4",
+    subtitles: psalm23Subtitles,
   },
   {
     id: 3,
@@ -25,6 +28,7 @@ const posts = [
     backgroundImage: "/assets/feed-poster-frame.jpg",
     videoSrc: "/assets/feed-video.mp4",
     posterVideoSrc: "/assets/feed-poster-video-loop.mp4",
+    subtitles: psalm23Subtitles,
   },
   {
     id: 4,
@@ -32,6 +36,7 @@ const posts = [
     backgroundImage: "/assets/feed-poster-frame.jpg",
     videoSrc: "/assets/feed-video.mp4",
     posterVideoSrc: "/assets/feed-poster-video-loop.mp4",
+    subtitles: psalm23Subtitles,
   },
   {
     id: 5,
@@ -39,6 +44,7 @@ const posts = [
     backgroundImage: "/assets/feed-poster-frame.jpg",
     videoSrc: "/assets/feed-video.mp4",
     posterVideoSrc: "/assets/feed-poster-video-loop.mp4",
+    subtitles: psalm23Subtitles,
   },
 ];
 
@@ -103,6 +109,7 @@ export default function Feed() {
               videoSrc={post.videoSrc}
               posterVideoSrc={post.posterVideoSrc}
               isActive={index === activeIndex}
+              subtitles={post.subtitles}
             />
           </div>
         ))}

@@ -33,30 +33,30 @@ export default function VersePlayerCard({
   };
 
   return (
-    <div className="relative w-[345px] min-h-[241px] rounded-[27px] bg-[#1c1c1e] p-[24px] flex flex-col">
+    <div className="relative w-full rounded-[27px] bg-[#1c1c1e] pt-[24px] pb-[15px] pl-[16px] pr-[16px] flex flex-col">
       {/* Verse Content with verse number */}
-      <div className="flex gap-[12px] flex-1 max-w-[296px]">
-        <span className="text-[15px] font-normal text-white/80 leading-[150%] flex-shrink-0 pt-[4px]">
+      <div className="flex flex-1">
+        <span className="text-[15px] font-normal text-white leading-[20px] flex-shrink-0 pt-[4px] w-[17px]">
           {verseNumber}
         </span>
-        <p className="text-[27px] font-medium text-white leading-[150%] tracking-[-0.4px]">
+        <p className="text-[27px] font-medium text-white leading-[1.5] tracking-[-0.4px] ml-[16px] flex-1 min-w-0">
           {verseText}
         </p>
       </div>
 
       {/* Action Buttons Row */}
-      <div className="flex items-center gap-[12px] mt-[24px] w-full">
+      <div className="flex items-center mt-[15px] w-full">
         {/* Save Button */}
         <button
           type="button"
           onClick={handleSave}
-          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center active:scale-95 transition-transform"
+          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center active:scale-95 transition-transform flex-shrink-0"
         >
           <img
             src={saved ? "/assets/save-filled-icon.svg" : "/assets/save-icon.svg"}
             alt="Save"
-            width={20}
-            height={20}
+            width={24}
+            height={24}
             className={`transition-transform ${saveAnimating ? "scale-125" : ""}`}
           />
         </button>
@@ -65,13 +65,13 @@ export default function VersePlayerCard({
         <button
           type="button"
           onClick={onPersonalise}
-          className="flex-1 h-[54px] px-[20px] rounded-[27px] bg-[#101010] flex items-center justify-center gap-[10px] active:scale-95 transition-transform"
+          className="w-[146px] h-[54px] px-[15px] rounded-[27px] bg-[#101010] flex items-center justify-center gap-[3px] active:scale-95 transition-transform mx-auto"
         >
           <img
             src="/assets/personalise-icon.svg"
             alt="Personalise"
-            width={20}
-            height={20}
+            width={24}
+            height={24}
           />
           <span className="text-[17px] font-medium text-[#8CE4FF] tracking-[-0.43px] leading-[22px]">
             Personalise
@@ -82,13 +82,13 @@ export default function VersePlayerCard({
         <button
           type="button"
           onClick={onShare}
-          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center active:scale-95 transition-transform"
+          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center active:scale-95 transition-transform flex-shrink-0"
         >
           <img
             src="/assets/share-icon.svg"
             alt="Share"
-            width={20}
-            height={20}
+            width={24}
+            height={24}
           />
         </button>
       </div>

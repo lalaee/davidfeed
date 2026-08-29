@@ -54,14 +54,30 @@ const posts: Post[] = [
 
 export default function Feed() {
   const [activeIndex, setActiveIndex] = useState(0);
-  // Sound is a feed-wide preference, not per-card: once the viewer turns it on,
-  // every card they scroll to afterwards plays with sound. Starts off because
-  // browsers only allow autoplay with sound after a user gesture.
-  const [soundOn, setSoundOn] = useState(false);
+  // Sound is a feed-wide preference, not per-card: every card scrolled to
+  // inherits it. It starts ON so the feed opens with narration where the
+  // browser permits it — Chrome grants autoplay-with-sound on sites the viewer
+  // has engaged with before. Where it is refused, FeedItem falls back to muted
+  // and reports back through onAutoplayBlocked, and the first interaction of
+  // any kind turns it on for the rest of the session.
+  const [soundOn, setSoundOn] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const toggleSound = useCallback(() => setSoundOn((prev) => !prev), []);
+
+  // Autoplay-with-sound was refused. Drop to muted, then arm a one-shot
+  // listener so the very next interaction — a tap, a scroll, a key — turns
+  // sound on for good. Without this the viewer has to tap the card itself,
+  // and has to do it again on every card they swipe to.
+  const armUnlock = useCallback(() => {
+    setSoundOn(false);
+    const unlock = () => setSoundOn(true);
+    const opts = { once: true, passive: true } as const;
+    window.addEventListener("pointerdown", unlock, opts);
+    window.addEventListener("touchstart", unlock, opts);
+    window.addEventListener("keydown", unlock, opts);
+  }, []);
 
   // Ambient bed. Deliberately owned by the Feed, not by a card: it plays
   // continuously underneath the whole feed and must NOT restart, rewind or
@@ -74,11 +90,14 @@ export default function Feed() {
     if (!bed) return;
     bed.volume = BED_VOLUME;
     if (soundOn) {
-      bed.play().catch(() => {});
+      // The bed is never muted, so it is the first thing a browser refuses.
+      // Treat that refusal the same way a card does: fall back and wait for
+      // the first interaction.
+      bed.play().catch(armUnlock);
     } else {
       bed.pause();      // pause, never reset — resuming keeps its position
     }
-  }, [soundOn]);
+  }, [soundOn, armUnlock]);
 
   // Intersection Observer to detect active post.
   // A card is shorter than the scroll viewport, so more than one can clear 50%
@@ -174,6 +193,7 @@ export default function Feed() {
               onToggleSound={toggleSound}
               effect={post.effect}
               isNear={Math.abs(index - activeIndex) <= 1}
+              onAutoplayBlocked={armUnlock}
             />
           </div>
         ))}

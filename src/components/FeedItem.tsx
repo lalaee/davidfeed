@@ -19,6 +19,13 @@ interface FeedItemProps {
   /** Feed-wide sound preference — shared by every card so it survives scrolling. */
   soundOn?: boolean;
   onToggleSound?: () => void;
+  /**
+   * Called when the browser refuses to start audio with sound. Autoplay with
+   * sound needs a prior user gesture, so the feed optimistically tries it and
+   * falls back to muted; this tells the Feed to flip its preference and wait
+   * for the first interaction.
+   */
+  onAutoplayBlocked?: () => void;
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
   /**
@@ -49,6 +56,7 @@ export default function FeedItem({
   onToggleSound,
   effect,
   isNear = true,
+  onAutoplayBlocked,
 }: FeedItemProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -94,9 +102,12 @@ export default function FeedItem({
         .catch(() => {
           if (left) return;
           // Autoplay with sound is refused until the page has a user gesture.
+          // Fall back to muted so the card still animates and captions still
+          // run, and tell the Feed so it can wait for the first interaction.
           if (!el.muted) {
             el.muted = true;
             el.play().catch(() => {});
+            onAutoplayBlocked?.();
             return;
           }
           // Already muted, so the refusal was "no data yet" — these cards carry
@@ -146,7 +157,7 @@ export default function FeedItem({
       left = true;
       cleanups.forEach((fn) => fn());
     };
-  }, [isActive, soundOn, soundRef]);
+  }, [isActive, soundOn, soundRef, onAutoplayBlocked]);
 
   // Track playing state (of the sound-bearing element) for subtitles
   useEffect(() => {

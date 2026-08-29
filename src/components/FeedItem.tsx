@@ -21,6 +21,14 @@ interface FeedItemProps {
   onToggleSound?: () => void;
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
+  /**
+   * Whether this card is close enough to the viewport to be worth fetching.
+   * With 13 cards, preloading every loop pulled ~27MB on first paint, which
+   * stalls on mobile and exceeds what iOS will decode at once — the stills
+   * showed instead of the video. Only the focused card and its neighbours
+   * fetch eagerly; the rest take metadata only until scrolled near.
+   */
+  isNear?: boolean;
 }
 
 interface HeartPosition {
@@ -40,6 +48,7 @@ export default function FeedItem({
   soundOn = false,
   onToggleSound,
   effect,
+  isNear = true,
 }: FeedItemProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -71,19 +80,34 @@ export default function FeedItem({
     // this card — without it a fast scroll can leave the previous card audible.
     let left = false;
 
+    const cleanups: Array<() => void> = [];
+
     const start = (el: HTMLMediaElement | null) => {
       if (!el) return;
+      // A card scrolled to from far away carries preload="metadata", so it has
+      // no media data yet and play() would be refused. Kick the fetch first.
+      if (el.readyState === 0) el.load();
       el.play()
         .then(() => {
           if (left) el.pause();
         })
         .catch(() => {
+          if (left) return;
           // Autoplay with sound is refused until the page has a user gesture.
-          // Fall back to a silent play rather than leaving the card frozen.
           if (!el.muted) {
             el.muted = true;
             el.play().catch(() => {});
+            return;
           }
+          // Already muted, so the refusal was "no data yet" — these cards carry
+          // preload="metadata" until they are scrolled near, so the first play()
+          // can land before any bytes arrive. Retry once the element is ready,
+          // otherwise the card sits on its still image forever.
+          const retry = () => {
+            if (!left) el.play().catch(() => {});
+          };
+          el.addEventListener("canplay", retry, { once: true });
+          cleanups.push(() => el.removeEventListener("canplay", retry));
         });
     };
 
@@ -120,6 +144,7 @@ export default function FeedItem({
 
     return () => {
       left = true;
+      cleanups.forEach((fn) => fn());
     };
   }, [isActive, soundOn, soundRef]);
 
@@ -366,7 +391,7 @@ export default function FeedItem({
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
@@ -393,7 +418,7 @@ export default function FeedItem({
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
@@ -411,7 +436,7 @@ export default function FeedItem({
 
       {/* Narration audio track (drives sound + subtitle timing when present) */}
       {audioSrc && (
-        <audio ref={audioRef} src={audioSrc} loop muted preload="auto" />
+        <audio ref={audioRef} src={audioSrc} loop muted preload="metadata" />
       )}
 
       {/* Mute/unmute indicator — briefly shown on tap */}

@@ -173,6 +173,7 @@ export default function Feed() {
               soundOn={soundOn}
               onToggleSound={toggleSound}
               effect={post.effect}
+              isNear={Math.abs(index - activeIndex) <= 1}
             />
           </div>
         ))}

@@ -88,6 +88,10 @@ export default function FeedItem({
 
     const start = (el: HTMLMediaElement | null) => {
       if (!el) return;
+      // Re-invoking play() on an element that is already playing interrupts it
+      // and rejects the in-flight promise, which is the AbortError storm a fast
+      // scroll produces. AMP guards its PlayTask the same way.
+      if (!el.paused) return;
       // A card scrolled to from far away carries preload="metadata", so it has
       // no media data yet and play() would be refused. Kick the fetch first.
       if (el.readyState === 0) el.load();

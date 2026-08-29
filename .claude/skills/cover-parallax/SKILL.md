@@ -35,6 +35,57 @@ The honest limitation: this is *camera* movement, not *content* movement.
 Leaves do not rustle and light does not shift; a rigid scene is viewed from a
 subtly moving viewpoint.
 
+## How the motion is produced
+
+No model generates frames. The **only** model is Depth Anything V2 Small (37MB
+quantised ONNX), and its entire output is one channel — distance per pixel:
+
+```
+INPUT   pixel_values     [batch, 3, h, w]   an RGB image
+OUTPUT  predicted_depth  [batch, h, w]      no colour, no frames
+```
+
+Everything after that is arithmetic. Per frame, walk a virtual camera around a
+closed ellipse and displace each pixel in proportion to its depth:
+
+```python
+t   = 2*pi * i / n                 # exactly one period across the clip
+dx  = strength * cos(t)
+dy  = strength * 0.55 * sin(t)     # flatter ellipse reads as a dolly, not a wobble
+
+amp = depth - depth.mean()         # MEAN-CENTRED — this is what creates parallax
+mx  = x + amp * dx                 # where each output pixel samples FROM
+my  = y + amp * dy
+frame = cv2.remap(image, mx, my)   # a lookup. Nothing can be invented.
+```
+
+**`strength` is the radius of that camera orbit, in pixels.** It is the single
+free parameter, and it is mine — not from the model or any paper.
+
+Subtracting the mean is the load-bearing detail: **the multiplier changes sign
+at mean depth.** Foreground slides one way, background the other, and pixels at
+mean depth are the pivot the scene rotates around. Measured on the deer cover
+(depth 0.03–0.97, mean 0.36, so `amp` spans −0.33 to +0.61):
+
+| strength | nearest plane | farthest plane | spread | crop per edge |
+|---|---|---|---|---|
+| 14 | +8.6px | −4.6px | 13.2px | 16px |
+| 30 | +18.4px | −9.8px | 28.2px | 32px |
+| 60 | +36.9px | −19.5px | 56.4px | 62px |
+
+Note **no pixel ever moves the full `strength`** — it is a budget that depth
+spends unevenly, and the gap between the two extremes *is* the parallax.
+
+The crop is derived, not chosen: `pad = ceil(strength) + 2`, because pixels
+shifting inward leave a gap at the frame edge that has to be trimmed.
+
+The loop is exact for a mathematical reason: `cos`/`sin` over one full period
+return to their starting values, so frame *n* equals frame *0* by construction.
+No ping-pong, no crossfade, no mirrored-motion artifact.
+
+`0.55` is the other tuned constant, and like `60` it was arrived at by looking,
+not derived.
+
 ## Setup
 
 PyTorch has **no wheel for Python 3.13 on Intel macOS**, so this deliberately

@@ -28,14 +28,6 @@ interface FeedItemProps {
   onAutoplayBlocked?: () => void;
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
-  /**
-   * Whether this card is close enough to the viewport to be worth fetching.
-   * With 13 cards, preloading every loop pulled ~27MB on first paint, which
-   * stalls on mobile and exceeds what iOS will decode at once — the stills
-   * showed instead of the video. Only the focused card and its neighbours
-   * fetch eagerly; the rest take metadata only until scrolled near.
-   */
-  isNear?: boolean;
 }
 
 interface HeartPosition {
@@ -55,7 +47,6 @@ export default function FeedItem({
   soundOn = false,
   onToggleSound,
   effect,
-  isNear = true,
   onAutoplayBlocked,
 }: FeedItemProps) {
   const [isLiked, setIsLiked] = useState(false);
@@ -82,12 +73,17 @@ export default function FeedItem({
   // a dedicated audio track when provided, otherwise the underlying video.
   const soundRef = audioSrc ? audioRef : videoRef;
 
+  // Live view of isActive for async callbacks. The play() guard must ask "is
+  // this card still the active one?" rather than "did the effect re-run?" —
+  // toggling sound re-runs the effect while the card is still active, and a
+  // re-run-based guard paused the audio it had just started.
+  const isActiveRef = useRef(isActive);
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
+
   // Play/pause media based on active state. Only the focused card may make sound.
   useEffect(() => {
-    // Guards against a stale play() promise resolving after we've already left
-    // this card — without it a fast scroll can leave the previous card audible.
-    let left = false;
-
     const cleanups: Array<() => void> = [];
 
     const start = (el: HTMLMediaElement | null) => {
@@ -97,10 +93,10 @@ export default function FeedItem({
       if (el.readyState === 0) el.load();
       el.play()
         .then(() => {
-          if (left) el.pause();
+          if (!isActiveRef.current) el.pause();
         })
         .catch(() => {
-          if (left) return;
+          if (!isActiveRef.current) return;
           // Autoplay with sound is refused until the page has a user gesture.
           // Fall back to muted so the card still animates and captions still
           // run, and tell the Feed so it can wait for the first interaction.
@@ -115,7 +111,7 @@ export default function FeedItem({
           // can land before any bytes arrive. Retry once the element is ready,
           // otherwise the card sits on its still image forever.
           const retry = () => {
-            if (!left) el.play().catch(() => {});
+            if (isActiveRef.current) el.play().catch(() => {});
           };
           el.addEventListener("canplay", retry, { once: true });
           cleanups.push(() => el.removeEventListener("canplay", retry));
@@ -154,7 +150,6 @@ export default function FeedItem({
     }
 
     return () => {
-      left = true;
       cleanups.forEach((fn) => fn());
     };
   }, [isActive, soundOn, soundRef, onAutoplayBlocked]);

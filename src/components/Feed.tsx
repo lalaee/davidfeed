@@ -17,8 +17,9 @@ interface Post {
   effect?: CoverEffect;
 }
 
-/** Ambient bed level under the narration. dafod mixes voice 0.95 / bed 0.25. */
-const BED_VOLUME = 0.25;
+// NOTE: no ambient bed here. dafod's chapter mp3s already carry one — they
+// measure -22 LUFS before the first spoken word — so layering our own on top
+// played two beds at once.
 
 // The hero is the sheep footage, and it now carries Psalm 23 — "The LORD is my
 // shepherd" over grazing sheep. That makes the deer-in-shrubs cover redundant as
@@ -66,38 +67,29 @@ export default function Feed() {
 
   const toggleSound = useCallback(() => setSoundOn((prev) => !prev), []);
 
-  // Autoplay-with-sound was refused. Drop to muted, then arm a one-shot
-  // listener so the very next interaction — a tap, a scroll, a key — turns
-  // sound on for good. Without this the viewer has to tap the card itself,
-  // and has to do it again on every card they swipe to.
+  // Autoplay-with-sound was refused, so the card fell back to muted. Arm a
+  // one-shot unlock on the first gesture.
+  //
+  // Deliberately NOT pointerdown/click: the card has its own tap handler, and
+  // a window-level pointerdown fires first and turns sound on, then the card's
+  // click toggles it straight back off — which read as "click once, get a mute
+  // icon; click again to actually hear it". Listening only to gestures the
+  // card does not handle keeps a single tap doing a single thing.
+  const armedRef = useRef(false);
   const armUnlock = useCallback(() => {
     setSoundOn(false);
-    const unlock = () => setSoundOn(true);
+    if (armedRef.current) return;
+    armedRef.current = true;
+    const unlock = () => {
+      armedRef.current = false;
+      setSoundOn(true);
+    };
     const opts = { once: true, passive: true } as const;
-    window.addEventListener("pointerdown", unlock, opts);
-    window.addEventListener("touchstart", unlock, opts);
+    containerRef.current?.addEventListener("scroll", unlock, opts);
     window.addEventListener("keydown", unlock, opts);
+    window.addEventListener("wheel", unlock, opts);
   }, []);
 
-  // Ambient bed. Deliberately owned by the Feed, not by a card: it plays
-  // continuously underneath the whole feed and must NOT restart, rewind or
-  // reset when the active card changes. That is also why it is rendered
-  // outside the item wrappers — the "only the focused card may play" sweep
-  // below only reaches media inside those wrappers, so it never touches this.
-  const bedRef = useRef<HTMLAudioElement>(null);
-  useEffect(() => {
-    const bed = bedRef.current;
-    if (!bed) return;
-    bed.volume = BED_VOLUME;
-    if (soundOn) {
-      // The bed is never muted, so it is the first thing a browser refuses.
-      // Treat that refusal the same way a card does: fall back and wait for
-      // the first interaction.
-      bed.play().catch(armUnlock);
-    } else {
-      bed.pause();      // pause, never reset — resuming keeps its position
-    }
-  }, [soundOn, armUnlock]);
 
   // Intersection Observer to detect active post.
   // A card is shorter than the scroll viewport, so more than one can clear 50%
@@ -166,10 +158,6 @@ export default function Feed() {
     <>
       {/* Fixed background that extends into Safari safe area */}
       <div className="fixed inset-0 bg-black z-[-1]" />
-
-      {/* Continuous ambient bed — one element for the whole feed, outside the
-          card wrappers so scrolling never interrupts it. */}
-      <audio ref={bedRef} src="/assets/ambient-bed.m4a" loop preload="auto" />
     <div className="relative w-full md:max-w-[375px] h-[100dvh] bg-black mx-auto flex flex-col overflow-hidden">
       {/* Scrollable Feed Container */}
       <div
@@ -192,7 +180,6 @@ export default function Feed() {
               soundOn={soundOn}
               onToggleSound={toggleSound}
               effect={post.effect}
-              isNear={Math.abs(index - activeIndex) <= 1}
               onAutoplayBlocked={armUnlock}
             />
           </div>

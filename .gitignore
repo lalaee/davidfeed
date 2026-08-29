@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local venv for the cover-parallax skill (see .claude/skills/cover-parallax)
+i2v-env/

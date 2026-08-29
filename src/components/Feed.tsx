@@ -43,7 +43,7 @@ const posts: Post[] = [
   { id: 5,  title: "Psalm 5",  backgroundImage: "/assets/chapters/psalm5.jpg",  posterVideoSrc: "/assets/chapters/psalm5-loop.mp4",  audioSrc: "/assets/chapters/psalm5.mp3", subtitles: chapterSubtitles.psalm5  },
   { id: 7,  title: "Psalm 7",  backgroundImage: "/assets/chapters/psalm7.jpg",  posterVideoSrc: "/assets/chapters/psalm7-loop.mp4",  audioSrc: "/assets/chapters/psalm7.mp3", subtitles: chapterSubtitles.psalm7  },
   { id: 16, title: "Psalm 16", backgroundImage: "/assets/chapters/psalm16.jpg", posterVideoSrc: "/assets/chapters/psalm16-loop.mp4", audioSrc: "/assets/chapters/psalm16.mp3", subtitles: chapterSubtitles.psalm16 },
-  { id: 20, title: "Psalm 20", backgroundImage: "/assets/chapters/psalm20.png", posterVideoSrc: "/assets/chapters/psalm20-loop.mp4", audioSrc: "/assets/chapters/psalm20.mp3", subtitles: chapterSubtitles.psalm20 },
+  { id: 20, title: "Psalm 20", backgroundImage: "/assets/chapters/psalm20.jpg", posterVideoSrc: "/assets/chapters/psalm20-loop.mp4", audioSrc: "/assets/chapters/psalm20.mp3", subtitles: chapterSubtitles.psalm20 },
   { id: 25, title: "Psalm 25", backgroundImage: "/assets/chapters/psalm25.jpg", posterVideoSrc: "/assets/chapters/psalm25-loop.mp4", audioSrc: "/assets/chapters/psalm25.mp3", subtitles: chapterSubtitles.psalm25 },
   { id: 3,  title: "Psalm 3",  backgroundImage: "/assets/chapters/psalm3.jpg",  posterVideoSrc: "/assets/chapters/psalm3-loop.mp4",  audioSrc: "/assets/chapters/psalm3.mp3", subtitles: chapterSubtitles.psalm3  },
   { id: 45, title: "Psalm 45", backgroundImage: "/assets/chapters/psalm45.jpg", posterVideoSrc: "/assets/chapters/psalm45-loop.mp4", audioSrc: "/assets/chapters/psalm45.mp3", subtitles: chapterSubtitles.psalm45 },

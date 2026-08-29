@@ -17,9 +17,16 @@ interface Post {
   effect?: CoverEffect;
 }
 
-// NOTE: no ambient bed here. dafod's chapter mp3s already carry one — they
-// measure -22 LUFS before the first spoken word — so layering our own on top
-// played two beds at once.
+/**
+ * Ambient bed level under the narration. dafod mixes voice 0.95 / bed 0.25.
+ *
+ * The chapter mp3s are pure speech — 16 genuine silent gaps at -50dB, including
+ * a full second of silence between the spoken title and the first verse — so
+ * the bed has to come from here. (An earlier reading suggested the narrations
+ * already carried one; that was a mismeasurement: `silencedetect` had been run
+ * with `-v error`, which suppresses the filter's own output.)
+ */
+const BED_VOLUME = 0.25;
 
 // The hero is the sheep footage, and it now carries Psalm 23 — "The LORD is my
 // shepherd" over grazing sheep. That makes the deer-in-shrubs cover redundant as
@@ -66,6 +73,7 @@ export default function Feed() {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const toggleSound = useCallback(() => setSoundOn((prev) => !prev), []);
+
 
   // "Blessing" — the technique AMP Stories uses, and the reason sound kept
   // dropping out on iOS when swiping to a new card.
@@ -133,6 +141,24 @@ export default function Feed() {
     window.addEventListener("keydown", unlock, opts);
     window.addEventListener("wheel", unlock, opts);
   }, []);
+
+  // Ambient bed. Owned by the Feed, not by a card, so it plays continuously
+  // underneath the whole feed and never restarts when the active card changes.
+  // It is rendered outside the item wrappers, which is what keeps the
+  // "only the focused card may play" sweep below from touching it.
+  const bedRef = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    const bed = bedRef.current;
+    if (!bed) return;
+    bed.volume = BED_VOLUME;
+    if (soundOn) {
+      // Never muted, so this is the first thing a browser refuses; route the
+      // refusal into the same fallback a card uses.
+      bed.play().catch(armUnlock);
+    } else {
+      bed.pause();      // pause, never reset — resuming keeps its position
+    }
+  }, [soundOn, armUnlock]);
 
 
   // Intersection Observer to detect active post.
@@ -202,6 +228,10 @@ export default function Feed() {
     <>
       {/* Fixed background that extends into Safari safe area */}
       <div className="fixed inset-0 bg-black z-[-1]" />
+
+      {/* Continuous ambient bed — one element for the whole feed, outside the
+          card wrappers so scrolling never interrupts it. */}
+      <audio ref={bedRef} src="/assets/ambient-bed.m4a" loop preload="auto" />
     <div className="relative w-full md:max-w-[375px] h-[100dvh] bg-black mx-auto flex flex-col overflow-hidden">
       {/* Scrollable Feed Container */}
       <div

@@ -230,6 +230,109 @@ button, [role="button"], a {
   transition: filter 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* === Cover-art life effects (feed A/B test — one per card) === */
+
+/* 1) Ken Burns drift — slow documentary pan/zoom while the card is active */
+@keyframes fx-kenburns {
+  from { transform: scale(1.06) translate(0.8%, 0.6%); }
+  to   { transform: scale(1.18) translate(-1.6%, -1.4%); }
+}
+.fx-kenburns {
+  animation: fx-kenburns 26s ease-in-out infinite alternate;
+  animation-play-state: paused;
+  will-change: transform;
+}
+.fx-kenburns[data-active] {
+  animation-play-state: running;
+}
+
+/* 2) Voice-reactive breathing — JS feeds --breathe (0..1, narration RMS)
+   into the media box; the cover swells/brightens with the spoken word */
+.fx-breathe {
+  transform: scale(calc(1.03 + var(--breathe, 0) * 0.035));
+  filter: brightness(calc(1 + var(--breathe, 0) * 0.22))
+    saturate(calc(1 + var(--breathe, 0) * 0.25));
+  will-change: transform, filter;
+}
+.fx-breathe-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    rgba(255, 236, 200, 0.32),
+    transparent 65%
+  );
+  opacity: var(--breathe, 0);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+/* 3) Living film layer — animated grain + a slow light-band sweep */
+.fx-grain {
+  position: absolute;
+  inset: -40px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  animation: fx-grain-jitter 0.7s steps(5) infinite;
+  pointer-events: none;
+}
+@keyframes fx-grain-jitter {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-14px, 9px); }
+  40%  { transform: translate(11px, -13px); }
+  60%  { transform: translate(-7px, -8px); }
+  80%  { transform: translate(13px, 12px); }
+  100% { transform: translate(0, 0); }
+}
+.fx-lightsweep {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 245, 220, 0.13) 50%,
+    transparent 58%
+  );
+  mix-blend-mode: screen;
+  animation: fx-lightsweep 13s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes fx-lightsweep {
+  0%   { transform: translateX(-38%); }
+  55%  { transform: translateX(38%); }
+  100% { transform: translateX(-38%); }
+}
+
+/* 4) Scroll parallax — oversized cover slides against its frame as the card
+   traverses the viewport (JS sets --py on the media box) */
+.fx-parallax {
+  transform: translateY(var(--py, 0px)) scale(1.18);
+  will-change: transform;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .fx-kenburns,
+  .fx-grain,
+  .fx-lightsweep {
+    animation: none;
+  }
+
+  .fx-breathe {
+    transform: none;
+    filter: none;
+  }
+
+  .fx-breathe-glow {
+    opacity: 0;
+  }
+
+  .fx-parallax {
+    transform: scale(1.18);
+  }
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .animate-heart-pop,

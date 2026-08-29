@@ -4,7 +4,7 @@ import { useState, useEffect, RefObject } from "react";
 import { Subtitle } from "@/data/psalm23-subtitles";
 
 interface VideoSubtitlesProps {
-  videoRef: RefObject<HTMLVideoElement | null>;
+  videoRef: RefObject<HTMLMediaElement | null>;
   subtitles: Subtitle[];
   isPlaying: boolean;
 }
@@ -45,9 +45,11 @@ export default function VideoSubtitles({
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[20]">
       <div className="px-[24px] max-w-[320px]">
         <p
-          className="text-white text-center text-[24px] font-semibold leading-[1.3] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+          className="text-white text-center text-[24px] font-semibold leading-[1.3]"
           style={{
-            textShadow: "0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)",
+            // Lighter than before: one soft shadow for legibility rather than a
+            // stacked drop-shadow plus a 20px halo, which was muddying the art.
+            textShadow: "0 1px 6px rgba(0,0,0,0.55)",
           }}
         >
           {currentSubtitle.text}

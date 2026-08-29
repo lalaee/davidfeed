@@ -95,42 +95,33 @@ export default function BibleReader({
             style={{ ["--scroll-progress" as string]: scrollProgress } as React.CSSProperties}
             data-scrolled={scrollProgress > 0.05 ? "" : undefined}
           >
-            <LiquidGlass
-              radius={22}
-              depth={6}
-              strength={50}
-              chromaticAberration={3}
-              blur={4}
-              className="rounded-[22px] w-[162px] h-[63.925px]"
+            <button
+              type="button"
+              onClick={() => setShowBooks(true)}
+              className="flex items-center gap-[10px] bg-[#1c1c1e] rounded-[22px] pr-[10px] h-[63.925px] w-[162px] active:opacity-70 transition-opacity"
             >
-              <button
-                type="button"
-                onClick={() => setShowBooks(true)}
-                className="relative flex items-center gap-[10px] rounded-[22px] pr-[10px] h-[63.925px] w-[162px] active:opacity-70 transition-opacity"
-              >
-                {/* Artwork Thumbnail */}
-                <div className="w-[48px] h-[48px] rounded-[12px] border-[0.5px] border-[rgba(120,120,128,0.2)] overflow-hidden ml-[10px]">
-                  <img
-                    src={artworkSrc}
-                    alt={chapterTitle}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                {/* Chapter Title */}
-                <span className="text-[17px] font-bold text-white tracking-[-0.408px] leading-[22px]">
-                  {chapterTitle}
-                </span>
-              </button>
-            </LiquidGlass>
+              {/* Artwork Thumbnail */}
+              <div className="w-[48px] h-[48px] rounded-[12px] border-[0.5px] border-[rgba(120,120,128,0.2)] overflow-hidden ml-[10px]">
+                <img
+                  src={artworkSrc}
+                  alt={chapterTitle}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {/* Chapter Title */}
+              <span className="text-[17px] font-bold text-white tracking-[-0.408px] leading-[22px]">
+                {chapterTitle}
+              </span>
+            </button>
 
             {/* Right cluster — when collapsed, the compact Read/Listen pill rides in beside the version pill */}
             <div className="flex items-center gap-[8px]">
-              {/* Compact icon-only Read/Listen toggle — appears at scroll, hides at rest.
-                  Same LiquidGlass shell as the NIV pill so the two read as a matching cluster. */}
+              {/* Compact Read/Listen — two individual circular pills, each its own LiquidGlass.
+                  Active pill gets a white inner fill; inactive stays as glass. */}
               <div
-                className={`transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] origin-right ${
+                className={`flex items-center gap-[6px] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] origin-right overflow-hidden ${
                   isHeaderCollapsed
-                    ? "opacity-100 scale-100 w-[110px] pointer-events-auto"
+                    ? "opacity-100 scale-100 w-[82px] pointer-events-auto"
                     : "opacity-0 scale-90 w-0 pointer-events-none"
                 }`}
               >
@@ -140,59 +131,75 @@ export default function BibleReader({
                   strength={30}
                   chromaticAberration={2}
                   blur={3}
-                  className="rounded-[19.252px] h-[38px] w-[110px]"
+                  className="rounded-full h-[38px] w-[38px] flex-shrink-0"
                 >
-                  {/* Absolute overlay — guarantees the buttons + indicator fill exactly the LiquidGlass box
-                      (38×110) with no chance of flex/h-full sizing drift versus the NIV pill. */}
-                  <div className="absolute inset-0 rounded-[19.252px] p-[3px] flex items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("read")}
+                    aria-label="Read"
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    {/* White active fill — fades over the glass to indicate selection */}
                     <div
                       aria-hidden
-                      className={`absolute top-[3px] left-[3px] bottom-[3px] w-[calc(50%-3px)] bg-white rounded-[16.252px] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                        activeTab === "listen" ? "translate-x-full" : "translate-x-0"
+                      className={`absolute inset-[2px] bg-white rounded-full transition-opacity duration-200 ${
+                        activeTab === "read" ? "opacity-100" : "opacity-0"
                       }`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("read")}
-                      aria-label="Read"
-                      className="relative flex-1 flex items-center justify-center"
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      className={`relative transition-colors duration-200 ${activeTab === "read" ? "text-black" : "text-white"}`}
                     >
-                      <svg width="22" height="22" viewBox="0 0 20 20" fill="none" className={`transition-colors duration-200 ${activeTab === "read" ? "text-black" : "text-white"}`}>
-                        <path d="M4 6h12M4 10h12M4 14h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("listen")}
-                      aria-label="Listen"
-                      className="relative flex-1 flex items-center justify-center"
+                      <path d="M4 6h12M4 10h12M4 14h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </LiquidGlass>
+
+                <LiquidGlass
+                  radius={19}
+                  depth={4}
+                  strength={30}
+                  chromaticAberration={2}
+                  blur={3}
+                  className="rounded-full h-[38px] w-[38px] flex-shrink-0"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("listen")}
+                    aria-label="Listen"
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <div
+                      aria-hidden
+                      className={`absolute inset-[2px] bg-white rounded-full transition-opacity duration-200 ${
+                        activeTab === "listen" ? "opacity-100" : "opacity-0"
+                      }`}
+                    />
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      className={`relative transition-colors duration-200 ${activeTab === "listen" ? "text-black" : "text-white"}`}
                     >
-                      <svg width="22" height="22" viewBox="0 0 20 20" fill="none" className={`transition-colors duration-200 ${activeTab === "listen" ? "text-black" : "text-white"}`}>
-                        <path d="M4 12V10a6 6 0 0112 0v2M4 12a2 2 0 002 2h1v-5H6a2 2 0 00-2 2v1zM16 12a2 2 0 01-2 2h-1v-5h1a2 2 0 012 2v1z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                  </div>
+                      <path d="M4 12V10a6 6 0 0112 0v2M4 12a2 2 0 002 2h1v-5H6a2 2 0 00-2 2v1zM16 12a2 2 0 01-2 2h-1v-5h1a2 2 0 012 2v1z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
                 </LiquidGlass>
               </div>
 
               {/* Version Selector */}
-              <LiquidGlass
-                radius={19}
-                depth={4}
-                strength={30}
-                chromaticAberration={2}
-                blur={3}
-                className="rounded-[19.252px] h-[38px]"
+              <button
+                type="button"
+                className="bg-[#1c1c1e] rounded-[19.252px] px-[16px] pt-[8px] pb-[9px] h-[38px] flex items-center justify-center"
               >
-                <button
-                  type="button"
-                  className="relative rounded-[19.252px] px-[16px] pt-[8px] pb-[9px] h-[38px] flex items-center justify-center"
-                >
-                  <span className="text-[17px] font-normal text-white tracking-[-0.408px] leading-[22px]">
-                    {version}
-                  </span>
-                </button>
-              </LiquidGlass>
+                <span className="text-[17px] font-normal text-white tracking-[-0.408px] leading-[22px]">
+                  {version}
+                </span>
+              </button>
             </div>
           </div>
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback, useSyncExternalStore } from "react";
+import { useRef, useEffect, useLayoutEffect, useMemo, useState, useCallback, useSyncExternalStore } from "react";
 import FeedItem from "./FeedItem";
 import BottomNav from "./BottomNav";
 import SoundBadge from "./SoundBadge";
 import FeedHeader from "./FeedHeader";
 import { chapterPosts, type Post } from "@/data/posts";
+import { DEFAULT_TOPIC, postsForTopic } from "@/data/topics";
 
 /**
  * Ambient bed level under the narration. dafod mixes voice 0.95 / bed 0.25.
@@ -54,8 +55,14 @@ interface FeedProps {
   activeTab?: "home";
 }
 
-export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
+export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home" }: FeedProps) {
+  const [topicId, setTopicId] = useState(DEFAULT_TOPIC);
+  const posts = useMemo(() => postsForTopic(allPosts, topicId), [allPosts, topicId]);
+
+  const [activeIndexRaw, setActiveIndex] = useState(0);
+  // Derived, not synced: a shorter topic can leave the stored index past the
+  // end, and clamping in an effect would be a cascading render.
+  const activeIndex = Math.min(activeIndexRaw, posts.length - 1);
   // Sound is a feed-wide preference, not per-card: every card scrolled to
   // inherits it. It starts ON so the feed opens with narration where the
   // browser permits it — Chrome grants autoplay-with-sound on sites the viewer
@@ -210,6 +217,13 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
   // at the same time. Tracking every ratio and taking the single most-visible
   // card makes the winner deterministic, instead of depending on the order
   // entries happen to arrive in within a batch.
+  // Keyed on `posts` so a topic switch rebuilds it. With [] it was created once
+  // on mount and went on observing the ORIGINAL elements, which a topic change
+  // detaches — the new cards were never observed at all. Worse, `ratios` kept
+  // the pre-switch winner, so after switching from a 5-card topic while card 3
+  // was active, `best` stayed 3, which is out of range in a 3-card topic and
+  // left NO card marked active. Rebuilding gives a fresh map and fresh
+  // observations together.
   useEffect(() => {
     const ratios = new Map<number, number>();
 
@@ -243,7 +257,7 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [posts]);
 
   // Hard guarantee: only the focused card's media may play. Child effects run
   // before the parent's, so this sweep is the final word on every scroll —
@@ -258,6 +272,37 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
       });
     });
   }, [activeIndex]);
+
+  // Changing topic swaps the whole list under the scroller. Without this the
+  // scroller keeps its old offset — landing mid-list, or past the end of a
+  // shorter topic — and the card that was playing keeps playing, because its
+  // element is simply reused by the next post at that index.
+  const chooseTopic = useCallback((next: string) => {
+    if (next === topicId) return;
+    itemRefs.current.forEach((wrapper) =>
+      wrapper?.querySelectorAll<HTMLMediaElement>("audio, video").forEach((el) => {
+        if (!el.paused) el.pause();
+        el.muted = true;
+      }),
+    );
+    itemRefs.current = [];
+    setActiveIndex(0);
+    setTopicId(next);
+  }, [topicId]);
+
+  // The scroll reset has to happen AFTER the new list is in the DOM, which is
+  // why it is a layout effect rather than a line in chooseTopic.
+  //
+  // Cards are keyed by psalm id, so switching from a topic to one that also
+  // contains that psalm makes React MOVE the existing node rather than replace
+  // it — and the browser's scroll anchoring faithfully follows it to its new
+  // position. Going from Renewal to All psalms landed on Psalm 51 at index 11,
+  // scrollTop 7546, still playing. Resetting before the render was undone by
+  // the anchoring; overflow-anchor:none on the scroller stops it happening at
+  // all.
+  useLayoutEffect(() => {
+    containerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [topicId]);
 
   // Warm the cards ahead. Images were already being preloaded; the narration
   // was not, and that was the real reason a card could sit silent for seconds
@@ -305,7 +350,7 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
       {/* Scrollable Feed Container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scrollbar-hide pb-[20px]"
+        className="flex-1 overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scrollbar-hide pb-[20px] [overflow-anchor:none]"
       >
         {posts.map((post, index) => (
           <div
@@ -325,13 +370,14 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
               effect={post.effect}
               startAt={post.startAt}
               eagerAudio={index === 0}
+              restartToken={topicId}
               onAutoplayBlocked={armUnlock}
             />
           </div>
         ))}
       </div>
 
-      <FeedHeader label="Mental strength" />
+      <FeedHeader topicId={topicId} onSelect={chooseTopic} />
 
       <SoundBadge visible={soundBlocked} onEnable={enableSound} />
 

@@ -39,6 +39,14 @@ interface FeedItemProps {
    * card, whose audio has no earlier card to have warmed it.
    */
   eagerAudio?: boolean;
+  /**
+   * Changes whenever the feed's list is swapped out. Cards are keyed by psalm
+   * id, so a card present in both the old and new topic is MOVED rather than
+   * remounted, and isActive never changes — meaning the activation effect
+   * would not re-run and the card would sit muted after the switch. Including
+   * this in its deps forces a fresh evaluation.
+   */
+  restartToken?: string | number;
 }
 
 interface HeartPosition {
@@ -61,6 +69,7 @@ export default function FeedItem({
   onAutoplayBlocked,
   startAt,
   eagerAudio,
+  restartToken,
 }: FeedItemProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [saveAnimating, setSaveAnimating] = useState(false);
@@ -180,7 +189,7 @@ export default function FeedItem({
     return () => {
       cleanups.forEach((fn) => fn());
     };
-  }, [isActive, soundOn, soundRef, onAutoplayBlocked, startAt]);
+  }, [isActive, soundOn, soundRef, onAutoplayBlocked, startAt, restartToken]);
 
   // The <audio> carries `loop`, which restarts at 0 and would replay the dead
   // air every cycle. Catch that and jump back to the first word instead.

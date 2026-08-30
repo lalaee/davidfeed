@@ -28,6 +28,11 @@ interface FeedItemProps {
   onAutoplayBlocked?: () => void;
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
+  /**
+   * Play only this slice of the narration, looping inside it. Absolute seconds
+   * into the track, so subtitle timings need no rebasing.
+   */
+  clip?: { start: number; end: number };
 }
 
 interface HeartPosition {
@@ -48,6 +53,7 @@ export default function FeedItem({
   onToggleSound,
   effect,
   onAutoplayBlocked,
+  clip,
 }: FeedItemProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -95,6 +101,20 @@ export default function FeedItem({
       // A card scrolled to from far away carries preload="metadata", so it has
       // no media data yet and play() would be refused. Kick the fetch first.
       if (el.readyState === 0) el.load();
+      // A shorts card enters at its passage, not at 0. currentTime is ignored
+      // before metadata arrives, so defer the seek until the duration is known.
+      if (clip && el === audioRef.current) {
+        const seek = () => {
+          if (el.currentTime < clip.start || el.currentTime >= clip.end) {
+            el.currentTime = clip.start;
+          }
+        };
+        if (el.readyState >= 1) seek();
+        else {
+          el.addEventListener("loadedmetadata", seek, { once: true });
+          cleanups.push(() => el.removeEventListener("loadedmetadata", seek));
+        }
+      }
       el.play()
         .then(() => {
           if (!isActiveRef.current) el.pause();
@@ -125,7 +145,9 @@ export default function FeedItem({
     const stop = (el: HTMLMediaElement | null) => {
       if (!el) return;
       el.pause();
-      el.currentTime = 0;
+      // Rewinding a shorts card to 0 would restart it at the chapter opening,
+      // several verses before its passage.
+      el.currentTime = clip && el === audioRef.current ? clip.start : 0;
     };
 
     if (isActive) {
@@ -156,7 +178,28 @@ export default function FeedItem({
     return () => {
       cleanups.forEach((fn) => fn());
     };
-  }, [isActive, soundOn, soundRef, onAutoplayBlocked]);
+  }, [isActive, soundOn, soundRef, onAutoplayBlocked, clip]);
+
+  // Keep a shorts card inside its passage. The <audio> keeps its own `loop`,
+  // which would restart the whole chapter at 0; this catches that too, since
+  // the rewind lands below clip.start.
+  //
+  // timeupdate fires roughly every 250ms, so up to that much of the following
+  // phrase can sound before the seek lands. Every clip boundary is a caption
+  // boundary, and captions are chained end-to-start, so the bleed is the head
+  // of the next phrase rather than a chopped word.
+  useEffect(() => {
+    if (!clip) return;
+    const el = audioRef.current;
+    if (!el) return;
+    const onTime = () => {
+      if (el.currentTime >= clip.end || el.currentTime < clip.start - 0.25) {
+        el.currentTime = clip.start;
+      }
+    };
+    el.addEventListener("timeupdate", onTime);
+    return () => el.removeEventListener("timeupdate", onTime);
+  }, [clip]);
 
   // Track playing state (of the sound-bearing element) for subtitles
   useEffect(() => {

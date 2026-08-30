@@ -167,7 +167,8 @@ psalm20-loop.mp4     the loop   — posterVideoSrc
 psalm20.mp3          narration
 ```
 
-Then in `src/components/Feed.tsx`:
+Then in **`src/data/posts.ts`** (not Feed.tsx — the array moved out so the
+shorts data could import it without depending on a client component):
 
 ```tsx
 { id: 20, title: "Psalm 20",
@@ -179,6 +180,26 @@ Then in `src/components/Feed.tsx`:
 
 `FeedItem` renders the still beneath the video, so it shows while the video
 decodes and if the video ever fails. Keep both.
+
+### That alone will not put it on screen
+
+Home renders the **shorts**, not the chapter readings. `src/data/shorts.ts`
+spreads each `chapterPosts` entry — which is where your artwork and loop come
+from — and then overrides `audioSrc` and `subtitles` with the short's own
+recording. So a chapter that has no entry in the shorts `SPANS` array is
+invisible, however good its cover looks.
+
+To make a new cover actually appear:
+
+1. add the chapter to `chapterPosts` as above (artwork + `-loop.mp4`)
+2. drop its clip into `public/assets/shorts/` as `psalm<N>-v<verses>.mp3`
+3. add a `SPANS` entry in `src/data/shorts.ts` — `{ id, verses, seconds, startAt }`
+4. generate its captions with `scripts/align-shorts.py`, which force-aligns the
+   known verse text against the clip
+
+`chapterPosts` keeps the full readings and their captions, and `Feed` still
+defaults to them, so the long-form feed can be restored by passing
+`chapterPosts` — but nothing does that today.
 
 ## Verifying
 

@@ -222,34 +222,6 @@ button, [role="button"], a {
   }
 }
 
-/* Bottom nav on Liquid Glass. The shared .lg-* defaults are tuned for the
-   BibleReader header pill, and three of them are wrong for a bottom bar:
-
-   1. Tint. Figma specifies rgba(38,38,38,0.641) for the nav, not the pane's
-      default rgba(28,28,30,0.55). It has to be set HERE rather than on the
-      wrapper, because a wrapper background paints before negative z-index
-      children and the pane would tint on top of it.
-   2. Shadow. The default casts 36-64px DOWNWARD so verses scrolling into the
-      gap beneath the header get darkened. The nav already sits 8px off the
-      bottom edge, so that cast falls off-screen and only bleeds sideways.
-      Replaced with a tight lift that reads against the video behind it.
-   3. Press spring. :active propagates from the tapped tab up to the wrapper,
-      so the default scale(0.92) shrinks the WHOLE bar when one tab is pressed.
-      Both hover and active transforms are disabled; the nav.selected pill is
-      the selection affordance. */
-.bottom-nav-glass.lg-wrap:hover,
-.bottom-nav-glass.lg-wrap:active {
-  transform: none;
-}
-.bottom-nav-glass .lg-pane {
-  background: rgba(38, 38, 38, 0.641);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.32),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.18),
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 8px 32px rgba(0, 0, 0, 0.45);
-}
-
 /* iOS 26 toolbar morph — the header pill row shrinks ~4% over the first 80px
    of verse-scroll, and the glass panes saturate up slightly to compensate for
    the reduced backdrop contrast at smaller sizes. --scroll-progress is set

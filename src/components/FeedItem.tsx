@@ -108,6 +108,16 @@ export default function FeedItem({
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const muteHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Held so a repeat tap can cancel the previous one. Without this the earlier
+  // tap's timer survives and clears the class partway through the NEW
+  // animation. Measured: tapping share ~1100ms after the last tap killed the
+  // fresh animation 84ms in — before its launch at 288ms — so nothing moved,
+  // while a tap at 300ms was cut at 884ms, after the flight, and looked fine.
+  // That gap-dependence is why it read as random.
+  const shareTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restartFrameRef = useRef<number | null>(null);
+  const shareFrameRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const posterVideoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -313,6 +323,10 @@ export default function FeedItem({
     return () => {
       if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
       if (muteHintTimeoutRef.current) clearTimeout(muteHintTimeoutRef.current);
+      if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (restartFrameRef.current) cancelAnimationFrame(restartFrameRef.current);
+      if (shareFrameRef.current) cancelAnimationFrame(shareFrameRef.current);
     };
   }, []);
 
@@ -496,9 +510,15 @@ export default function FeedItem({
 
   const handleSave = useCallback(() => {
     setIsSaved((prev) => !prev);
-    setSaveAnimating(true);
-    // Must outlast the 1.05s pop, or the spring is truncated.
-    setTimeout(() => setSaveAnimating(false), 1200);
+    // Drop the class for a frame first. Setting it true when it is already
+    // true is not a state change, so React does not re-render and the CSS
+    // animation never replays — the second tap would do nothing.
+    setSaveAnimating(false);
+    if (restartFrameRef.current) cancelAnimationFrame(restartFrameRef.current);
+    restartFrameRef.current = requestAnimationFrame(() => setSaveAnimating(true));
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    // Must outlast the 1.13s pop, or the spring is truncated.
+    saveTimerRef.current = setTimeout(() => setSaveAnimating(false), 1250);
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
@@ -508,10 +528,12 @@ export default function FeedItem({
     // Restart cleanly if it is tapped again mid-flight; re-applying the same
     // class without clearing it first would not replay the animation.
     setShareAnimating(false);
-    requestAnimationFrame(() => setShareAnimating(true));
+    if (shareFrameRef.current) cancelAnimationFrame(shareFrameRef.current);
+    shareFrameRef.current = requestAnimationFrame(() => setShareAnimating(true));
+    if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
     // Must outlast the 1.15s send animation; clearing the class early
     // would cut the spring off mid-bounce.
-    setTimeout(() => setShareAnimating(false), 1200);
+    shareTimerRef.current = setTimeout(() => setShareAnimating(false), 1250);
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }

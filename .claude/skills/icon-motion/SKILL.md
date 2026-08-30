@@ -94,17 +94,40 @@ icon-pop  1.13s  →  clear at 1200ms
 send-off  1.15s  →  clear at 1200ms
 ```
 
-**2. CSS `:active` cannot drive the press.** It matches the pressed element and
+**2. Re-applying the animation class is not a state change.** `setAnimating(true)`
+when it is already `true` does not re-render, so the CSS animation never
+replays and the second tap does nothing at all. Drop the class for one frame
+first, then set it:
+
+```tsx
+setAnimating(false);
+if (frameRef.current) cancelAnimationFrame(frameRef.current);
+frameRef.current = requestAnimationFrame(() => setAnimating(true));
+```
+
+**3. The reset timer must be held in a ref, or a repeat tap is killed by the
+PREVIOUS tap's timer.** This is failure #1 with a delay fuse, and it presents as
+random because whether it shows depends on the gap between taps. Measured on the
+share glyph: a tap 1100ms after the last one had the stale timer fire 84ms in —
+before the glyph's launch at 288ms — so it never moved (travel 2.26px against
+9.76px working). A tap at 300ms was cut at 884ms, after the flight was over, and
+looked perfect. Same code, same bug, opposite verdict.
+
+Give each animation its **own** timer ref *and* its own rAF handle. Sharing one
+frame handle across two buttons means tapping both inside a single frame
+cancels the first one's pending restart.
+
+**4. CSS `:active` cannot drive the press.** It matches the pressed element and
 its **ancestors**, never its children — so it never reaches an icon inside a
 button. On iOS Safari it is unreliable even on the button itself. Press state is
 React state, driven by pointer events. See `IconButton.tsx`.
 
-**3. A missed release leaves the button permanently shrunk.** Once the commit
+**5. A missed release leaves the button permanently shrunk.** Once the commit
 animation ends, the inline press transform reappears. Every exit must clear it:
 `pointerup`, `pointerleave`, `pointerout`, `pointercancel`, `blur`, **and** the
 click itself.
 
-**4. Nominal icon sizes are not visual sizes.** Glyphs fill their own viewBoxes
+**6. Nominal icon sizes are not visual sizes.** Glyphs fill their own viewBoxes
 by wildly different amounts — 86.5% (audio-on), 71.3% (audio-off), 64.7% (play),
 49.0% (pause). Equal `size` props left the play mark at 0.295 of its circle
 against the speaker's 0.419. Derive the size:
@@ -117,13 +140,13 @@ Some spread always remains — a slash is smaller than sound waves, two bars
 smaller than a triangle. Accept it. Giving each state its own size makes the
 glyph jump as it toggles.
 
-**5. Icons must be inline SVG, not `<img src>`.** An `<img>` with `alt=""`
+**7. Icons must be inline SVG, not `<img src>`.** An `<img>` with `alt=""`
 renders a broken-image box on any load hiccup, and CSS custom properties do not
 cross the `<img>` boundary — so the `fill="var(--fill-0, …)"` in every Figma
 export silently resolves to nothing. Inline, paths take `currentColor`. See
 `icons.tsx`.
 
-**6. Reduced motion needs the right property.** `animation: none` does nothing
+**8. Reduced motion needs the right property.** `animation: none` does nothing
 to a *transition*. The press is direct manipulation rather than decoration, so
 it stays under `prefers-reduced-motion` — just instant, via `transition: none`.
 The commit animations drop entirely.
@@ -137,6 +160,9 @@ through the browser tools:
 - **Turning points** — a real spring has 4–5, each closer to rest than the last.
 - **Not truncated** — last motion must land near the animation's full duration.
   If it stops early, a reset timer is cutting it (failure #1).
+- **Tap it twice, at several gaps.** One tap in isolation passes while every one
+  of failures #1-#3 is live. Sweep 300/700/1100/1250ms; a fault that only
+  appears at one gap is a stale timer.
 - **Ends at exactly 1.0** — never 0.99, never 1.01.
 - **Front the tab first.** `requestAnimationFrame` does not fire in a background
   tab, and Chrome suspends video there while letting audio run. Measurements

@@ -2,7 +2,7 @@ import Feed from "@/components/Feed";
 
 export default function Home() {
   return (
-    <main className="h-screen bg-black">
+    <main className="h-[100dvh] bg-black">
       <Feed />
     </main>
   );

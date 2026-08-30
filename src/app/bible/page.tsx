@@ -50,7 +50,7 @@ const psalm46Verses = [
 
 export default function BiblePage() {
   return (
-    <main className="h-screen bg-black">
+    <main className="h-[100dvh] bg-black">
       <BibleReader
         chapterTitle="Psalm 46"
         artworkSrc="/assets/feed-poster-frame.jpg"

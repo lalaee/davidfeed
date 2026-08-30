@@ -176,8 +176,12 @@ button, [role="button"], a {
   transition: transform 420ms cubic-bezier(0.34, 1.7, 0.5, 1);
   transform-origin: center center;
 }
-.lg-wrap:hover {
-  transform: scale(1.04);
+/* Hover only where a pointer can actually leave. On touch, :hover latches
+   after a tap and the highlight stays lit until you tap elsewhere. */
+@media (hover: hover) and (pointer: fine) {
+  .lg-wrap:hover {
+    transform: scale(1.04);
+  }
 }
 .lg-wrap:active {
   transform: scale(0.92);
@@ -212,8 +216,10 @@ button, [role="button"], a {
   transition: opacity 240ms ease-out;
   pointer-events: none;
 }
-.lg-wrap:hover .lg-pane::after {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .lg-wrap:hover .lg-pane::after {
+    opacity: 1;
+  }
 }
 
 /* Bottom nav on Liquid Glass. The shared .lg-* defaults are tuned for the
@@ -382,16 +388,27 @@ button, [role="button"], a {
 }
 
 /* Prevent pull-to-refresh on mobile */
-html, body {
-  overscroll-behavior-y: contain;
-}
+/* The document itself must never scroll. Every page hands scrolling to an
+   inner container (Feed and BibleReader each own an overflow-y scroller;
+   Library clips), so locking html/body costs nothing — and it is what keeps
+   the fixed bottom nav pinned on iOS.
 
-/* Extend background into safe areas on iOS Safari */
+   Safari resolves 100vh against the LARGE viewport: the height the page would
+   have with the toolbars hidden. A shell sized 100vh is therefore taller than
+   what is actually visible while the URL bar and bottom toolbar are on
+   screen. body (min-height only, no cap) grows to fit it, so the document
+   picks up a scrollable band the height of those toolbars. Dragging inside
+   that band scrolls the DOCUMENT, and iOS drags position:fixed elements along
+   with it — the whole page slides up, nav included, revealing black beneath.
+
+   Two guards: the shells now use 100dvh, the dynamic viewport, which excludes
+   the visible toolbars so the overflow never appears; and overflow:hidden
+   here means the document cannot scroll even if a future child overshoots. */
 html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior-y: none;
   background: var(--background);
-  min-height: 100%;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
 }
 
 /* Hide Agentation and Next.js icons on mobile */

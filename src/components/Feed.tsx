@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback, useSyncExternalStore } from "
 import FeedItem from "./FeedItem";
 import BottomNav from "./BottomNav";
 import SoundBadge from "./SoundBadge";
+import FeedHeader from "./FeedHeader";
 import { chapterPosts, type Post } from "@/data/posts";
 
 /**
@@ -191,6 +192,18 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
     }
   }, [soundOn, armUnlock]);
 
+  // The bed is audio, so a hidden tab usually leaves it alone — but a
+  // backgrounded mobile browser does stop it, and nothing else would restart it.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      const bed = bedRef.current;
+      if (soundOn && bed?.paused) bed.play().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [soundOn]);
+
 
   // Intersection Observer to detect active post.
   // A card is shorter than the scroll viewport, so more than one can clear 50%
@@ -317,6 +330,8 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
           </div>
         ))}
       </div>
+
+      <FeedHeader label="Mental strength" />
 
       <SoundBadge visible={soundBlocked} onEnable={enableSound} />
 

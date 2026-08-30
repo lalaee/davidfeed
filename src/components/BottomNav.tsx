@@ -13,6 +13,15 @@ import LiquidGlass from "./LiquidGlass";
  *
  * Container      296.4x75, radius 47.619, no effects
  *                horizontal auto-layout, padding 4.762/38.095, gap 47.619, top-aligned
+ *
+ *                Side padding is tightened to 30px from Figma's 38.095, and the
+ *                width is left to fit-content so the padding actually drives it.
+ *                At a fixed 296.4 with justify-center the two cancel out and
+ *                changing the padding does nothing visible.
+ *
+ *                30px is close to the floor. nav.selected overhangs its 41.7
+ *                item by (91.3-41.7)/2 = 24.8 each side and the label band by
+ *                25, so below ~25.2 they start poking out of the bar.
  * Navicon        41.7x65.5, sitting at y=4.8 in the container
  * nav.selected   91.3x64.3 at x=-25.2 y=0.3, radius 57.143
  *                fill #4F544E at 50% — a deliberate departure from Figma's flat
@@ -59,8 +68,8 @@ export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
         strength={60}
         chromaticAberration={4}
         blur={4}
-        className="bottom-nav-glass flex h-[75px] w-[296.4px] items-start justify-center
-                   gap-[47.619px] rounded-[47.619px] px-[38.095px] py-[4.762px]"
+        className="bottom-nav-glass flex h-[75px] w-fit items-start justify-center
+                   gap-[47.619px] rounded-[47.619px] px-[30px] py-[4.762px]"
       >
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;

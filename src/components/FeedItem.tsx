@@ -497,7 +497,8 @@ export default function FeedItem({
   const handleSave = useCallback(() => {
     setIsSaved((prev) => !prev);
     setSaveAnimating(true);
-    setTimeout(() => setSaveAnimating(false), 300);
+    // Must outlast the 1.05s pop, or the spring is truncated.
+    setTimeout(() => setSaveAnimating(false), 1200);
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
@@ -508,7 +509,9 @@ export default function FeedItem({
     // class without clearing it first would not replay the animation.
     setShareAnimating(false);
     requestAnimationFrame(() => setShareAnimating(true));
-    setTimeout(() => setShareAnimating(false), 640);
+    // Must outlast the 1.15s send animation; clearing the class early
+    // would cut the spring off mid-bounce.
+    setTimeout(() => setShareAnimating(false), 1200);
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }

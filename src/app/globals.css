@@ -73,30 +73,245 @@ button, [role="button"], a {
    then popping — the two halves read as one gesture.
    Peak is 1.18, not the old 1.3: at 40px, 1.3 overshoots far enough to read as
    a glitch rather than a response. */
-/* Each segment carries its own timing function, which is the whole point.
-   A spring easing describes ONE journey from start to finish; applied to a
-   multi-keyframe animation it is re-applied between every pair, so the icon
-   re-accelerates on the way into rest and arrives with velocity still on it.
-   That is what reads as a hard landing.
+/* An iOS bounce is a damped spring, not a single overshoot — it passes rest,
+   comes back under, passes again, and settles. So the spring's POSITIONS are
+   baked into dense keyframes here rather than used as an easing function.
+   That was an earlier mistake: an easing describes ONE journey, and applying
+   it between several keyframes re-applies it to each, which is what made the
+   icon land hard.
 
-   The tail is deliberately lopsided: the last 30% of the time covers 0.008 of
-   scale, so it is almost stationary before it stops. Speed near zero at the
-   end is what "settling" actually is. */
+   Modelled as SwiftUI defines a spring — response 0.4s, dampingFraction 0.26 —
+   plus the release velocity the finger imparts, which is what produces a
+   visible overshoot rather than a mathematically-correct-but-invisible 1.04.
+
+   0.26 is far looser than Apple's own presets (1.0 .smooth, 0.85 .snappy,
+   0.7 .bouncy) and is a deliberate choice for a feed confirmation that should
+   feel playful. It is close to the practical floor: settling time is
+   4.6/(zeta*omega), so anything looser will not finish inside the ~1100ms a
+   single gesture is allowed.
+
+   0.94 -> 1.359 -> 0.846 -> 1.0 across 5 turning points:
+   [1.359, 0.846, 1.066, 0.971, 1.012]. Timing between samples is linear ON PURPOSE — the samples
+   already are the curve, so easing them again would distort it. */
 @keyframes icon-pop {
   0% {
-    transform: scale(0.94);
-    animation-timing-function: cubic-bezier(0.34, 0.72, 0.46, 1);
+    transform: scale(0.9400);
   }
-  40% {
-    transform: scale(1.072);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1);
+  1.389% {
+    transform: scale(1.0657);
   }
-  70% {
-    transform: scale(0.992);
-    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  2.778% {
+    transform: scale(1.1725);
+  }
+  4.167% {
+    transform: scale(1.2567);
+  }
+  5.556% {
+    transform: scale(1.3162);
+  }
+  6.944% {
+    transform: scale(1.3506);
+  }
+  8.333% {
+    transform: scale(1.3609);
+  }
+  9.722% {
+    transform: scale(1.3496);
+  }
+  11.11% {
+    transform: scale(1.3197);
+  }
+  12.5% {
+    transform: scale(1.2753);
+  }
+  13.89% {
+    transform: scale(1.2206);
+  }
+  15.28% {
+    transform: scale(1.1600);
+  }
+  16.67% {
+    transform: scale(1.0976);
+  }
+  18.06% {
+    transform: scale(1.0372);
+  }
+  19.44% {
+    transform: scale(0.9819);
+  }
+  20.83% {
+    transform: scale(0.9343);
+  }
+  22.22% {
+    transform: scale(0.8961);
+  }
+  23.61% {
+    transform: scale(0.8685);
+  }
+  25% {
+    transform: scale(0.8516);
+  }
+  26.39% {
+    transform: scale(0.8452);
+  }
+  27.78% {
+    transform: scale(0.8483);
+  }
+  29.17% {
+    transform: scale(0.8597);
+  }
+  30.56% {
+    transform: scale(0.8777);
+  }
+  31.94% {
+    transform: scale(0.9004);
+  }
+  33.33% {
+    transform: scale(0.9261);
+  }
+  34.72% {
+    transform: scale(0.9529);
+  }
+  36.11% {
+    transform: scale(0.9791);
+  }
+  37.5% {
+    transform: scale(1.0033);
+  }
+  38.89% {
+    transform: scale(1.0245);
+  }
+  40.28% {
+    transform: scale(1.0417);
+  }
+  41.67% {
+    transform: scale(1.0545);
+  }
+  43.06% {
+    transform: scale(1.0626);
+  }
+  44.44% {
+    transform: scale(1.0662);
+  }
+  45.83% {
+    transform: scale(1.0657);
+  }
+  47.22% {
+    transform: scale(1.0614);
+  }
+  48.61% {
+    transform: scale(1.0542);
+  }
+  50% {
+    transform: scale(1.0448);
+  }
+  51.39% {
+    transform: scale(1.0340);
+  }
+  52.78% {
+    transform: scale(1.0225);
+  }
+  54.17% {
+    transform: scale(1.0112);
+  }
+  55.56% {
+    transform: scale(1.0005);
+  }
+  56.94% {
+    transform: scale(0.9912);
+  }
+  58.33% {
+    transform: scale(0.9834);
+  }
+  59.72% {
+    transform: scale(0.9775);
+  }
+  61.11% {
+    transform: scale(0.9737);
+  }
+  62.5% {
+    transform: scale(0.9717);
+  }
+  63.89% {
+    transform: scale(0.9716);
+  }
+  65.28% {
+    transform: scale(0.9732);
+  }
+  66.67% {
+    transform: scale(0.9760);
+  }
+  68.06% {
+    transform: scale(0.9799);
+  }
+  69.44% {
+    transform: scale(0.9845);
+  }
+  70.83% {
+    transform: scale(0.9894);
+  }
+  72.22% {
+    transform: scale(0.9943);
+  }
+  73.61% {
+    transform: scale(0.9989);
+  }
+  75% {
+    transform: scale(1.0031);
+  }
+  76.39% {
+    transform: scale(1.0065);
+  }
+  77.78% {
+    transform: scale(1.0092);
+  }
+  79.17% {
+    transform: scale(1.0110);
+  }
+  80.56% {
+    transform: scale(1.0120);
+  }
+  81.94% {
+    transform: scale(1.0122);
+  }
+  83.33% {
+    transform: scale(1.0117);
+  }
+  84.72% {
+    transform: scale(1.0106);
+  }
+  86.11% {
+    transform: scale(1.0090);
+  }
+  87.5% {
+    transform: scale(1.0071);
+  }
+  88.89% {
+    transform: scale(1.0050);
+  }
+  90.28% {
+    transform: scale(1.0029);
+  }
+  91.67% {
+    transform: scale(1.0008);
+  }
+  93.06% {
+    transform: scale(0.9990);
+  }
+  94.44% {
+    transform: scale(0.9975);
+  }
+  95.83% {
+    transform: scale(0.9962);
+  }
+  97.22% {
+    transform: scale(0.9954);
+  }
+  98.61% {
+    transform: scale(0.9949);
   }
   100% {
-    transform: scale(1);
+    transform: scale(1.0000);
   }
 }
 
@@ -104,7 +319,7 @@ button, [role="button"], a {
    An interruptible 420ms reads faster than a rigid 300ms — the settle is what
    sells it, and ease-out has no settle. */
 .animate-icon-pop {
-  animation: icon-pop 0.62s forwards;
+  animation: icon-pop 1.13s linear forwards;
 }
 
 /* Press feedback. Instant on pointer-down, unlike the pop, which only plays on
@@ -138,21 +353,245 @@ button, [role="button"], a {
     transform: translate(0, 0) scale(0.94) rotate(0deg);
     opacity: 1;
   }
-  30% {
+  25% {
     transform: translate(7px, -7px) scale(0.88) rotate(5deg);
     opacity: 0;
   }
-  31% {
+  26% {
     transform: translate(-6px, 6px) scale(0.9) rotate(-3deg);
     opacity: 0;
   }
+  28% {
+    transform: translate(-6.000px, 6.000px) scale(0.9000) rotate(-3.00deg);
+    opacity: 0.000;
+  }
+  29.29% {
+    transform: translate(-5.222px, 5.222px) scale(0.9130) rotate(-2.61deg);
+    opacity: 0.415;
+  }
+  30.57% {
+    transform: translate(-4.284px, 4.284px) scale(0.9286) rotate(-2.14deg);
+    opacity: 0.915;
+  }
+  31.86% {
+    transform: translate(-3.253px, 3.253px) scale(0.9458) rotate(-1.63deg);
+    opacity: 1.000;
+  }
+  33.14% {
+    transform: translate(-2.193px, 2.193px) scale(0.9634) rotate(-1.10deg);
+    opacity: 1.000;
+  }
+  34.43% {
+    transform: translate(-1.161px, 1.161px) scale(0.9806) rotate(-0.58deg);
+    opacity: 1.000;
+  }
+  35.71% {
+    transform: translate(-0.205px, 0.205px) scale(0.9966) rotate(-0.10deg);
+    opacity: 1.000;
+  }
+  37% {
+    transform: translate(0.636px, -0.636px) scale(1.0106) rotate(0.32deg);
+    opacity: 1.000;
+  }
+  38.29% {
+    transform: translate(1.337px, -1.337px) scale(1.0223) rotate(0.67deg);
+    opacity: 1.000;
+  }
+  39.57% {
+    transform: translate(1.879px, -1.879px) scale(1.0313) rotate(0.94deg);
+    opacity: 1.000;
+  }
+  40.86% {
+    transform: translate(2.257px, -2.257px) scale(1.0376) rotate(1.13deg);
+    opacity: 1.000;
+  }
+  42.14% {
+    transform: translate(2.472px, -2.472px) scale(1.0412) rotate(1.24deg);
+    opacity: 1.000;
+  }
+  43.43% {
+    transform: translate(2.536px, -2.536px) scale(1.0423) rotate(1.27deg);
+    opacity: 1.000;
+  }
+  44.71% {
+    transform: translate(2.464px, -2.464px) scale(1.0411) rotate(1.23deg);
+    opacity: 1.000;
+  }
+  46% {
+    transform: translate(2.278px, -2.278px) scale(1.0380) rotate(1.14deg);
+    opacity: 1.000;
+  }
+  47.29% {
+    transform: translate(2.002px, -2.002px) scale(1.0334) rotate(1.00deg);
+    opacity: 1.000;
+  }
+  48.57% {
+    transform: translate(1.661px, -1.661px) scale(1.0277) rotate(0.83deg);
+    opacity: 1.000;
+  }
+  49.86% {
+    transform: translate(1.282px, -1.282px) scale(1.0214) rotate(0.64deg);
+    opacity: 1.000;
+  }
+  51.14% {
+    transform: translate(0.887px, -0.887px) scale(1.0148) rotate(0.44deg);
+    opacity: 1.000;
+  }
+  52.43% {
+    transform: translate(0.500px, -0.500px) scale(1.0083) rotate(0.25deg);
+    opacity: 1.000;
+  }
+  53.71% {
+    transform: translate(0.138px, -0.138px) scale(1.0023) rotate(0.07deg);
+    opacity: 1.000;
+  }
+  55% {
+    transform: translate(-0.184px, 0.184px) scale(0.9969) rotate(-0.09deg);
+    opacity: 1.000;
+  }
+  56.29% {
+    transform: translate(-0.455px, 0.455px) scale(0.9924) rotate(-0.23deg);
+    opacity: 1.000;
+  }
+  57.57% {
+    transform: translate(-0.668px, 0.668px) scale(0.9889) rotate(-0.33deg);
+    opacity: 1.000;
+  }
+  58.86% {
+    transform: translate(-0.820px, 0.820px) scale(0.9863) rotate(-0.41deg);
+    opacity: 1.000;
+  }
+  60.14% {
+    transform: translate(-0.910px, 0.910px) scale(0.9848) rotate(-0.46deg);
+    opacity: 1.000;
+  }
+  61.43% {
+    transform: translate(-0.944px, 0.944px) scale(0.9843) rotate(-0.47deg);
+    opacity: 1.000;
+  }
+  62.71% {
+    transform: translate(-0.926px, 0.926px) scale(0.9846) rotate(-0.46deg);
+    opacity: 1.000;
+  }
+  64% {
+    transform: translate(-0.863px, 0.863px) scale(0.9856) rotate(-0.43deg);
+    opacity: 1.000;
+  }
+  65.29% {
+    transform: translate(-0.766px, 0.766px) scale(0.9872) rotate(-0.38deg);
+    opacity: 1.000;
+  }
+  66.57% {
+    transform: translate(-0.643px, 0.643px) scale(0.9893) rotate(-0.32deg);
+    opacity: 1.000;
+  }
+  67.86% {
+    transform: translate(-0.503px, 0.503px) scale(0.9916) rotate(-0.25deg);
+    opacity: 1.000;
+  }
+  69.14% {
+    transform: translate(-0.357px, 0.357px) scale(0.9941) rotate(-0.18deg);
+    opacity: 1.000;
+  }
+  70.43% {
+    transform: translate(-0.212px, 0.212px) scale(0.9965) rotate(-0.11deg);
+    opacity: 1.000;
+  }
+  71.71% {
+    transform: translate(-0.075px, 0.075px) scale(0.9988) rotate(-0.04deg);
+    opacity: 1.000;
+  }
+  73% {
+    transform: translate(0.048px, -0.048px) scale(1.0008) rotate(0.02deg);
+    opacity: 1.000;
+  }
+  74.29% {
+    transform: translate(0.153px, -0.153px) scale(1.0025) rotate(0.08deg);
+    opacity: 1.000;
+  }
+  75.57% {
+    transform: translate(0.236px, -0.236px) scale(1.0039) rotate(0.12deg);
+    opacity: 1.000;
+  }
+  76.86% {
+    transform: translate(0.297px, -0.297px) scale(1.0049) rotate(0.15deg);
+    opacity: 1.000;
+  }
+  78.14% {
+    transform: translate(0.335px, -0.335px) scale(1.0056) rotate(0.17deg);
+    opacity: 1.000;
+  }
+  79.43% {
+    transform: translate(0.351px, -0.351px) scale(1.0058) rotate(0.18deg);
+    opacity: 1.000;
+  }
+  80.71% {
+    transform: translate(0.347px, -0.347px) scale(1.0058) rotate(0.17deg);
+    opacity: 1.000;
+  }
+  82% {
+    transform: translate(0.327px, -0.327px) scale(1.0054) rotate(0.16deg);
+    opacity: 1.000;
+  }
+  83.29% {
+    transform: translate(0.292px, -0.292px) scale(1.0049) rotate(0.15deg);
+    opacity: 1.000;
+  }
+  84.57% {
+    transform: translate(0.248px, -0.248px) scale(1.0041) rotate(0.12deg);
+    opacity: 1.000;
+  }
+  85.86% {
+    transform: translate(0.197px, -0.197px) scale(1.0033) rotate(0.10deg);
+    opacity: 1.000;
+  }
+  87.14% {
+    transform: translate(0.143px, -0.143px) scale(1.0024) rotate(0.07deg);
+    opacity: 1.000;
+  }
+  88.43% {
+    transform: translate(0.088px, -0.088px) scale(1.0015) rotate(0.04deg);
+    opacity: 1.000;
+  }
+  89.71% {
+    transform: translate(0.037px, -0.037px) scale(1.0006) rotate(0.02deg);
+    opacity: 1.000;
+  }
+  91% {
+    transform: translate(-0.010px, 0.010px) scale(0.9998) rotate(-0.01deg);
+    opacity: 1.000;
+  }
+  92.29% {
+    transform: translate(-0.050px, 0.050px) scale(0.9992) rotate(-0.03deg);
+    opacity: 1.000;
+  }
+  93.57% {
+    transform: translate(-0.083px, 0.083px) scale(0.9986) rotate(-0.04deg);
+    opacity: 1.000;
+  }
+  94.86% {
+    transform: translate(-0.107px, 0.107px) scale(0.9982) rotate(-0.05deg);
+    opacity: 1.000;
+  }
+  96.14% {
+    transform: translate(-0.123px, 0.123px) scale(0.9980) rotate(-0.06deg);
+    opacity: 1.000;
+  }
+  97.43% {
+    transform: translate(-0.130px, 0.130px) scale(0.9978) rotate(-0.07deg);
+    opacity: 1.000;
+  }
+  98.71% {
+    transform: translate(-0.130px, 0.130px) scale(0.9978) rotate(-0.06deg);
+    opacity: 1.000;
+  }
   100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-    opacity: 1;
+    transform: translate(0.000px, 0.000px) scale(1.0000) rotate(0.00deg);
+    opacity: 1.000;
   }
 }
 .animate-send {
-  animation: send-off 0.78s linear(0.0000, 0.0398, 0.1336, 0.2525, 0.3777, 0.4974, 0.6051, 0.6979, 0.7749, 0.8370, 0.8858, 0.9230, 0.9507, 0.9708, 0.9848, 0.9942, 1.0002, 1.0037, 1.0056, 1.0062, 1.0062, 1.0057, 1.0050, 1.0042, 1.0034, 1.0027, 1.0000) forwards;
+  animation: send-off 1.15s linear forwards;
 }
 
 /* Slide in from right */

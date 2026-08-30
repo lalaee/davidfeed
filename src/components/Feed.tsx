@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import FeedItem from "./FeedItem";
 import BottomNav from "./BottomNav";
+import SoundBadge from "./SoundBadge";
 import { chapterPosts, type Post } from "@/data/posts";
 
 /**
@@ -15,6 +16,29 @@ import { chapterPosts, type Post } from "@/data/posts";
  * with `-v error`, which suppresses the filter's own output.)
  */
 const BED_VOLUME = 0.25;
+
+/** Remembers only an explicit choice, so a deliberate mute survives a reload. */
+const SOUND_PREF = "davidfeed:sound";
+
+/** The verdict never changes after load, so there is nothing to subscribe to. */
+const subscribeNever = () => () => {};
+
+/**
+ * Whether this browser will let the feed open with sound. Must return a stable
+ * primitive — useSyncExternalStore re-reads it on every render.
+ */
+function readAudioVerdict(): "allowed" | "blocked" | "chosen-silent" {
+  try {
+    if (localStorage.getItem(SOUND_PREF) === "off") return "chosen-silent";
+  } catch {}
+  const getPolicy = (
+    navigator as Navigator & { getAutoplayPolicy?: (t: string) => string }
+  ).getAutoplayPolicy;
+  // No policy API (Safari, older Chrome): stay optimistic and let the rejected
+  // play() below report back, which is the behaviour that shipped before.
+  if (!getPolicy) return "allowed";
+  return getPolicy.call(navigator, "mediaelement") === "allowed" ? "allowed" : "blocked";
+}
 
 
 interface FeedProps {
@@ -37,12 +61,50 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
   // has engaged with before. Where it is refused, FeedItem falls back to muted
   // and reports back through onAutoplayBlocked, and the first interaction of
   // any kind turns it on for the rest of the session.
-  const [soundOn, setSoundOn] = useState(true);
+  // Sound is DERIVED, not synced. The obvious shape — read the autoplay policy
+  // in a mount effect and setState — is a cascading render, and the browser
+  // value is knowable before first paint anyway. useSyncExternalStore is the
+  // hook meant for this: it takes a server snapshot and a client snapshot and
+  // reconciles them without a hydration mismatch.
+  //
+  // It is also what makes Chrome's self-healing observable. Its Media
+  // Engagement Index accrues across visits that play sound for 7s+, and once
+  // it clears the threshold getAutoplayPolicy returns "allowed" — so a
+  // returning viewer lands with audio and never sees the badge, with nothing
+  // to configure and no code change.
+  const audioVerdict = useSyncExternalStore(
+    subscribeNever,
+    readAudioVerdict,
+    () => "allowed" as const,      // server: assume the best, reconcile on the client
+  );
+
+  // null until the viewer expresses a preference; their choice always wins.
+  const [userChoice, setUserChoice] = useState<boolean | null>(null);
+  // A play() that was actually rejected, for browsers with no policy API.
+  const [refused, setRefused] = useState(false);
+
+  const soundOn = userChoice ?? (audioVerdict === "allowed" && !refused);
+  // Only a REFUSAL earns an explanation. Someone who chose silence is left alone.
+  const soundBlocked =
+    userChoice === null && (audioVerdict === "blocked" || refused);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const toggleSound = useCallback(() => setSoundOn((prev) => !prev), []);
-
+  const remember = (on: boolean) => {
+    try { localStorage.setItem(SOUND_PREF, on ? "on" : "off"); } catch {}
+  };
+  const toggleSound = useCallback(() => {
+    setUserChoice((prev) => {
+      const next = !(prev ?? true);
+      remember(next);
+      return next;
+    });
+  }, []);
+  const enableSound = useCallback(() => {
+    setUserChoice(true);
+    remember(true);
+  }, []);
 
   // "Blessing" — the technique AMP Stories uses, and the reason sound kept
   // dropping out on iOS when swiping to a new card.
@@ -98,12 +160,12 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
   // card does not handle keeps a single tap doing a single thing.
   const armedRef = useRef(false);
   const armUnlock = useCallback(() => {
-    setSoundOn(false);
+    setRefused(true);
     if (armedRef.current) return;
     armedRef.current = true;
     const unlock = () => {
       armedRef.current = false;
-      setSoundOn(true);
+      setUserChoice(true);
     };
     const opts = { once: true, passive: true } as const;
     containerRef.current?.addEventListener("scroll", unlock, opts);
@@ -255,6 +317,8 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
           </div>
         ))}
       </div>
+
+      <SoundBadge visible={soundBlocked} onEnable={enableSound} />
 
       {/* Bottom Navigation Bar */}
       <BottomNav activeTab={activeTab} />

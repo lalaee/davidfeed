@@ -40,6 +40,12 @@ interface FeedItemProps {
    */
   eagerAudio?: boolean;
   /**
+   * Whether this card is near enough to the active one to hold its media.
+   * Outside the window the sources are detached, which is the only way to
+   * hand the memory back.
+   */
+  inWindow?: boolean;
+  /**
    * Changes whenever the feed's list is swapped out. Cards are keyed by psalm
    * id, so a card present in both the old and new topic is MOVED rather than
    * remounted, and isActive never changes — meaning the activation effect
@@ -70,6 +76,7 @@ export default function FeedItem({
   startAt,
   eagerAudio,
   restartToken,
+  inWindow = true,
 }: FeedItemProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [saveAnimating, setSaveAnimating] = useState(false);
@@ -98,6 +105,37 @@ export default function FeedItem({
   // toggling sound re-runs the effect while the card is still active, and a
   // re-run-based guard paused the audio it had just started.
   const isActiveRef = useRef(isActive);
+  // Attach media only inside the window; detach outside it.
+  //
+  // The feed used to mount every card's <video> and <audio> with a live src —
+  // 28 elements over ~28MB — and browsers keep buffers alive per element, not
+  // per visible pixel. Clearing the attribute alone is not enough: load() is
+  // what actually tears the buffer down.
+  //
+  // Declared above the activation effect on purpose. Effects run in order, so
+  // a card entering the window gets its source before start() tries to play.
+  useEffect(() => {
+    const pairs: [React.RefObject<HTMLMediaElement | null>, string | undefined][] = [
+      [videoRef, videoSrc],
+      [posterVideoRef, posterVideoSrc],
+      [audioRef, audioSrc],
+    ];
+    for (const [ref, src] of pairs) {
+      const el = ref.current;
+      if (!el) continue;
+      if (inWindow && src) {
+        if (el.getAttribute("src") !== src) {
+          el.setAttribute("src", src);
+          el.load();
+        }
+      } else if (el.getAttribute("src")) {
+        el.pause();
+        el.removeAttribute("src");
+        el.load();
+      }
+    }
+  }, [inWindow, videoSrc, posterVideoSrc, audioSrc]);
+
   useEffect(() => {
     isActiveRef.current = isActive;
   }, [isActive]);
@@ -108,6 +146,8 @@ export default function FeedItem({
 
     const start = (el: HTMLMediaElement | null) => {
       if (!el) return;
+      // Detached by the windowing effect — nothing to play yet.
+      if (!el.getAttribute("src")) return;
       // Re-invoking play() on an element that is already playing interrupts it
       // and rejects the in-flight promise, which is the AbortError storm a fast
       // scroll produces. AMP guards its PlayTask the same way.
@@ -189,7 +229,7 @@ export default function FeedItem({
     return () => {
       cleanups.forEach((fn) => fn());
     };
-  }, [isActive, soundOn, soundRef, onAutoplayBlocked, startAt, restartToken]);
+  }, [isActive, soundOn, soundRef, onAutoplayBlocked, startAt, restartToken, inWindow]);
 
   // The <audio> carries `loop`, which restarts at 0 and would replay the dead
   // air every cycle. Catch that and jump back to the first word instead.
@@ -448,7 +488,6 @@ export default function FeedItem({
           {videoSrc && (
             <video
               ref={videoRef}
-              src={videoSrc}
               loop
               muted
               playsInline
@@ -475,7 +514,6 @@ export default function FeedItem({
           {posterVideoSrc && (
             <video
               ref={posterVideoRef}
-              src={posterVideoSrc}
               loop
               muted
               playsInline
@@ -497,7 +535,7 @@ export default function FeedItem({
 
       {/* Narration audio track (drives sound + subtitle timing when present) */}
       {audioSrc && (
-        <audio ref={audioRef} src={audioSrc} loop muted preload={eagerAudio ? "auto" : "metadata"} />
+        <audio ref={audioRef} loop muted preload={eagerAudio ? "auto" : "metadata"} />
       )}
 
       {/* Mute/unmute indicator — briefly shown on tap */}

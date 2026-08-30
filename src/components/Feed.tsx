@@ -304,6 +304,15 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
     containerRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [topicId]);
 
+  // How far either side of the active card keeps its media attached.
+  //
+  // Asymmetric because scrolling forward is the norm: reading ahead is worth
+  // paying for, reading back is not. Mux use 5 ahead / 1 behind for HLS; our
+  // clips are 200-500KB so 3 ahead is cheap and keeps the attached set at 5
+  // cards instead of all 13.
+  const AHEAD = 3;
+  const BEHIND = 1;
+
   // Warm the cards ahead. Images were already being preloaded; the narration
   // was not, and that was the real reason a card could sit silent for seconds
   // after you swiped to it. Every <audio> ships as preload="metadata", so the
@@ -320,7 +329,7 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
   // reach.
   useEffect(() => {
     const IMAGE_WINDOW = 2;
-    const AUDIO_WINDOW = 1;
+    const AUDIO_WINDOW = 1;   // which upcoming card gets upgraded to preload="auto"
 
     for (let i = activeIndex + 1; i <= Math.min(activeIndex + IMAGE_WINDOW, posts.length - 1); i++) {
       const img = new window.Image();
@@ -371,6 +380,7 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
               startAt={post.startAt}
               eagerAudio={index === 0}
               restartToken={topicId}
+              inWindow={index >= activeIndex - BEHIND && index <= activeIndex + AHEAD}
               onAutoplayBlocked={armUnlock}
             />
           </div>

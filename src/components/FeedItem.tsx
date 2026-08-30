@@ -3,6 +3,9 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import HeartAnimation from "./HeartAnimation";
 import VideoSubtitles from "./VideoSubtitles";
+import PlaybackOverlay from "./PlaybackOverlay";
+import IconButton from "./IconButton";
+import { BookmarkIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 
 /** A/B-testable cover-art life effects — each feed card can carry one. */
@@ -83,6 +86,22 @@ export default function FeedItem({
   const [shareAnimating, setShareAnimating] = useState(false);
   const [hearts, setHearts] = useState<HeartPosition[]>([]);
   const [muteHint, setMuteHint] = useState(false);
+  // A deliberate pause by the viewer, distinct from every other reason media
+  // stops. Everything that restarts playback has to respect it.
+  const [userPaused, setUserPaused] = useState(false);
+  const userPausedRef = useRef(false);
+
+  // A pause belongs to the visit, not to the card: scrolling away and back
+  // should play. Clearing it in the activation effect is a cascading render,
+  // so this uses React's documented "adjust state when a prop changes"
+  // pattern, which runs during render instead.
+  const [wasActive, setWasActive] = useState(isActive);
+  if (wasActive !== isActive) {
+    setWasActive(isActive);
+    // The ref is synced by the effect below, which is declared before the
+    // activation effect and so lands first.
+    if (userPaused) setUserPaused(false);
+  }
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const heartIdRef = useRef(0);
   const lastTapRef = useRef(0);
@@ -137,6 +156,10 @@ export default function FeedItem({
   }, [inWindow, videoSrc, posterVideoSrc, audioSrc]);
 
   useEffect(() => {
+    userPausedRef.current = userPaused;
+  }, [userPaused]);
+
+  useEffect(() => {
     isActiveRef.current = isActive;
   }, [isActive]);
 
@@ -148,6 +171,8 @@ export default function FeedItem({
       if (!el) return;
       // Detached by the windowing effect — nothing to play yet.
       if (!el.getAttribute("src")) return;
+      // The viewer stopped this card on purpose; leave it stopped.
+      if (userPausedRef.current) return;
       // Re-invoking play() on an element that is already playing interrupts it
       // and rejects the in-flight promise, which is the AbortError storm a fast
       // scroll produces. AMP guards its PlayTask the same way.
@@ -254,6 +279,7 @@ export default function FeedItem({
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== "visible" || !isActiveRef.current) return;
+      if (userPausedRef.current) return;
       [videoRef.current, posterVideoRef.current, audioRef.current].forEach((el) => {
         if (el?.paused) el.play().catch(() => {});
       });
@@ -413,6 +439,20 @@ export default function FeedItem({
     }
   }, [onToggleSound]);
 
+  // Pause/resume this card. Reels toggles playback on tap; sound gets its own
+  // control inside the overlay.
+  const togglePlayback = useCallback(() => {
+    const next = !userPausedRef.current;
+    userPausedRef.current = next;
+    setUserPaused(next);
+    [videoRef.current, posterVideoRef.current, audioRef.current].forEach((el) => {
+      if (!el?.getAttribute("src")) return;
+      if (next) el.pause();
+      else el.play().catch(() => {});
+    });
+    if (navigator.vibrate) navigator.vibrate(8);
+  }, []);
+
   const handleBackgroundTap = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const now = Date.now();
@@ -425,26 +465,29 @@ export default function FeedItem({
         Math.abs(y - lastPosRef.current.y) < 50;
 
       if (now - lastTapRef.current < 300 && isNearLastTap) {
-        // Double tap → like. Cancel the pending single-tap mute toggle.
-        if (tapTimeoutRef.current) {
-          clearTimeout(tapTimeoutRef.current);
-          tapTimeoutRef.current = null;
-        }
+        // Second tap: this was a double tap all along. Undo the pause the
+        // first tap applied, then like.
+        togglePlayback();
         handleDoubleTap(x, y);
         lastTapRef.current = 0;
         lastPosRef.current = null;
-      } else {
-        // Provisional single tap — wait to see if a second tap follows.
-        lastTapRef.current = now;
-        lastPosRef.current = { x, y };
-        if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
-        tapTimeoutRef.current = setTimeout(() => {
-          toggleMute();
-          tapTimeoutRef.current = null;
-        }, 300);
+        return;
       }
+
+      // Act on the FIRST tap rather than waiting out the double-tap window.
+      // Deferring 300ms to disambiguate made pausing feel broken; undoing it
+      // on a second tap costs nothing, because either way the pause is
+      // instant. Apple's rule: respond on the gesture, not after it.
+      lastTapRef.current = now;
+      lastPosRef.current = { x, y };
+      togglePlayback();
+
+      // Show the pair, then let it fade if the card is still playing.
+      setMuteHint(true);
+      if (muteHintTimeoutRef.current) clearTimeout(muteHintTimeoutRef.current);
+      muteHintTimeoutRef.current = setTimeout(() => setMuteHint(false), 900);
     },
-    [handleDoubleTap, toggleMute]
+    [handleDoubleTap, togglePlayback]
   );
 
   const removeHeart = useCallback((id: number) => {
@@ -461,8 +504,11 @@ export default function FeedItem({
   }, []);
 
   const handleShare = useCallback(() => {
-    setShareAnimating(true);
-    setTimeout(() => setShareAnimating(false), 300);
+    // Restart cleanly if it is tapped again mid-flight; re-applying the same
+    // class without clearing it first would not replay the animation.
+    setShareAnimating(false);
+    requestAnimationFrame(() => setShareAnimating(true));
+    setTimeout(() => setShareAnimating(false), 640);
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
@@ -538,28 +584,12 @@ export default function FeedItem({
         <audio ref={audioRef} loop muted preload={eagerAudio ? "auto" : "metadata"} />
       )}
 
-      {/* Mute/unmute indicator — briefly shown on tap */}
-      <div
-        className={`absolute inset-0 flex items-center justify-center pointer-events-none z-[30] transition-opacity duration-300 ${
-          muteHint ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <div className="flex items-center justify-center w-[72px] h-[72px] rounded-full bg-black/45 backdrop-blur-sm">
-          {!soundOn ? (
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M11 5 6 9H2v6h4l5 4V5z" />
-              <line x1="23" y1="9" x2="17" y2="15" />
-              <line x1="17" y1="9" x2="23" y2="15" />
-            </svg>
-          ) : (
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M11 5 6 9H2v6h4l5 4V5z" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            </svg>
-          )}
-        </div>
-      </div>
+      <PlaybackOverlay
+        paused={userPaused}
+        soundOn={soundOn}
+        hinting={muteHint}
+        onToggleSound={toggleMute}
+      />
 
       {/* Heart animations from double tap */}
       {hearts.map((heart) => (
@@ -582,33 +612,27 @@ export default function FeedItem({
 
       {/* Action Icons */}
       <div className="absolute right-[20px] bottom-[24px] flex flex-col gap-[32px] z-[100]">
-        <button
-          type="button"
+        <IconButton
           onClick={handleShare}
-          className="w-[40px] h-[40px] flex items-center justify-center cursor-pointer bg-transparent border-none"
+          label="Share"
+          animating={shareAnimating}
+          animationClass="animate-send"
         >
-          <img
-            src="/assets/send-icon.svg"
-            alt="Share"
-            width={40}
-            height={40}
-            className={`pointer-events-none transition-transform ${shareAnimating ? "animate-icon-pop" : ""}`}
-          />
-        </button>
+          <SendIcon size={40} className="pointer-events-none block" />
+        </IconButton>
 
-        <button
-          type="button"
+        <IconButton
           onClick={handleSave}
-          className="w-[40px] h-[40px] flex items-center justify-center cursor-pointer bg-transparent border-none"
+          label={isSaved ? "Remove bookmark" : "Bookmark"}
+          animating={saveAnimating}
+          animationClass="animate-icon-pop"
         >
-          <img
-            src={isSaved ? "/assets/bookmark-filled.svg" : "/assets/bookmark-icon.svg"}
-            alt="Save"
-            width={40}
-            height={40}
-            className={`pointer-events-none transition-transform ${saveAnimating ? "animate-icon-pop" : ""}`}
-          />
-        </button>
+          {/* #EAC72C is the saved colour from the Figma export; unsaved
+              inherits white through currentColor. */}
+          <span className={isSaved ? "text-[#EAC72C]" : "text-white"}>
+            <BookmarkIcon filled={isSaved} className="pointer-events-none block" />
+          </span>
+        </IconButton>
       </div>
 
       {/* Title */}

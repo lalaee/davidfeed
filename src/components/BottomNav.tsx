@@ -23,11 +23,6 @@ import LiquidGlass from "./LiquidGlass";
  *                item by (91.3-41.7)/2 = 24.8 each side and the label band by
  *                25, so below ~25.2 they start poking out of the bar.
  *
- *                The gap is 30 rather than Figma's 47.619 because Figma draws
- *                three tabs and there are now four. At 47.619 the bar would be
- *                4*41.7 + 3*47.619 + 60 = 369.7 wide — wider than a 375pt
- *                phone once margins are counted. At 30 it comes to 316.8,
- *                leaving ~29px each side on a 375 screen and still fitting 320.
  * Navicon        41.7x65.5, sitting at y=4.8 in the container
  * nav.selected   91.3x64.3 at x=-25.2 y=0.3, radius 57.143
  *                fill #4F544E at 50% — a deliberate departure from Figma's flat
@@ -49,22 +44,22 @@ import LiquidGlass from "./LiquidGlass";
  * displacement map.
  *
  * The pill and the label are both ~91.5 wide inside a 41.7-wide item, so they
- * overflow ~25px each side. With four tabs at gap 30 the neighbouring bands
- * overlap by ~20px, so both carry pointer-events-none — otherwise one tab's
- * label would swallow taps aimed at the next tab's icon.
- * That is how the design is drawn — clipsContent is
+ * overflow ~25px each side. That is how the design is drawn — clipsContent is
  * false on both the item and the container — so they are positioned absolutely
  * and allowed to overflow rather than being forced to fit. The widest overflow
  * still lands 12.9px inside the container, so nothing clips.
+ *
+ * Neighbouring bands do graze each other, so both the pill and the label carry
+ * pointer-events-none; without it one tab's label can swallow taps aimed at the
+ * next tab's icon.
  */
 
 interface BottomNavProps {
-  activeTab?: "home" | "shorts" | "bible" | "library";
+  activeTab?: "home" | "bible" | "library";
 }
 
 const TABS = [
   { key: "home", href: "/", label: "Home", active: "/assets/home-icon.svg", inactive: "/assets/home-inactive-icon.svg" },
-  { key: "shorts", href: "/shorts", label: "Shorts", active: "/assets/shorts-active-icon.svg", inactive: "/assets/shorts-icon.svg" },
   { key: "bible", href: "/bible", label: "Bible", active: "/assets/bible-active-icon.svg", inactive: "/assets/bible-icon.svg" },
   { key: "library", href: "/library", label: "Library", active: "/assets/library-active-icon.svg", inactive: "/assets/library-icon.svg" },
 ] as const;
@@ -79,7 +74,7 @@ export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
         chromaticAberration={4}
         blur={4}
         className="bottom-nav-glass flex h-[75px] w-fit items-start justify-center
-                   gap-[30px] rounded-[47.619px] px-[30px] py-[4.762px]"
+                   gap-[47.619px] rounded-[47.619px] px-[30px] py-[4.762px]"
       >
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;

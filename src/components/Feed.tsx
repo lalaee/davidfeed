@@ -18,10 +18,15 @@ const BED_VOLUME = 0.25;
 
 
 interface FeedProps {
-  /** Which cards to render. Defaults to the full chapter readings. */
+  /**
+   * Which cards to render. Defaults to the full chapter readings, which nothing
+   * currently passes — Home renders the shorts instead. The chapter list is
+   * kept as the default so the long-form feed can be brought back by passing
+   * chapterPosts, without reassembling it.
+   */
   posts?: Post[];
   /** Which bottom-nav tab this feed sits under. */
-  activeTab?: "home" | "shorts";
+  activeTab?: "home";
 }
 
 export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedProps) {
@@ -179,14 +184,39 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
     });
   }, [activeIndex]);
 
-  // Preload next images
+  // Warm the cards ahead. Images were already being preloaded; the narration
+  // was not, and that was the real reason a card could sit silent for seconds
+  // after you swiped to it. Every <audio> ships as preload="metadata", so the
+  // browser knows the duration but has fetched none of the audio — play() then
+  // has to wait on the network before a word is heard.
+  //
+  // Upgrading an upcoming card to preload="auto" starts that fetch while the
+  // reader is still on the previous card, so the next play() has data in hand.
+  //
+  // Only ever done to INACTIVE elements: changing preload on the playing
+  // element interrupts it (that stalled playback ~0.2s in when tried before).
+  // The window is 1 for audio against 2 for images because chapter narrations
+  // run to 2.5MB and there is no point paying for cards the reader may never
+  // reach.
   useEffect(() => {
-    const preloadWindow = 2;
-    for (let i = activeIndex + 1; i <= Math.min(activeIndex + preloadWindow, posts.length - 1); i++) {
+    const IMAGE_WINDOW = 2;
+    const AUDIO_WINDOW = 1;
+
+    for (let i = activeIndex + 1; i <= Math.min(activeIndex + IMAGE_WINDOW, posts.length - 1); i++) {
       const img = new window.Image();
       img.src = posts[i].backgroundImage;
     }
-  }, [activeIndex]);
+
+    for (let i = activeIndex + 1; i <= Math.min(activeIndex + AUDIO_WINDOW, posts.length - 1); i++) {
+      itemRefs.current[i]?.querySelectorAll<HTMLAudioElement>("audio").forEach((el) => {
+        if (el.preload === "auto") return;
+        el.preload = "auto";
+        // preload alone is a hint; load() is what reliably starts the fetch on
+        // an element that has already settled at metadata.
+        if (el.readyState < 2) el.load();
+      });
+    }
+  }, [activeIndex, posts]);
 
   return (
     <>
@@ -218,7 +248,8 @@ export default function Feed({ posts = chapterPosts, activeTab = "home" }: FeedP
               soundOn={soundOn}
               onToggleSound={toggleSound}
               effect={post.effect}
-              clip={post.clip}
+              startAt={post.startAt}
+              eagerAudio={index === 0}
               onAutoplayBlocked={armUnlock}
             />
           </div>

@@ -29,10 +29,16 @@ interface FeedItemProps {
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
   /**
-   * Play only this slice of the narration, looping inside it. Absolute seconds
-   * into the track, so subtitle timings need no rebasing.
+   * Seconds of dead air at the head of the narration. The card starts here
+   * instead of 0 and loops back here, so the reader is audible the moment the
+   * artwork lands rather than after a beat of silence.
    */
-  clip?: { start: number; end: number };
+  startAt?: number;
+  /**
+   * Fetch the narration up front rather than on demand. Set on the landing
+   * card, whose audio has no earlier card to have warmed it.
+   */
+  eagerAudio?: boolean;
 }
 
 interface HeartPosition {
@@ -53,11 +59,10 @@ export default function FeedItem({
   onToggleSound,
   effect,
   onAutoplayBlocked,
-  clip,
+  startAt,
+  eagerAudio,
 }: FeedItemProps) {
-  const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [likeAnimating, setLikeAnimating] = useState(false);
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [shareAnimating, setShareAnimating] = useState(false);
   const [hearts, setHearts] = useState<HeartPosition[]>([]);
@@ -101,13 +106,11 @@ export default function FeedItem({
       // A card scrolled to from far away carries preload="metadata", so it has
       // no media data yet and play() would be refused. Kick the fetch first.
       if (el.readyState === 0) el.load();
-      // A shorts card enters at its passage, not at 0. currentTime is ignored
-      // before metadata arrives, so defer the seek until the duration is known.
-      if (clip && el === audioRef.current) {
+      // Skip the track's leading silence. currentTime is ignored before
+      // metadata arrives, so defer the seek until the duration is known.
+      if (startAt && el === audioRef.current) {
         const seek = () => {
-          if (el.currentTime < clip.start || el.currentTime >= clip.end) {
-            el.currentTime = clip.start;
-          }
+          if (el.currentTime < startAt) el.currentTime = startAt;
         };
         if (el.readyState >= 1) seek();
         else {
@@ -145,9 +148,8 @@ export default function FeedItem({
     const stop = (el: HTMLMediaElement | null) => {
       if (!el) return;
       el.pause();
-      // Rewinding a shorts card to 0 would restart it at the chapter opening,
-      // several verses before its passage.
-      el.currentTime = clip && el === audioRef.current ? clip.start : 0;
+      // Park at the first word, not at 0, so re-entry is instant too.
+      el.currentTime = startAt && el === audioRef.current ? startAt : 0;
     };
 
     if (isActive) {
@@ -178,28 +180,20 @@ export default function FeedItem({
     return () => {
       cleanups.forEach((fn) => fn());
     };
-  }, [isActive, soundOn, soundRef, onAutoplayBlocked, clip]);
+  }, [isActive, soundOn, soundRef, onAutoplayBlocked, startAt]);
 
-  // Keep a shorts card inside its passage. The <audio> keeps its own `loop`,
-  // which would restart the whole chapter at 0; this catches that too, since
-  // the rewind lands below clip.start.
-  //
-  // timeupdate fires roughly every 250ms, so up to that much of the following
-  // phrase can sound before the seek lands. Every clip boundary is a caption
-  // boundary, and captions are chained end-to-start, so the bleed is the head
-  // of the next phrase rather than a chopped word.
+  // The <audio> carries `loop`, which restarts at 0 and would replay the dead
+  // air every cycle. Catch that and jump back to the first word instead.
   useEffect(() => {
-    if (!clip) return;
+    if (!startAt) return;
     const el = audioRef.current;
     if (!el) return;
     const onTime = () => {
-      if (el.currentTime >= clip.end || el.currentTime < clip.start - 0.25) {
-        el.currentTime = clip.start;
-      }
+      if (el.currentTime < startAt - 0.25) el.currentTime = startAt;
     };
     el.addEventListener("timeupdate", onTime);
     return () => el.removeEventListener("timeupdate", onTime);
-  }, [clip]);
+  }, [startAt]);
 
   // Track playing state (of the sound-bearing element) for subtitles
   useEffect(() => {
@@ -329,16 +323,12 @@ export default function FeedItem({
       };
       setHearts((prev) => [...prev, newHeart]);
 
-      if (!isLiked) {
-        setIsLiked(true);
-      }
-
       // Haptic feedback
       if (navigator.vibrate) {
         navigator.vibrate(20);
       }
     },
-    [isLiked]
+    []
   );
 
   // Flip the feed-wide sound preference. The effect above applies it to this
@@ -392,15 +382,6 @@ export default function FeedItem({
 
   const removeHeart = useCallback((id: number) => {
     setHearts((prev) => prev.filter((h) => h.id !== id));
-  }, []);
-
-  const handleLike = useCallback(() => {
-    setIsLiked((prev) => !prev);
-    setLikeAnimating(true);
-    setTimeout(() => setLikeAnimating(false), 300);
-    if (navigator.vibrate) {
-      navigator.vibrate(10);
-    }
   }, []);
 
   const handleSave = useCallback(() => {
@@ -489,7 +470,7 @@ export default function FeedItem({
 
       {/* Narration audio track (drives sound + subtitle timing when present) */}
       {audioSrc && (
-        <audio ref={audioRef} src={audioSrc} loop muted preload="metadata" />
+        <audio ref={audioRef} src={audioSrc} loop muted preload={eagerAudio ? "auto" : "metadata"} />
       )}
 
       {/* Mute/unmute indicator — briefly shown on tap */}
@@ -536,20 +517,6 @@ export default function FeedItem({
 
       {/* Action Icons */}
       <div className="absolute right-[20px] bottom-[24px] flex flex-col gap-[32px] z-[100]">
-        <button
-          type="button"
-          onClick={handleLike}
-          className="w-[40px] h-[40px] flex items-center justify-center cursor-pointer bg-transparent border-none"
-        >
-          <img
-            src={isLiked ? "/assets/heart-filled.svg" : "/assets/heart-icon.svg"}
-            alt="Like"
-            width={40}
-            height={40}
-            className={`pointer-events-none transition-transform ${likeAnimating ? "animate-icon-pop" : ""}`}
-          />
-        </button>
-
         <button
           type="button"
           onClick={handleShare}

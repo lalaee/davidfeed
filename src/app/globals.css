@@ -318,6 +318,236 @@ button, [role="button"], a {
 /* Slightly longer than the old 0.3s, on the house curve rather than ease-out.
    An interruptible 420ms reads faster than a rigid 300ms — the settle is what
    sells it, and ease-out has no settle. */
+/* The highlight swatches use a calmer spring than the icon buttons: generated
+   with dampingFraction 0.55 against icon-pop's 0.26, which takes the overshoot
+   from 1.36 to 1.25 and the beats from six to three. Regenerate, never hand
+   edit — ./.claude/skills/icon-motion/scripts/spring.py --zeta 0.55 --name swatch-pop */
+@keyframes swatch-pop {
+  0% {
+    transform: scale(0.9400);
+  }
+  1.389% {
+    transform: scale(0.9990);
+  }
+  2.778% {
+    transform: scale(1.0510);
+  }
+  4.167% {
+    transform: scale(1.0961);
+  }
+  5.556% {
+    transform: scale(1.1346);
+  }
+  6.944% {
+    transform: scale(1.1669);
+  }
+  8.333% {
+    transform: scale(1.1932);
+  }
+  9.722% {
+    transform: scale(1.2139);
+  }
+  11.11% {
+    transform: scale(1.2295);
+  }
+  12.5% {
+    transform: scale(1.2403);
+  }
+  13.89% {
+    transform: scale(1.2468);
+  }
+  15.28% {
+    transform: scale(1.2495);
+  }
+  16.67% {
+    transform: scale(1.2487);
+  }
+  18.06% {
+    transform: scale(1.2449);
+  }
+  19.44% {
+    transform: scale(1.2385);
+  }
+  20.83% {
+    transform: scale(1.2298);
+  }
+  22.22% {
+    transform: scale(1.2193);
+  }
+  23.61% {
+    transform: scale(1.2073);
+  }
+  25% {
+    transform: scale(1.1941);
+  }
+  26.39% {
+    transform: scale(1.1801);
+  }
+  27.78% {
+    transform: scale(1.1655);
+  }
+  29.17% {
+    transform: scale(1.1506);
+  }
+  30.56% {
+    transform: scale(1.1355);
+  }
+  31.94% {
+    transform: scale(1.1206);
+  }
+  33.33% {
+    transform: scale(1.1059);
+  }
+  34.72% {
+    transform: scale(1.0916);
+  }
+  36.11% {
+    transform: scale(1.0779);
+  }
+  37.5% {
+    transform: scale(1.0649);
+  }
+  38.89% {
+    transform: scale(1.0526);
+  }
+  40.28% {
+    transform: scale(1.0411);
+  }
+  41.67% {
+    transform: scale(1.0305);
+  }
+  43.06% {
+    transform: scale(1.0208);
+  }
+  44.44% {
+    transform: scale(1.0119);
+  }
+  45.83% {
+    transform: scale(1.0040);
+  }
+  47.22% {
+    transform: scale(0.9969);
+  }
+  48.61% {
+    transform: scale(0.9908);
+  }
+  50% {
+    transform: scale(0.9855);
+  }
+  51.39% {
+    transform: scale(0.9810);
+  }
+  52.78% {
+    transform: scale(0.9773);
+  }
+  54.17% {
+    transform: scale(0.9743);
+  }
+  55.56% {
+    transform: scale(0.9720);
+  }
+  56.94% {
+    transform: scale(0.9703);
+  }
+  58.33% {
+    transform: scale(0.9692);
+  }
+  59.72% {
+    transform: scale(0.9686);
+  }
+  61.11% {
+    transform: scale(0.9685);
+  }
+  62.5% {
+    transform: scale(0.9688);
+  }
+  63.89% {
+    transform: scale(0.9694);
+  }
+  65.28% {
+    transform: scale(0.9704);
+  }
+  66.67% {
+    transform: scale(0.9716);
+  }
+  68.06% {
+    transform: scale(0.9730);
+  }
+  69.44% {
+    transform: scale(0.9746);
+  }
+  70.83% {
+    transform: scale(0.9763);
+  }
+  72.22% {
+    transform: scale(0.9781);
+  }
+  73.61% {
+    transform: scale(0.9800);
+  }
+  75% {
+    transform: scale(0.9819);
+  }
+  76.39% {
+    transform: scale(0.9838);
+  }
+  77.78% {
+    transform: scale(0.9856);
+  }
+  79.17% {
+    transform: scale(0.9875);
+  }
+  80.56% {
+    transform: scale(0.9892);
+  }
+  81.94% {
+    transform: scale(0.9909);
+  }
+  83.33% {
+    transform: scale(0.9925);
+  }
+  84.72% {
+    transform: scale(0.9940);
+  }
+  86.11% {
+    transform: scale(0.9954);
+  }
+  87.5% {
+    transform: scale(0.9967);
+  }
+  88.89% {
+    transform: scale(0.9979);
+  }
+  90.28% {
+    transform: scale(0.9990);
+  }
+  91.67% {
+    transform: scale(0.9999);
+  }
+  93.06% {
+    transform: scale(1.0008);
+  }
+  94.44% {
+    transform: scale(1.0015);
+  }
+  95.83% {
+    transform: scale(1.0021);
+  }
+  97.22% {
+    transform: scale(1.0026);
+  }
+  98.61% {
+    transform: scale(1.0031);
+  }
+  100% {
+    transform: scale(1.0000);
+  }
+}
+
+.animate-swatch-pop {
+  animation: swatch-pop 0.53s linear forwards;
+}
+
 .animate-icon-pop {
   animation: icon-pop 1.13s linear forwards;
 }

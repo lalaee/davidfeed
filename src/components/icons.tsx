@@ -306,3 +306,18 @@ export function VersionsIcon({ size = 20, className }: IconProps) {
     </svg>
   );
 }
+
+/*
+ * The cancel mark on an applied highlight swatch — Figma 2652:2628, exported
+ * verbatim. A 10-unit cross with a 2 stroke on a 12 viewBox, so rendering it at
+ * 12px gives exactly the design's 10px cross and 2px stroke at 1:1. Sizing it
+ * any smaller thins the stroke, which is what a generic close glyph did here
+ * before.
+ */
+export function HighlightCancelIcon({ size = 12, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" fill="none" aria-hidden className={className}>
+      <path d="M11 1L1 11M1 1L11 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

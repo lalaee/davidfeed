@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { CloseIcon } from "./icons";
+import { HighlightCancelIcon } from "./icons";
 
 /*
  * The bar that appears when a verse is selected.
@@ -144,46 +144,66 @@ function SwatchButton({
 }) {
   const { pressed, handlers } = usePress();
 
+  /*
+   * The pop is fired from the tap that APPLIES the colour, not from the
+   * `selected` prop, so it never needs a setState inside an effect. It is also
+   * cleared afterwards: the animation fills forwards, and a held final frame
+   * would outrank the inline press transform for as long as the swatch stayed
+   * selected — the button would stop answering the finger.
+   */
+  const [popping, setPopping] = useState(false);
+  const frameRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  const handleClick = () => {
+    if (!selected) {
+      // Drop the class for a frame first, or re-applying it will not replay.
+      setPopping(false);
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      frameRef.current = requestAnimationFrame(() => setPopping(true));
+      if (timerRef.current) clearTimeout(timerRef.current);
+      // Must outlast the 0.53s spring.
+      timerRef.current = setTimeout(() => setPopping(false), 580);
+    }
+    onClick();
+  };
+
   return (
     <button
       type="button"
       aria-label={selected ? "Remove highlight" : `Highlight ${colour}`}
       aria-pressed={selected}
-      onClick={onClick}
+      onClick={handleClick}
       {...handlers}
-      className="relative flex flex-shrink-0 items-center justify-center rounded-full border-none bg-transparent p-0
-                 transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
+      className={`relative flex flex-shrink-0 items-center justify-center rounded-full border-none bg-transparent p-0
+                  transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+                  ${popping ? "animate-swatch-pop" : ""}`}
       style={{
         width: SWATCH,
         height: SWATCH,
-        transform: pressed ? "scale(0.94)" : undefined,
+        transform: pressed && !popping ? "scale(0.94)" : undefined,
       }}
     >
       <span
         className="flex h-full w-full items-center justify-center rounded-full"
         style={{ backgroundColor: colour }}
       >
-        {/* Dark, because every swatch is a bright pastel and a white cross
-            would disappear into the yellow. */}
+        {/* #0E0E0E is the design's own stroke colour, and it has to be dark:
+            every swatch is a bright pastel and a white cross would disappear
+            into the yellow. */}
         {selected && (
           <span className="flex" style={{ color: "#0E0E0E" }}>
-            <CloseIcon size={14} />
+            <HighlightCancelIcon size={12} />
           </span>
         )}
       </span>
-      {/* Selection ring, drawn outside the swatch so it never shrinks the
-          colour. The pop replays on its own: moving between colours removes
-          the class from one swatch and adds it to the other, and CSS restarts
-          an animation whenever its class arrives. No key or timer needed. */}
-      <span
-        aria-hidden
-        className={`pointer-events-none absolute rounded-full transition-opacity duration-200
-                    ${selected ? "animate-icon-pop opacity-100" : "opacity-0"}`}
-        style={{
-          inset: -4,
-          border: "2px solid #FFFFFF",
-        }}
-      />
     </button>
   );
 }

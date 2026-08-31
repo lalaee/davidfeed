@@ -13,7 +13,10 @@ import Link from "next/link";
  * .bottom-nav-glass overrides have been removed. LiquidGlass itself stays —
  * BibleReader still uses it for the compact Read/Listen pills.
  *
- * Container      281x75, radius 47.619, fill #000000 at 100%, no effects
+ * Container      281x75, radius 47.619, no effects. Figma says #000000; the
+ *                shipped fill is #0E0E0E, lifted off pure black by eye so the
+ *                pill reads as a surface over dark artwork instead of a hole
+ *                in it. The #212121 selected pill is measured against this.
  *                horizontal auto-layout, gap 47.619, top-aligned
  *
  *                Figma declares 38.095 side padding, but the frame is FIXED at
@@ -51,7 +54,7 @@ export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
       className="fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999]
                  flex h-[75px] w-fit -translate-x-1/2 items-start justify-center
                  gap-[47.619px] rounded-[47.619px] px-[30.381px] py-[4.762px]"
-      style={{ backgroundColor: "#000000" }}
+      style={{ backgroundColor: "#0E0E0E" }}
     >
       {TABS.map((tab) => {
         const isActive = activeTab === tab.key;

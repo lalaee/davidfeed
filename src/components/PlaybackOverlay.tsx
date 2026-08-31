@@ -40,6 +40,14 @@ import { AudioOffIcon, AudioOnIcon, PlayIcon } from "./icons";
  * announces a state the card is no longer in. It fades out still reading play,
  * and the sound circle is the only thing that rides out the hint.
  *
+ * The two circles LEAVE TOGETHER, which is why each carries its OWN opacity and
+ * the container carries none. Fading a circle inside a fading container
+ * multiplies the two alphas, so the inner one visibly darkens first; and any
+ * scheme where one circle's opacity trails the other's by a timer has to hold
+ * that timer in sync with a CSS duration. Since resuming clears the sound hint
+ * (see FeedItem), `visible` and `paused` both go false in the same commit, and
+ * two equal transitions started together simply end together.
+ *
  * The faded circle keeps its box rather than unmounting, so the sound circle
  * does not slide when playback is toggled.
  */
@@ -54,6 +62,7 @@ interface PlaybackOverlayProps {
 const SOUND = 34;
 const PLAYBACK = 46;
 const GAP = 58 - SOUND / 2 - PLAYBACK / 2; // centres 58 apart
+const FADE_MS = 200; // one source of truth: the container's fade and the hold below
 
 export default function PlaybackOverlay({
   paused,
@@ -62,11 +71,11 @@ export default function PlaybackOverlay({
   onToggleSound,
 }: PlaybackOverlayProps) {
   const visible = paused || hinting;
+  const fade = { transition: `opacity ${FADE_MS}ms ease-out` };
 
   return (
     <div
-      className={`pointer-events-none absolute inset-0 z-[30] flex flex-col items-center justify-center
-                  transition-opacity duration-200 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+      className="pointer-events-none absolute inset-0 z-[30] flex flex-col items-center justify-center"
       // Offset so the PLAYBACK circle lands on the card's centre rather than
       // the pair's midpoint, which is where Reels puts it.
       style={{ paddingBottom: SOUND + GAP }}
@@ -82,13 +91,14 @@ export default function PlaybackOverlay({
           onToggleSound();
         }}
         className={`flex items-center justify-center rounded-full border-none backdrop-blur-sm
-                    transition-transform duration-200 ease-out
                     ${visible ? "pointer-events-auto scale-100" : "scale-95"}`}
         style={{
           width: SOUND,
           height: SOUND,
           marginBottom: GAP,
           backgroundColor: "rgba(0, 0, 0, 0.45)",
+          transition: `opacity ${FADE_MS}ms ease-out, transform ${FADE_MS}ms ease-out`,
+          opacity: visible ? 1 : 0,
         }}
       >
         {soundOn ? <AudioOnIcon size={22} /> : <AudioOffIcon size={22} />}
@@ -96,9 +106,14 @@ export default function PlaybackOverlay({
 
       <div
         aria-hidden
-        className={`flex items-center justify-center rounded-full backdrop-blur-sm
-                    transition-opacity duration-200 ease-out ${paused ? "opacity-100" : "opacity-0"}`}
-        style={{ width: PLAYBACK, height: PLAYBACK, backgroundColor: "rgba(0, 0, 0, 0.45)" }}
+        className="flex items-center justify-center rounded-full backdrop-blur-sm"
+        style={{
+          width: PLAYBACK,
+          height: PLAYBACK,
+          backgroundColor: "rgba(0, 0, 0, 0.45)",
+          ...fade,
+          opacity: paused ? 1 : 0,
+        }}
       >
         <PlayIcon size={36} />
       </div>

@@ -459,6 +459,13 @@ export default function FeedItem({
     const next = !userPausedRef.current;
     userPausedRef.current = next;
     setUserPaused(next);
+    if (!next) {
+      // Resuming. Drop any sound hint still in flight, or the container would
+      // wait it out while the playback circle leaves on its own — the two
+      // circles have to go together.
+      if (muteHintTimeoutRef.current) clearTimeout(muteHintTimeoutRef.current);
+      setMuteHint(false);
+    }
     [videoRef.current, posterVideoRef.current, audioRef.current].forEach((el) => {
       if (!el?.getAttribute("src")) return;
       if (next) el.pause();
@@ -494,12 +501,10 @@ export default function FeedItem({
       // instant. Apple's rule: respond on the gesture, not after it.
       lastTapRef.current = now;
       lastPosRef.current = { x, y };
+      // Pausing makes the pair visible on its own, and resuming has to let it
+      // go; a hint here would hold the sound circle on screen after the
+      // playback circle had left.
       togglePlayback();
-
-      // Show the pair, then let it fade if the card is still playing.
-      setMuteHint(true);
-      if (muteHintTimeoutRef.current) clearTimeout(muteHintTimeoutRef.current);
-      muteHintTimeoutRef.current = setTimeout(() => setMuteHint(false), 900);
     },
     [handleDoubleTap, togglePlayback]
   );

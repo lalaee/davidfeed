@@ -14,8 +14,8 @@ import { BookmarkIcon, CompareIcon, SendIcon } from "./icons";
  *   page margin   24 for the header, 27 for the verses (the design insets the
  *                 verse column 3px further than the header pill)
  *   header row    y=40, 72 tall
- *   title pill    158x72, radius 22, #212121, artwork inset 12, 12 gap
- *   version pill  61x38, #212121
+ *   title pill    158x72, radius 22, #0E0E0E, artwork inset 12, 12 gap
+ *   version pill  61x38, #0E0E0E
  *   verses top    144  (header row y=40 + 104)
  *   verse         21px/31.5 regular white, number 21px/24 regular #999999 in
  *                 a 20px gutter — the number is the SAME SIZE as the verse,
@@ -232,7 +232,7 @@ export default function BibleReader({
               type="button"
               onClick={() => setShowBooks(true)}
               className="flex h-[72px] w-[158px] items-center gap-[12px] rounded-[22px] p-[12px] active:opacity-70 transition-opacity"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "#0E0E0E" }}
             >
               {/* Artwork Thumbnail */}
               <div className="w-[48px] h-[48px] rounded-[12px] border-[0.5px] border-[rgba(120,120,128,0.2)] overflow-hidden flex-shrink-0">
@@ -252,7 +252,7 @@ export default function BibleReader({
             <button
               type="button"
               className="rounded-[19.252px] px-[16px] h-[38px] flex items-center justify-center"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "#0E0E0E" }}
             >
               <span className="text-[17px] font-normal text-white tracking-[-0.408px] leading-[22px]">
                 {version}

@@ -665,6 +665,20 @@ button, [role="button"], a {
   transition:
     transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
     border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  /* Hold a composited layer permanently rather than letting the engine promote
+     one when the recede starts and drop it when the recede ends.
+
+     Without this, every selection change promotes and demotes the whole verse
+     column, and WebKit does not reliably invalidate text-decoration inside a
+     layer it is scaling — the dotted underline on a deselected verse can stay
+     painted in a tile until something else forces that tile to redraw. That is
+     the "lines linger on some text for a moment" report, and it is WebKit even
+     when the browser says Chrome: every iOS browser runs WKWebView.
+
+     The cost is one viewport-sized layer kept alive for this screen. That is
+     the layer the transition needs anyway; this only stops it being rebuilt on
+     every tap. */
+  will-change: transform;
 }
 
 .app-shell.sheet-open {

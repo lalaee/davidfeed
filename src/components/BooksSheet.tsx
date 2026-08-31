@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 
 import { ChevronIcon, CloseIcon } from "./icons";
 
@@ -108,13 +108,29 @@ export default function BooksSheet({
   onSelect,
 }: BooksSheetProps) {
   const [expandedBook, setExpandedBook] = useState<string>(currentBook);
-  const activeBookRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const currentChapterRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      activeBookRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-    }, 320);
-    return () => clearTimeout(timer);
+  /*
+   * Open on the chapter you are reading, not merely on its book. Psalms is
+   * thirty rows of chips, so scrolling Genesis..Psalms to the top still left
+   * chapter 46 nine rows below the fold — which is what "the chapter was not in
+   * view" was.
+   *
+   * Positioned a third of the way down rather than at the very top, so the
+   * chapter has chapters either side of it and reads as a place in a list
+   * rather than as the beginning of one.
+   *
+   * Layout effect and an immediate scrollTop, not scrollIntoView: this runs
+   * before paint so the sheet is already in the right place when it arrives,
+   * and setting the container directly cannot scroll an ancestor by accident.
+   */
+  useLayoutEffect(() => {
+    const box = scrollRef.current;
+    const chip = currentChapterRef.current;
+    if (!box || !chip) return;
+    const delta = chip.getBoundingClientRect().top - box.getBoundingClientRect().top;
+    box.scrollTop += delta - box.clientHeight / 3;
   }, []);
 
   const handleBookPress = (bookName: string) => {
@@ -157,18 +173,14 @@ export default function BooksSheet({
         </div>
 
         {/* Books, scrolling inside the card */}
-        <div className="scrollbar-hide flex flex-1 flex-col gap-[16px] overflow-y-auto">
+        <div ref={scrollRef} className="scrollbar-hide flex flex-1 flex-col gap-[16px] overflow-y-auto">
           {BOOKS.map(({ name, chapters }) => {
             const isExpanded = expandedBook === name;
             const chapterNums = Array.from({ length: chapters }, (_, i) => i + 1);
             const rows = Math.ceil(chapterNums.length / 5);
 
             return (
-              <div
-                key={name}
-                ref={name === currentBook ? activeBookRef : null}
-                className="flex w-full flex-col gap-[16px]"
-              >
+              <div key={name} className="flex w-full flex-col gap-[16px]">
                 <button
                   type="button"
                   onClick={() => handleBookPress(name)}
@@ -201,6 +213,7 @@ export default function BooksSheet({
                             return (
                               <button
                                 key={ch}
+                                ref={current ? currentChapterRef : null}
                                 type="button"
                                 onClick={() => handleChapterPress(name, ch)}
                                 aria-current={current ? "page" : undefined}

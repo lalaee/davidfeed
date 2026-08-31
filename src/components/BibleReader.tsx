@@ -115,13 +115,42 @@ function makeStore<T>(key: string) {
 const highlightStore = makeStore<string>(HIGHLIGHT_KEY);
 const savedStore = makeStore<true>(SAVED_KEY);
 
+/*
+ * "v 1", "v 1-3", "v 1, 4-5". Runs are collapsed because a multi-verse
+ * selection is usually contiguous, and "v 3-9" is what a person would write
+ * where a list of seven numbers is what a loop would produce.
+ */
+function formatVerseRange(numbers: number[]): string {
+  if (!numbers.length) return "";
+  const runs: string[] = [];
+  let start = numbers[0];
+  let prev = numbers[0];
+  for (const n of numbers.slice(1).concat(NaN)) {
+    if (n === prev + 1) {
+      prev = n;
+      continue;
+    }
+    runs.push(start === prev ? `${start}` : `${start}-${prev}`);
+    start = prev = n;
+  }
+  return `v ${runs.join(", ")}`;
+}
+
 export default function BibleReader({
   chapterTitle = "Psalm 46",
   artworkSrc = "/assets/feed-poster-frame.jpg",
   version = "NIV",
   verses = [],
 }: BibleReaderProps) {
-  const [selectedVerse, setSelectedVerse] = useState<Verse | null>(null);
+  // A selection is a SET of verse numbers, kept sorted so every label and
+  // share string reads in reading order rather than tap order.
+  const [selected, setSelected] = useState<number[]>([]);
+  const toggleVerse = useCallback((n: number) => {
+    setSelected((prev) =>
+      prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n].sort((a, b) => a - b),
+    );
+  }, []);
+  const clearSelection = useCallback(() => setSelected([]), []);
   const [showBooks, setShowBooks] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const highlights =
@@ -140,36 +169,45 @@ export default function BibleReader({
 
   const setHighlight = useCallback(
     (colour: string | null) => {
-      if (!selectedVerse) return;
+      if (!selected.length) return;
       const next: Record<number, string> = {
         ...(highlightStore.read()[chapterTitle] ?? EMPTY_CHAPTER),
       };
-      if (colour) next[selectedVerse.number] = colour;
-      else delete next[selectedVerse.number];
+      for (const n of selected) {
+        if (colour) next[n] = colour;
+        else delete next[n];
+      }
       highlightStore.write(chapterTitle, next);
     },
-    [chapterTitle, selectedVerse],
+    [chapterTitle, selected],
   );
 
-  const saved = !!(selectedVerse && savedVerses[selectedVerse.number]);
+  // Filled only when EVERY selected verse is saved, so the icon never claims
+  // more than is true of the whole selection.
+  const saved = selected.length > 0 && selected.every((n) => savedVerses[n]);
   const toggleSaved = useCallback(() => {
-    if (!selectedVerse) return;
-    const next: Record<number, true> = {
-      ...(savedStore.read()[chapterTitle] ?? EMPTY_CHAPTER),
-    };
-    if (next[selectedVerse.number]) delete next[selectedVerse.number];
-    else next[selectedVerse.number] = true;
+    if (!selected.length) return;
+    const current = savedStore.read()[chapterTitle] ?? EMPTY_CHAPTER;
+    const allSaved = selected.every((n) => current[n]);
+    const next: Record<number, true> = { ...current };
+    for (const n of selected) {
+      if (allSaved) delete next[n];
+      else next[n] = true;
+    }
     savedStore.write(chapterTitle, next);
-  }, [chapterTitle, selectedVerse]);
+  }, [chapterTitle, selected]);
 
   const handleShare = useCallback(() => {
-    if (!selectedVerse || !navigator.share) return;
+    if (!selected.length || !navigator.share) return;
+    const picked = verses.filter((v) => selected.includes(v.number));
+    const body = picked.map((v) => v.text).join(" ");
+    const ref = `${chapterTitle} ${formatVerseRange(selected)}`;
     navigator.share({
-      title: `${chapterTitle}:${selectedVerse.number}`,
-      text: `"${selectedVerse.text}" - ${chapterTitle}:${selectedVerse.number} (${version})`,
+      title: ref,
+      text: `"${body}" - ${ref} (${version})`,
       url: window.location.href,
     });
-  }, [chapterTitle, selectedVerse, version]);
+  }, [chapterTitle, selected, verses, version]);
 
   // The three the design carries. It clips Save at the frame edge because the
   // row is a carousel, not because the action is provisional.
@@ -205,7 +243,14 @@ export default function BibleReader({
   // or the compare card. The Figma frames draw the verses full-size behind the
   // bar and the card; this is a deliberate departure, asked for so that the
   // layer above always reads as a layer.
-  const anySheetOpen = showBooks || showCompare || !!selectedVerse;
+  const anySheetOpen = showBooks || showCompare || selected.length > 0;
+
+  // A ring is only honest when every selected verse carries that colour;
+  // a mixed selection shows none rather than picking a winner.
+  const commonHighlight =
+    selected.length > 0 && selected.every((n) => highlights[n] === highlights[selected[0]])
+      ? (highlights[selected[0]] ?? null)
+      : null;
 
   // iOS 26 toolbar morph — as verses scroll under the floating header, the pill
   // row shrinks ~4% and its glass panes saturate slightly.
@@ -273,11 +318,11 @@ export default function BibleReader({
           // A tap on the column itself, rather than on a verse, dismisses the
           // bar — the bar occupies the nav's slot, so there has to be a way back.
           onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedVerse(null);
+            if (e.target === e.currentTarget) clearSelection();
           }}
         >
           {verses.map((verse) => {
-            const selected = selectedVerse?.number === verse.number;
+            const isSelected = selected.includes(verse.number);
             const highlight = highlights[verse.number];
             return (
               <div
@@ -285,11 +330,7 @@ export default function BibleReader({
                 // select-none: a tap on a paragraph otherwise lands as a text
                 // selection instead of a tap, which swallowed the first press.
                 className="flex mb-[24px] select-none active:opacity-60 transition-opacity cursor-pointer"
-                onClick={() =>
-                  setSelectedVerse((prev) =>
-                    prev?.number === verse.number ? null : verse,
-                  )
-                }
+                onClick={() => toggleVerse(verse.number)}
               >
                 {/* Verse Number — 20px gutter, no gap; the design puts the
                     verse text at exactly 20 from the block's left edge. */}
@@ -303,7 +344,7 @@ export default function BibleReader({
                 <p
                   className={`flex-1 min-w-0 text-[21px] font-normal leading-[31.5px]
                               transition-colors duration-200
-                              ${selected ? "underline decoration-current decoration-dotted decoration-[1.5px] underline-offset-[7px]" : ""}`}
+                              ${isSelected ? "underline decoration-current decoration-dotted decoration-[1.5px] underline-offset-[7px]" : ""}`}
                   style={
                     highlight
                       ? {
@@ -328,7 +369,7 @@ export default function BibleReader({
 
         {/* The nav belongs to the page and recedes with it. The bar does not,
             so it is rendered outside the shell below. */}
-        {!selectedVerse && !showBooks && !showCompare && <BottomNav activeTab="bible" />}
+        {!selected.length && !showBooks && !showCompare && <BottomNav activeTab="bible" />}
       </div>
 
       {/* The bar takes the nav's place while a verse is selected, exactly as
@@ -340,9 +381,9 @@ export default function BibleReader({
           a transformed ancestor turns position:fixed into position:absolute
           against it — so a bar left inside would shrink along with the page it
           is supposed to be sitting above. */}
-      {selectedVerse && !showCompare && (
+      {selected.length > 0 && !showCompare && (
         <VerseActionBar
-          highlight={highlights[selectedVerse.number] ?? null}
+          highlight={commonHighlight}
           onHighlight={setHighlight}
           actions={actions}
         />
@@ -358,9 +399,9 @@ export default function BibleReader({
       )}
 
       {/* Compare Sheet — reached from the action bar */}
-      {showCompare && selectedVerse && (
+      {showCompare && selected.length > 0 && (
         <CompareSheet
-          verseRef={`${chapterTitle.replace("Psalm", "Ps")} v ${selectedVerse.number}`}
+          verseRef={`${chapterTitle.replace("Psalm", "Ps")} ${formatVerseRange(selected)}`}
           onClose={() => setShowCompare(false)}
         />
       )}

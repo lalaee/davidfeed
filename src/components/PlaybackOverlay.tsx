@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioOffIcon, AudioOnIcon, PauseIcon, PlayIcon } from "./icons";
+import { AudioOffIcon, AudioOnIcon, PlayIcon } from "./icons";
 
 /*
  * The two stacked indicators Instagram Reels shows on tap: a sound circle
@@ -33,6 +33,15 @@ import { AudioOffIcon, AudioOnIcon, PauseIcon, PlayIcon } from "./icons";
  * behaviour: the playback circle is a STATE — it stays for as long as the card
  * is paused — while the sound circle is a CONTROL, tappable in its own right,
  * that fades once it has been acknowledged.
+ *
+ * Which is why the playback circle is bound to `paused` ALONE and never shows a
+ * pause glyph. Tapping a paused card resumes it, and the answer to that is the
+ * playback simply starting — holding a pause mark on screen afterwards
+ * announces a state the card is no longer in. It fades out still reading play,
+ * and the sound circle is the only thing that rides out the hint.
+ *
+ * The faded circle keeps its box rather than unmounting, so the sound circle
+ * does not slide when playback is toggled.
  */
 interface PlaybackOverlayProps {
   paused: boolean;
@@ -87,10 +96,11 @@ export default function PlaybackOverlay({
 
       <div
         aria-hidden
-        className="flex items-center justify-center rounded-full backdrop-blur-sm"
+        className={`flex items-center justify-center rounded-full backdrop-blur-sm
+                    transition-opacity duration-200 ease-out ${paused ? "opacity-100" : "opacity-0"}`}
         style={{ width: PLAYBACK, height: PLAYBACK, backgroundColor: "rgba(0, 0, 0, 0.45)" }}
       >
-        {paused ? <PlayIcon size={36} /> : <PauseIcon size={36} />}
+        <PlayIcon size={36} />
       </div>
     </div>
   );

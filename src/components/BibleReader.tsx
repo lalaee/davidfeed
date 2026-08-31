@@ -286,11 +286,19 @@ export default function BibleReader({
   );
 
   // The page recedes — scales down and rounds its corners on the 500ms iOS
-  // curve — under anything that sits above it: a sheet, the verse action bar,
-  // or the compare card. The Figma frames draw the verses full-size behind the
-  // bar and the card; this is a deliberate departure, asked for so that the
-  // layer above always reads as a layer.
-  const anySheetOpen = showBooks || showCompare || selected.length > 0;
+  // curve — under anything that sits above it. How far depends on how much is
+  // covering it: a sheet or the compare card takes the full 52px inset, the
+  // action bar the lighter 26px, because 78px of bar pushing the page back as
+  // far as a full sheet overstates what is actually on top of it.
+  //
+  // The Figma frames draw the verses full-size behind the bar and the card;
+  // receding at all is a deliberate departure, asked for so that the layer
+  // above always reads as a layer.
+  const recede = showBooks || showCompare
+    ? "sheet-open"
+    : selected.length > 0
+      ? "sheet-open-light"
+      : "";
 
   // A ring is only honest when every selected verse carries that colour;
   // a mixed selection shows none rather than picking a winner.
@@ -316,7 +324,7 @@ export default function BibleReader({
       {/* Fixed background for Safari safe area */}
       <div className="fixed inset-0 bg-black z-[-1]" />
 
-      <div className={`app-shell relative w-full md:max-w-[390px] h-[100dvh] bg-black mx-auto flex flex-col overflow-hidden ${anySheetOpen ? "sheet-open" : ""}`}>
+      <div className={`app-shell relative w-full md:max-w-[390px] h-[100dvh] bg-black mx-auto flex flex-col overflow-hidden ${recede}`}>
         {/* Header Section — absolutely overlaid so the verses scroll behind it */}
         <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[40px]">
           {/* Verse Artwork + Title Row — iOS 26 morph: scales with scroll */}

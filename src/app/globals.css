@@ -652,8 +652,14 @@ button, [role="button"], a {
 /* iOS 26 / Vaul-style sheet motion. When `.sheet-open` is added, the host
    page recedes — scales down from top-center and rounds its corners — so the
    sheet (sibling at higher z-index, with its own backdrop-blur scrim) reads as
-   a layer above. Numbers match Vaul: ~26px inset → ~0.93 scale, 10px radius,
-   500ms with the critically-damped iOS curve so both layers move as one. */
+   a layer above. 10px radius, 500ms with the critically-damped iOS curve so
+   both layers move as one.
+
+   Two depths, because the depth should say how much is covering the page.
+   A full sheet insets 52px (~0.86 at 375). The verse action bar is 78px of a
+   747 screen, so it uses `.sheet-open-light` at Vaul's own 26px (~0.93) —
+   enough to read as a layer, not so much that a small bar shoves the page
+   back as far as a sheet does. */
 .app-shell {
   transform-origin: top center;
   transition:
@@ -663,6 +669,11 @@ button, [role="button"], a {
 
 .app-shell.sheet-open {
   transform: scale(calc((min(100vw, 390px) - 52px) / min(100vw, 390px)));
+  border-radius: 10px;
+}
+
+.app-shell.sheet-open-light {
+  transform: scale(calc((min(100vw, 390px) - 26px) / min(100vw, 390px)));
   border-radius: 10px;
 }
 

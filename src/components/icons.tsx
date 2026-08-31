@@ -342,3 +342,25 @@ export function DoneCheckIcon({ size = 20, className }: IconProps) {
     </svg>
   );
 }
+
+/*
+ * Iconly's curved chevron, as the design uses for book rows and the feed's
+ * topic header. It is a CURVE, not a straight V drawn from the bounding box —
+ * getting that wrong once is what made the feed header's chevron look wrong.
+ *
+ * Points down as drawn; rotate 180 for the expanded state, which is what the
+ * design's "Arrow Up" is.
+ */
+export function ChevronIcon({ size = 25, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 25 25" fill="none" aria-hidden className={className}>
+      <path
+        d="M19 9C19 9 14.856 16 12 16C9.145 16 5 9 5 9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

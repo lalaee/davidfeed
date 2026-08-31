@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 
+import { ChevronIcon, CloseIcon } from "./icons";
+
 const BOOKS: { name: string; chapters: number }[] = [
   // Old Testament
   { name: "Genesis", chapters: 50 },
@@ -73,6 +75,25 @@ const BOOKS: { name: string; chapters: number }[] = [
   { name: "Revelation", chapters: 22 },
 ];
 
+/*
+ * Books and chapters.
+ *
+ * Figma "Bible" 2654:2933, frame 36942 — the same card the compare sheet uses,
+ * 480 tall instead of 444:
+ *
+ *   card      333x480, radius 18.8333, #0E0E0E, padding 24/16, gap 32, at x=21
+ *             and 10 from the bottom
+ *   header    48 tall, gap 10: a 48x48 #212121 close circle, then "Books" in
+ *             Inter Semi Bold 17/150%
+ *   book row  40 tall, radius 41, 16 padding, label Inter Regular 18/150% in
+ *             #FFFFFF whether it is open or shut, with Iconly's curved chevron
+ *   chapters  rows of five, 10 apart, each chip 46x48 at radius 7 on #212121,
+ *             the number in Inter Regular 16/150%
+ *
+ * The list scrolls inside the card, which is fixed: Psalms alone is thirty rows
+ * of chapters. Book rows stick as their own chapters scroll under them, which
+ * the design cannot show in a still frame but which a 150-chapter book needs.
+ */
 interface BooksSheetProps {
   currentBook?: string;
   currentChapter?: number;
@@ -107,99 +128,113 @@ export default function BooksSheet({
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-[20px] z-[110] animate-fade-in" onClick={onClose} />
+      {/* Transparent — the design dims nothing; this only catches a tap. */}
+      <div className="fixed inset-0 z-[110]" onClick={onClose} />
 
-      {/* Sheet */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full md:max-w-[390px] z-[111] animate-slide-up">
-        <div className="sheet-surface bg-black rounded-t-[16px] flex flex-col items-start pb-[48px] px-[16px] overflow-y-auto max-h-[90dvh] scrollbar-hide">
+      <div
+        className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[111]
+                   flex h-[480px] max-h-[calc(100dvh-120px)] w-[calc(100%-42px)] -translate-x-1/2
+                   flex-col gap-[32px] md:max-w-[348px]
+                   rounded-[18.8333px] px-[16px] py-[24px]"
+        style={{ backgroundColor: "#0E0E0E" }}
+      >
+        {/* Header */}
+        <div className="flex h-[48px] flex-shrink-0 items-center gap-[10px]">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-[48px] w-[48px] flex-shrink-0 items-center justify-center rounded-full
+                       border-none text-white transition-transform duration-[190ms]
+                       ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]"
+            style={{ backgroundColor: "#212121" }}
+          >
+            <CloseIcon size={20} />
+          </button>
+          <p className="min-w-0 flex-1 text-[17px] font-semibold leading-[25.5px] text-white">
+            Books
+          </p>
+        </div>
 
-          {/* Header row — stays pinned while the book list scrolls behind it */}
-          <div className="sticky top-0 z-20 bg-black flex gap-[10px] items-center w-full shrink-0 -mx-[16px] px-[16px] pt-[24px] pb-[24px]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-[#1c1c1e] rounded-full w-[48px] h-[48px] flex-shrink-0 flex items-center justify-center"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M5 5L15 15M15 5L5 15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
-            <p className="text-white text-[20px] font-semibold leading-[1.5] tracking-[-0.26px] flex-1 min-w-0">
-              Books
-            </p>
-          </div>
+        {/* Books, scrolling inside the card */}
+        <div className="scrollbar-hide flex flex-1 flex-col gap-[16px] overflow-y-auto">
+          {BOOKS.map(({ name, chapters }) => {
+            const isExpanded = expandedBook === name;
+            const chapterNums = Array.from({ length: chapters }, (_, i) => i + 1);
+            const rows = Math.ceil(chapterNums.length / 5);
 
-          {/* Book list */}
-          <div className="flex flex-col gap-[16px] w-full shrink-0">
-            {BOOKS.map(({ name, chapters }) => {
-              const isExpanded = expandedBook === name;
-              const chapterNums = Array.from({ length: chapters }, (_, i) => i + 1);
-
-              return (
-                <div key={name} ref={name === currentBook ? activeBookRef : null} className="flex flex-col gap-[16px] w-full">
-                  {/* Book row — sticks below the sheet header while this book's chapter grid scrolls past */}
-                  <button
-                    type="button"
-                    onClick={() => handleBookPress(name)}
-                    className="sticky top-[96px] z-10 bg-black flex gap-[8px] h-[40px] items-center px-[16px] rounded-[41px] w-full text-left"
+            return (
+              <div
+                key={name}
+                ref={name === currentBook ? activeBookRef : null}
+                className="flex w-full flex-col gap-[16px]"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleBookPress(name)}
+                  aria-expanded={isExpanded}
+                  // Sticky so the book you are inside stays named while its
+                  // chapters scroll past. #0E0E0E to match the card it sits on.
+                  className="sticky top-0 z-10 flex h-[40px] w-full flex-shrink-0 items-center gap-[8px]
+                             rounded-[41px] border-none px-[16px] text-left"
+                  style={{ backgroundColor: "#0E0E0E" }}
+                >
+                  <span className="min-w-0 flex-1 text-[18px] font-normal leading-[27px] text-white">
+                    {name}
+                  </span>
+                  <span
+                    className={`flex flex-shrink-0 text-white transition-transform duration-200
+                                ease-[cubic-bezier(0.32,0.72,0,1)] ${isExpanded ? "rotate-180" : ""}`}
                   >
-                    <span className={`flex-1 min-w-0 text-[20px] font-normal leading-[1.5] tracking-[-0.26px] ${isExpanded ? "text-white" : "text-[#afafaf]"}`}>
-                      {name}
-                    </span>
-                    {/* Chevron — up when expanded, down when collapsed */}
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      className={`flex-shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                    >
-                      <path
-                        d="M5 7.5L10 12.5L15 7.5"
-                        stroke={isExpanded ? "white" : "#afafaf"}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                    <ChevronIcon size={25} />
+                  </span>
+                </button>
 
-                  {/* Chapter grid — shown when expanded */}
-                  {isExpanded && (
-                    <div className="px-[16px] flex flex-col gap-[10px]">
-                      {/* Chunk chapters into rows of 5 */}
-                      {Array.from({ length: Math.ceil(chapterNums.length / 5) }, (_, rowIdx) => (
+                {isExpanded && (
+                  <div className="flex flex-col gap-[10px] px-[16px]">
+                    {Array.from({ length: rows }, (_, rowIdx) => {
+                      const slice = chapterNums.slice(rowIdx * 5, rowIdx * 5 + 5);
+                      return (
                         <div key={rowIdx} className="flex gap-[10px]">
-                          {chapterNums.slice(rowIdx * 5, rowIdx * 5 + 5).map((ch) => {
-                            const isCurrentChapter = name === currentBook && ch === currentChapter;
+                          {slice.map((ch) => {
+                            const current = name === currentBook && ch === currentChapter;
                             return (
                               <button
                                 key={ch}
                                 type="button"
                                 onClick={() => handleChapterPress(name, ch)}
-                                className={`flex-1 flex items-center justify-center p-[12px] rounded-[7px] ${isCurrentChapter ? "bg-white" : "bg-[#101010]"}`}
+                                aria-current={current ? "page" : undefined}
+                                className="flex h-[48px] flex-1 items-center justify-center rounded-[7px]
+                                           border-none transition-transform duration-[190ms]
+                                           ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]"
+                                // The design draws no selected chapter — every
+                                // chip in the frame reads "1". This keeps the
+                                // one you are reading marked, in the card's own
+                                // palette rather than an invented colour.
+                                style={{ backgroundColor: current ? "#FFFFFF" : "#212121" }}
                               >
-                                <span className={`text-[16px] font-normal leading-[1.5] tracking-[-0.26px] text-center ${isCurrentChapter ? "text-black" : "text-[#afafaf]"}`}>
+                                <span
+                                  className="text-[16px] font-normal leading-[24px]"
+                                  style={{ color: current ? "#0E0E0E" : "#FFFFFF" }}
+                                >
                                   {ch}
                                 </span>
                               </button>
                             );
                           })}
-                          {/* Fill empty slots in last row so tiles stay equal width */}
-                          {chapterNums.slice(rowIdx * 5, rowIdx * 5 + 5).length < 5 &&
-                            Array.from({ length: 5 - chapterNums.slice(rowIdx * 5, rowIdx * 5 + 5).length }).map((_, i) => (
+                          {/* Keep the last row's chips the same width as the rest. */}
+                          {slice.length < 5 &&
+                            Array.from({ length: 5 - slice.length }).map((_, i) => (
                               <div key={`empty-${i}`} className="flex-1" />
                             ))}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </>

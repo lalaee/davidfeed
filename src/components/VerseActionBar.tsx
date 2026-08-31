@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { CloseIcon } from "./icons";
+
 /*
  * The bar that appears when a verse is selected.
  *
@@ -93,7 +95,9 @@ export default function VerseActionBar({
                 colour={colour}
                 selected={on}
                 // Tapping the colour a verse already carries clears it, so the
-                // same control both applies and removes.
+                // same control both applies and removes. The applied swatch
+                // wears an X to say so — without it the removal is a gesture
+                // you can only find by guessing.
                 onClick={() => onHighlight(on ? null : colour)}
               />
             );
@@ -143,7 +147,7 @@ function SwatchButton({
   return (
     <button
       type="button"
-      aria-label={`Highlight ${colour}`}
+      aria-label={selected ? "Remove highlight" : `Highlight ${colour}`}
       aria-pressed={selected}
       onClick={onClick}
       {...handlers}
@@ -156,9 +160,17 @@ function SwatchButton({
       }}
     >
       <span
-        className="block h-full w-full rounded-full"
+        className="flex h-full w-full items-center justify-center rounded-full"
         style={{ backgroundColor: colour }}
-      />
+      >
+        {/* Dark, because every swatch is a bright pastel and a white cross
+            would disappear into the yellow. */}
+        {selected && (
+          <span className="flex" style={{ color: "#0E0E0E" }}>
+            <CloseIcon size={14} />
+          </span>
+        )}
+      </span>
       {/* Selection ring, drawn outside the swatch so it never shrinks the
           colour. The pop replays on its own: moving between colours removes
           the class from one swatch and adds it to the other, and CSS restarts

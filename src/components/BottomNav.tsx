@@ -10,8 +10,9 @@ import Link from "next/link";
  * The glass is gone. This was a LiquidGlass pane with a translucent tint and a
  * drop shadow; the design is now a flat, fully opaque black pill with no
  * effects at all, so the pane, its backdrop-filter chain and the
- * .bottom-nav-glass overrides have been removed. LiquidGlass itself stays —
- * BibleReader still uses it for the compact Read/Listen pills.
+ * .bottom-nav-glass overrides have been removed. LiquidGlass itself stays in
+ * the codebase but nothing renders it now: BibleReader's compact Read/Listen
+ * pills were its last caller, and they went with the toggle.
  *
  * Container      281x75, radius 47.619, no effects. Figma says #000000; the
  *                shipped fill is #0E0E0E, lifted off pure black by eye so the

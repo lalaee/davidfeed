@@ -18,15 +18,21 @@ import { TOPICS } from "@/data/topics";
  * puts it at y=54 in a frame whose 45px status bar is hidden, i.e. 9px below
  * where the status bar ends. The app sets viewportFit:"cover", so on a notched
  * phone the viewport runs under the status bar and a flat 54px would collide
- * with the clock. Hence safe-area + 9, falling back to Figma's own 45px status
- * bar height where there is no inset — which reproduces 54 exactly on desktop.
+ * with the clock. Hence an offset from the safe area, falling back to Figma's
+ * own 45px status bar height where there is no inset.
+ *
+ * That offset is 9 minus the 10px the header was later raised by eye, so it is
+ * NEGATIVE: the label now sits 1px above where the status bar ends, and 44px
+ * from the top on a screen with no notch. Keep the subtraction rather than
+ * folding it into the 45, so the two terms stay readable as "status bar" and
+ * "adjustment".
  *
  * That needs max(), not env()'s fallback. The fallback only applies where the
  * variable is UNSUPPORTED; a browser that supports it and has no notch reports
  * 0px, so env(safe-area-inset-top, 45px) yields 0 and the header rides up to
  * 9px. max(inset, 45px) + 9 gives 54 with no notch and inset+9 with one.
  *
- * The spaces around the + are REQUIRED. Inside calc(), + and - must have
+ * The spaces around the - are REQUIRED. Inside calc(), + and - must have
  * whitespace on both sides; "45px)+9px" parses into the inline style happily
  * and then resolves to `auto`, which put both the header and the menu at
  * top:0. Written with spaces it computes to 54px. Tailwind normalises this for
@@ -49,8 +55,9 @@ interface FeedHeaderProps {
   onSelect: (topicId: string) => void;
 }
 
-const TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) + 9px)";
-const PANEL_TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) + 48px)";
+const TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) - 1px)";
+// Held 39px below the header, the gap it has always had.
+const PANEL_TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) + 38px)";
 
 export default function FeedHeader({ topicId, onSelect }: FeedHeaderProps) {
   const [open, setOpen] = useState(false);

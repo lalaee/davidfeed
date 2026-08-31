@@ -28,6 +28,8 @@ interface FeedItemProps {
    * for the first interaction.
    */
   onAutoplayBlocked?: () => void;
+  /** Reports a tap-driven pause up to the Feed, which owns the ambient bed. */
+  onPausedChange?: (paused: boolean) => void;
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
   /**
@@ -74,6 +76,7 @@ export default function FeedItem({
   soundOn = false,
   effect,
   onAutoplayBlocked,
+  onPausedChange,
   startAt,
   eagerAudio,
   restartToken,
@@ -490,13 +493,17 @@ export default function FeedItem({
     const next = !userPausedRef.current;
     userPausedRef.current = next;
     setUserPaused(next);
+    // The bed lives in the Feed and would otherwise play on under a stopped
+    // card. Notified from the event handler, never from the deactivation
+    // reset below, which runs during render — the Feed clears it there itself.
+    onPausedChange?.(next);
     [videoRef.current, posterVideoRef.current, audioRef.current].forEach((el) => {
       if (!el?.getAttribute("src")) return;
       if (next) el.pause();
       else el.play().catch(() => {});
     });
     if (navigator.vibrate) navigator.vibrate(8);
-  }, []);
+  }, [onPausedChange]);
 
   const handleBackgroundTap = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {

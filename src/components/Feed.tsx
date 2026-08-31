@@ -179,18 +179,44 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
   // It is rendered outside the item wrappers, which is what keeps the
   // "only the focused card may play" sweep below from touching it.
   const bedRef = useRef<HTMLAudioElement>(null);
+
+  // A tap stops the CARD, but the bed is not the card's to stop — it is
+  // rendered out here so it survives scrolling. Without this it kept playing
+  // under a stopped card, which is the one thing a pause must not do.
+  const [cardPaused, setCardPaused] = useState(false);
+  // A pause belongs to the visit, not the card, exactly as FeedItem treats its
+  // own: scrolling to another card clears it. Adjusted during render rather
+  // than in an effect, the same documented pattern the card uses.
+  const [pausedAt, setPausedAt] = useState(activeIndex);
+  if (pausedAt !== activeIndex) {
+    setPausedAt(activeIndex);
+    if (cardPaused) setCardPaused(false);
+  }
+
+  // Acted on in the same tick as the tap, not left to the effect below. The
+  // card stops its video and narration synchronously inside the handler, so a
+  // state-driven bed lags them by a render and leaves the bed audibly running
+  // over a stopped card for a frame.
+  const setCardPausedNow = useCallback((paused: boolean) => {
+    setCardPaused(paused);
+    const bed = bedRef.current;
+    if (!bed) return;
+    if (paused) bed.pause();
+    else if (soundOn) bed.play().catch(() => {});
+  }, [soundOn]);
+
   useEffect(() => {
     const bed = bedRef.current;
     if (!bed) return;
     bed.volume = BED_VOLUME;
-    if (soundOn) {
+    if (soundOn && !cardPaused) {
       // Never muted, so this is the first thing a browser refuses; route the
       // refusal into the same fallback a card uses.
       bed.play().catch(armUnlock);
     } else {
       bed.pause();      // pause, never reset — resuming keeps its position
     }
-  }, [soundOn, armUnlock]);
+  }, [soundOn, cardPaused, armUnlock]);
 
   // The bed is audio, so a hidden tab usually leaves it alone — but a
   // backgrounded mobile browser does stop it, and nothing else would restart it.
@@ -198,11 +224,11 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
       const bed = bedRef.current;
-      if (soundOn && bed?.paused) bed.play().catch(() => {});
+      if (soundOn && !cardPaused && bed?.paused) bed.play().catch(() => {});
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [soundOn]);
+  }, [soundOn, cardPaused]);
 
 
   // Intersection Observer to detect active post.
@@ -374,6 +400,7 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
               restartToken={topicId}
               inWindow={index >= activeIndex - BEHIND && index <= activeIndex + AHEAD}
               onAutoplayBlocked={armUnlock}
+              onPausedChange={setCardPausedNow}
             />
           </div>
         ))}

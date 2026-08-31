@@ -1,5 +1,10 @@
 import BibleReader from "@/components/BibleReader";
-import { PSALM_46_PRIMARY, PSALM_46_TRANSLATIONS, psalm46Verses } from "@/data/psalm46";
+import {
+  PSALM_46_ALSO_AVAILABLE,
+  PSALM_46_PRIMARY,
+  PSALM_46_TRANSLATIONS,
+  psalm46Verses,
+} from "@/data/psalm46";
 
 export default function BiblePage() {
   return (
@@ -10,6 +15,7 @@ export default function BiblePage() {
         version={PSALM_46_PRIMARY.label}
         verses={psalm46Verses}
         translations={PSALM_46_TRANSLATIONS}
+        moreTranslations={PSALM_46_ALSO_AVAILABLE}
       />
     </main>
   );

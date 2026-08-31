@@ -40,8 +40,10 @@ interface BibleReaderProps {
   artworkSrc?: string;
   version?: string;
   verses: Verse[];
-  /** Every translation the compare card can show this chapter in. */
+  /** The translations the compare card lists by default. */
   translations?: Translation[];
+  /** Further translations the picker can offer but that are not listed. */
+  moreTranslations?: Translation[];
 }
 
 /*
@@ -58,6 +60,7 @@ interface BibleReaderProps {
  */
 const HIGHLIGHT_KEY = "dafod.highlights";
 const SAVED_KEY = "dafod.saved";
+const VERSIONS_KEY = "dafod.versions";
 
 type ChapterMap<T> = Record<number, T>;
 const EMPTY_CHAPTER = {} as ChapterMap<never>;
@@ -73,22 +76,22 @@ const EMPTY_STORE = {} as Record<string, ChapterMap<never>>;
  * every call spins React forever — hence the parse cache keyed on the raw
  * string.
  */
-function makeStore<T>(key: string) {
+function makeJsonStore<T>(key: string, empty: T) {
   const listeners = new Set<() => void>();
   let cachedRaw: string | null = null;
-  let cachedValue: Record<string, ChapterMap<T>> = EMPTY_STORE;
+  let cachedValue: T = empty;
 
-  const read = (): Record<string, ChapterMap<T>> => {
-    let raw = "{}";
+  const read = (): T => {
+    let raw = "";
     try {
-      raw = localStorage.getItem(key) ?? "{}";
+      raw = localStorage.getItem(key) ?? "";
     } catch {}
     if (raw !== cachedRaw) {
       cachedRaw = raw;
       try {
-        cachedValue = JSON.parse(raw);
+        cachedValue = raw ? (JSON.parse(raw) as T) : empty;
       } catch {
-        cachedValue = EMPTY_STORE;
+        cachedValue = empty;
       }
     }
     return cachedValue;
@@ -105,18 +108,23 @@ function makeStore<T>(key: string) {
         window.removeEventListener("storage", listener);
       };
     },
-    write(chapter: string, next: ChapterMap<T>) {
+    write(value: T) {
       try {
-        localStorage.setItem(key, JSON.stringify({ ...read(), [chapter]: next }));
+        localStorage.setItem(key, JSON.stringify(value));
       } catch {}
       listeners.forEach((l) => l());
     },
-    serverSnapshot: () => EMPTY_STORE as Record<string, ChapterMap<T>>,
+    serverSnapshot: () => empty,
   };
 }
 
-const highlightStore = makeStore<string>(HIGHLIGHT_KEY);
-const savedStore = makeStore<true>(SAVED_KEY);
+type ChapterStore<T> = Record<string, ChapterMap<T>>;
+const highlightStore = makeJsonStore<ChapterStore<string>>(HIGHLIGHT_KEY, EMPTY_STORE);
+const savedStore = makeJsonStore<ChapterStore<true>>(SAVED_KEY, EMPTY_STORE);
+/* Which translations the compare card lists. Null means "whatever the chapter
+   ships as its default", so a reader who never opens the picker follows the
+   design rather than a snapshot of it frozen at first run. */
+const versionsStore = makeJsonStore<string[] | null>(VERSIONS_KEY, null);
 
 /*
  * "v 1", "v 1-3", "v 1, 4-5". Runs are collapsed because a multi-verse
@@ -145,7 +153,13 @@ export default function BibleReader({
   version = "WEB",
   verses = [],
   translations = [],
+  moreTranslations = [],
 }: BibleReaderProps) {
+  // Everything the picker can offer: the listed set first, then the rest.
+  const allTranslations = useMemo(
+    () => [...translations, ...moreTranslations],
+    [translations, moreTranslations],
+  );
   // A selection is a SET of verse numbers, kept sorted so every label and
   // share string reads in reading order rather than tap order.
   const [selected, setSelected] = useState<number[]>([]);
@@ -181,13 +195,42 @@ export default function BibleReader({
         if (colour) next[n] = colour;
         else delete next[n];
       }
-      highlightStore.write(chapterTitle, next);
+      highlightStore.write({ ...highlightStore.read(), [chapterTitle]: next });
     },
     [chapterTitle, selected],
   );
 
   // Filled only when EVERY selected verse is saved, so the icon never claims
   // more than is true of the whole selection.
+  // Null until the reader chooses, so the default follows the chapter rather
+  // than a snapshot of it taken on first run.
+  const chosenVersionIds = useSyncExternalStore(
+    versionsStore.subscribe,
+    versionsStore.read,
+    versionsStore.serverSnapshot,
+  );
+  const listedTranslations = useMemo(() => {
+    if (!chosenVersionIds) return translations;
+    const picked = allTranslations.filter((t) => chosenVersionIds.includes(t.id));
+    // A stored choice can go stale if a translation is renamed or dropped;
+    // fall back rather than showing an empty card.
+    return picked.length ? picked : translations;
+  }, [chosenVersionIds, translations, allTranslations]);
+
+  const toggleVersion = useCallback(
+    (id: string) => {
+      const current = versionsStore.read() ?? translations.map((t) => t.id);
+      const next = current.includes(id)
+        ? current.filter((x) => x !== id)
+        : // Keep the file's order rather than the order they were tapped in.
+          allTranslations.filter((t) => current.includes(t.id) || t.id === id).map((t) => t.id);
+      // Never leave the card with nothing to show.
+      if (!next.length) return;
+      versionsStore.write(next);
+    },
+    [translations, allTranslations],
+  );
+
   const saved = selected.length > 0 && selected.every((n) => savedVerses[n]);
   const toggleSaved = useCallback(() => {
     if (!selected.length) return;
@@ -198,7 +241,7 @@ export default function BibleReader({
       if (allSaved) delete next[n];
       else next[n] = true;
     }
-    savedStore.write(chapterTitle, next);
+    savedStore.write({ ...savedStore.read(), [chapterTitle]: next });
   }, [chapterTitle, selected]);
 
   const handleShare = useCallback(() => {
@@ -407,7 +450,9 @@ export default function BibleReader({
         <CompareSheet
           verseRef={`${chapterTitle.replace("Psalm", "Ps")} ${formatVerseRange(selected)}`}
           verseNumbers={selected}
-          translations={translations}
+          translations={listedTranslations}
+          allTranslations={allTranslations}
+          onToggleVersion={toggleVersion}
           onClose={() => setShowCompare(false)}
         />
       )}

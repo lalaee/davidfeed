@@ -5,8 +5,9 @@ import FeedItem from "./FeedItem";
 import BottomNav from "./BottomNav";
 import SoundBadge from "./SoundBadge";
 import FeedHeader from "./FeedHeader";
+import DesktopChrome from "./DesktopChrome";
 import { chapterPosts, type Post } from "@/data/posts";
-import { DEFAULT_TOPIC, postsForTopic } from "@/data/topics";
+import { DEFAULT_TOPIC, TOPICS, postsForTopic } from "@/data/topics";
 
 /**
  * Ambient bed level under the narration. dafod mixes voice 0.95 / bed 0.25.
@@ -296,6 +297,16 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
   // scroller keeps its old offset — landing mid-list, or past the end of a
   // shorter topic — and the card that was playing keeps playing, because its
   // element is simply reused by the next post at that index.
+  // Desktop paging. It moves the same scroll container the phone swipes, so
+  // buttons and swipe are one mechanism rather than two states to reconcile.
+  const goToCard = useCallback(
+    (delta: number) => {
+      const target = itemRefs.current[activeIndex + delta];
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [activeIndex],
+  );
+
   const chooseTopic = useCallback((next: string) => {
     if (next === topicId) return;
     itemRefs.current.forEach((wrapper) =>
@@ -374,11 +385,14 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
       {/* Continuous ambient bed — one element for the whole feed, outside the
           card wrappers so scrolling never interrupts it. */}
       <audio ref={bedRef} src="/assets/ambient-bed.m4a" loop preload="auto" />
-    <div className="relative w-full md:max-w-[375px] h-[100dvh] bg-black mx-auto flex flex-col overflow-hidden">
+    <div className="feed-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
+                    md:max-w-[375px] desk:fixed desk:right-[51px] desk:top-[221px] desk:mx-0
+                    desk:h-[calc(100dvh-221px)]">
       {/* Scrollable Feed Container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scrollbar-hide pb-[20px] [overflow-anchor:none]"
+        className="flex-1 overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scrollbar-hide pb-[20px] [overflow-anchor:none]
+                   desk:[&>div>div]:rounded-[53px] desk:[&>div>div]:overflow-hidden"
       >
         {posts.map((post, index) => (
           <div
@@ -407,6 +421,15 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
       </div>
 
       <FeedHeader topicId={topicId} onSelect={chooseTopic} />
+
+      <DesktopChrome
+        topicId={topicId}
+        onSelectTopic={chooseTopic}
+        onPrev={() => goToCard(-1)}
+        onNext={() => goToCard(1)}
+        canPrev={activeIndex > 0}
+        canNext={activeIndex < posts.length - 1}
+      />
 
       <SoundBadge visible={soundBlocked} onEnable={enableSound} />
 

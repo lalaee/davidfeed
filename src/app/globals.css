@@ -9,6 +9,12 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
+
+  /* The desktop composition is a different layout, not a reflow, and it starts
+     at 1028 — Tailwind's own lg is 1024, which is close enough to be wrong. */
+  --breakpoint-desk: 1028px;
+  /* The desktop wordmark only. Everything else stays Inter. */
+  --font-wordmark: "Zalando Sans Expanded", var(--font-inter), sans-serif;
 }
 
 body {
@@ -1204,4 +1210,16 @@ html, body {
   height: 4px;
   background: white;
   border-radius: 50%;
+}
+
+/* The desktop feed column.
+   Written as plain CSS rather than desk:w-[622px] desk:max-w-none because it
+   has to beat md:max-w-[375px], and relying on which utility Tailwind emits
+   last is relying on something that is not a rule. A media query at the same
+   1028 the desk variant uses says it outright. */
+@media (min-width: 1028px) {
+  .feed-column {
+    width: 622px;
+    max-width: none;
+  }
 }

@@ -92,7 +92,7 @@ export default function FeedHeader({ topicId, onSelect }: FeedHeaderProps) {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Topic: ${label}. Change topic`}
-        className="fixed left-1/2 z-[600] flex w-max -translate-x-1/2 items-center gap-[4px]
+        className="fixed left-1/2 z-[600] flex w-max -translate-x-1/2 items-center gap-[4px] desk:hidden
                    whitespace-nowrap border-none bg-transparent p-0 text-white"
         style={{ top: TOP }}
       >
@@ -128,7 +128,7 @@ export default function FeedHeader({ topicId, onSelect }: FeedHeaderProps) {
         ref={panelRef}
         role="listbox"
         aria-label="Topics"
-        className={`fixed left-1/2 z-[600] w-[230px] -translate-x-1/2 overflow-hidden
+        className={`fixed left-1/2 z-[600] w-[230px] -translate-x-1/2 overflow-hidden desk:hidden
                     rounded-[20px] p-[6px]
                     transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
                     ${

@@ -43,6 +43,12 @@ import { NavBibleIcon, NavHomeIcon, NavLibraryIcon } from "./icons";
 
 interface BottomNavProps {
   activeTab?: "home" | "bible" | "library";
+  /**
+   * Where the pill lives. "bottom" is the phone's fixed bar; "inline" drops the
+   * fixed positioning so a desktop top bar can place it, and widens the gaps to
+   * the 58 the desktop frame uses against the phone's 47.6.
+   */
+  placement?: "bottom" | "inline";
 }
 
 const TABS = [
@@ -51,12 +57,21 @@ const TABS = [
   { key: "library", href: "/library", label: "Library", Icon: NavLibraryIcon },
 ] as const;
 
-export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
+export default function BottomNav({
+  activeTab = "home",
+  placement = "bottom",
+}: BottomNavProps) {
+  const inline = placement === "inline";
   return (
     <nav
-      className="fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999]
-                 flex h-[75px] w-fit -translate-x-1/2 items-start justify-center
-                 gap-[47.619px] rounded-[47.619px] px-[30.381px] py-[4.762px]"
+      className={`flex h-[75px] items-start rounded-[47.619px] py-[4.762px]
+                  ${inline
+                    // 691 wide with the tabs pushed to its right edge: the
+                    // design's pill runs from x=701 to 1392 while its icons
+                    // only occupy the last ~280, so the bar is long and the
+                    // content sits at the end of it.
+                    ? "w-[691px] justify-end gap-[58px] pl-[38.095px] pr-0"
+                    : "fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999] w-fit -translate-x-1/2 justify-center gap-[47.619px] px-[30.381px] desk:hidden"}`}
       style={{ backgroundColor: "#0E0E0E" }}
     >
       {TABS.map((tab) => {

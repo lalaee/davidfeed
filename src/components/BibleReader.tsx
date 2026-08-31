@@ -17,10 +17,12 @@ import { BookmarkIcon, CompareIcon, SendIcon } from "./icons";
  *   title pill    158x72, radius 22, #0E0E0E, artwork inset 12, 12 gap
  *   version pill  61x38, #0E0E0E
  *   verses top    144  (header row y=40 + 104)
- *   verse         21px/31.5 regular white, number 21px/24 regular #999999 in
- *                 a 20px gutter — the number is the SAME SIZE as the verse,
- *                 not a small superscript; it only reads smaller because it is
- *                 grey and its tighter line box lifts it ~4px
+ *   verse         Inter Regular 21/31.5 #FFFFFF; number Inter Medium 20, line
+ *                 height auto (24 at that size), #999999, in a 20px gutter.
+ *                 The number is very nearly the size of the verse — it reads
+ *                 small because it is grey and its tighter line box lifts it
+ *                 ~4px, not because it is set smaller.
+ *   header labels Inter Semi Bold 17/22, -0.408 tracking, both of them
  *   verse pitch   120 on 96-tall blocks = 24 apart
  *
  * The motion is the app's own and is deliberately kept: the header still
@@ -243,7 +245,7 @@ export default function BibleReader({
                 />
               </div>
               {/* Chapter Title */}
-              <span className="text-[17px] font-bold text-white tracking-[-0.408px] leading-[22px] whitespace-nowrap">
+              <span className="text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px] whitespace-nowrap">
                 {chapterTitle}
               </span>
             </button>
@@ -254,7 +256,7 @@ export default function BibleReader({
               className="rounded-[19.252px] px-[16px] h-[38px] flex items-center justify-center"
               style={{ backgroundColor: "#0E0E0E" }}
             >
-              <span className="text-[17px] font-normal text-white tracking-[-0.408px] leading-[22px]">
+              <span className="text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px]">
                 {version}
               </span>
             </button>
@@ -289,7 +291,7 @@ export default function BibleReader({
                 {/* Verse Number — 20px gutter, no gap; the design puts the
                     verse text at exactly 20 from the block's left edge. */}
                 <span
-                  className="w-[20px] flex-shrink-0 text-[21px] font-normal leading-[24px]"
+                  className="w-[20px] flex-shrink-0 text-[20px] font-medium leading-[24px]"
                   style={{ color: "#999999" }}
                 >
                   {verse.number}

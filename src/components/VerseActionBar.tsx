@@ -21,6 +21,10 @@ import { useState } from "react";
  * #0E0E0E over #212121 is the bottom nav's palette exactly, which is the
  * point: this is the nav's slot, so it is built out of the nav's surfaces.
  *
+ * The width tracks the app shell — capped only at md, where the shell itself
+ * is capped at 390 — so the bar spans a wide phone instead of sitting as a
+ * narrow strip while the verses behind it run edge to edge.
+ *
  * It SCROLLS. The design clips Save at the frame edge because the row is a
  * carousel: 148 + 8 + 77 + 8 + 58 + 8 + 53 = 360 against 309 of usable width.
  * More actions drop in by extending the array.
@@ -57,7 +61,7 @@ export default function VerseActionBar({
   return (
     <div
       className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999]
-                 h-[78px] w-[calc(100%-42px)] max-w-[348px] -translate-x-1/2
+                 h-[78px] w-[calc(100%-42px)] -translate-x-1/2 md:max-w-[348px]
                  overflow-x-auto overflow-y-hidden scrollbar-hide
                  rounded-[22px] p-[12px]"
       style={{ backgroundColor: "#0E0E0E" }}

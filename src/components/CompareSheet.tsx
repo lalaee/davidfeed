@@ -23,6 +23,12 @@ import { CloseIcon, VersionsIcon } from "./icons";
  * only its top corners rounded, wrapped each translation in its own #1c1c1e
  * card, and set the verses at 22px — none of which the design has.
  *
+ * The 333 is those 21px margins on the design's 375, so the width tracks the
+ * app shell rather than a fixed number. The shell is w-full below md and 390
+ * above it, so the cap is md:max-w-[348px] (390 - 42) and never applies on a
+ * phone. Capped unconditionally, this sat as a narrow column down the middle
+ * of a wider screen while the verses behind it ran edge to edge.
+ *
  * There is no scrim. The design leaves the verses behind it at full
  * brightness, so the reader does not recede either; the backdrop here is
  * transparent and exists only so a tap outside can close it.
@@ -46,7 +52,8 @@ export default function CompareSheet({ verseRef, onClose }: CompareSheetProps) {
 
       <div
         className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[111]
-                   flex w-[calc(100%-42px)] max-w-[348px] -translate-x-1/2 flex-col gap-[32px]
+                   flex w-[calc(100%-42px)] -translate-x-1/2 flex-col gap-[32px]
+                   md:max-w-[348px]
                    rounded-[18.8333px] px-[16px] py-[24px]"
         style={{ backgroundColor: "#0E0E0E" }}
       >

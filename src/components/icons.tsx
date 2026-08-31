@@ -321,3 +321,24 @@ export function HighlightCancelIcon({ size = 12, className }: IconProps) {
     </svg>
   );
 }
+
+/*
+ * The check on the compare card's Done button — Figma 2654:2673, exported
+ * verbatim. A filled tick, not a stroked one, so it keeps its weight at 20px.
+ *
+ * Its Figma layer is still called "Edit - Iconly Pro" because the button was
+ * duplicated from the Versions one and only the vector inside was swapped; the
+ * glyph is a check, whatever the layer says.
+ */
+export function DoneCheckIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M17.8532 4.42571C18.4156 4.98808 18.4156 5.8997 17.8532 6.46206L8.7409 15.5744C8.17872 16.1368 7.26711 16.1368 6.70474 15.5746L2.1466 11.0184C1.58412 10.4562 1.58392 9.54443 2.14616 8.98206C2.70841 8.4195 3.62016 8.41931 4.18262 8.98168L7.72253 12.52L15.8169 4.42571C16.379 3.8633 17.2908 3.8633 17.8532 4.42571Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

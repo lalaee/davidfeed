@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { CloseIcon, VersionsIcon } from "./icons";
+import { CloseIcon, DoneCheckIcon, VersionsIcon } from "./icons";
 import type { Translation } from "@/data/psalm46";
 
 /*
@@ -106,13 +106,18 @@ export default function CompareSheet({
                        transition-transform duration-[190ms]
                        px-[20px] py-[6px] ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]"
             // White while picking, the way the nav marks its current tab —
-            // the button is a mode, so it shows which mode you are in.
+            // the button is a mode, so it shows which mode you are in. #000000
+            // rather than the card's #0E0E0E because the design specifies black
+            // for this label and its glyph.
             style={{
               backgroundColor: picking ? "#FFFFFF" : "#212121",
-              color: picking ? "#0E0E0E" : "#FFFFFF",
+              color: picking ? "#000000" : "#FFFFFF",
             }}
           >
-            <VersionsIcon size={20} />
+            {/* The pencil offers the choice; the check confirms it. Two states,
+                two glyphs — the pencil sitting next to "Done" read as if it
+                would edit something. */}
+            {picking ? <DoneCheckIcon size={20} /> : <VersionsIcon size={20} />}
             <span className="whitespace-nowrap text-[13px] font-normal leading-[16px]">
               {picking ? "Done" : "Versions"}
             </span>

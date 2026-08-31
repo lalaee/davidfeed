@@ -655,11 +655,10 @@ button, [role="button"], a {
    a layer above. 10px radius, 500ms with the critically-damped iOS curve so
    both layers move as one.
 
-   Two depths, because the depth should say how much is covering the page.
-   A full sheet insets 52px (~0.86 at 375). The verse action bar is 78px of a
-   747 screen, so it uses `.sheet-open-light` at Vaul's own 26px (~0.93) —
-   enough to read as a layer, not so much that a small bar shoves the page
-   back as far as a sheet does. */
+   Applied by a sheet and by the compare card, both of which cover the page.
+   The verse action bar does not use it: the bar is anchored to a verse inside
+   the scrolling column, and scaling the page would drag its anchor out from
+   under it. */
 .app-shell {
   transform-origin: top center;
   transition:
@@ -686,10 +685,6 @@ button, [role="button"], a {
   border-radius: 10px;
 }
 
-.app-shell.sheet-open-light {
-  transform: scale(calc((min(100vw, 390px) - 26px) / min(100vw, 390px)));
-  border-radius: 10px;
-}
 
 /* Glass-rim shadow stack for sheet surfaces — soft outer drop lifts the sheet
    off the blurred scrim, and the inset highlights mimic frosted-glass bevel. */

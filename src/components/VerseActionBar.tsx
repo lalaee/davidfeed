@@ -5,12 +5,17 @@ import { useState } from "react";
 /*
  * The bar that appears when a verse is selected.
  *
- * Figma — "Bible" 2642:1725, frame 36982 — is canon for every number here.
- * It replaces the modal sheet this used to be, and it takes the NAV's place:
- * in the design the nav instance is absent from the selected-verse frame, and
- * the bar sits in the same slot, 10px off the bottom.
+ * Figma — "Contextual-highlight" 2649:2528, frame 36982 — is canon for every
+ * number here. It is CONTEXTUAL: it floats 17px below the verse you tapped and
+ * overlaps the verses beneath it, rather than sitting in a fixed slot. An
+ * earlier frame pinned it to the bottom; this one does not, and the name says
+ * which is intended.
  *
- *   bar        333x78, radius 22, fill #0E0E0E, 12px padding
+ * The nav is absent while a verse is selected, as in every selected-verse
+ * frame.
+ *
+ *   bar        333x78, radius 22, fill #0E0E0E, 12px padding, 17px below the
+ *              selected verse
  *   groups     54 tall, radius 14, fill #212121, 8px apart
  *   swatches   4 circles, 28.7 across, in a fixed 148x54 group padded 8 and
  *              space-between — which computes the 5.73 gap; do not hard-code it
@@ -21,9 +26,9 @@ import { useState } from "react";
  * #0E0E0E over #212121 is the bottom nav's palette exactly, which is the
  * point: this is the nav's slot, so it is built out of the nav's surfaces.
  *
- * The width tracks the app shell — capped only at md, where the shell itself
- * is capped at 390 — so the bar spans a wide phone instead of sitting as a
- * narrow strip while the verses behind it run edge to edge.
+ * The width comes from the verse row it hangs off: the column is inset 27 and
+ * the bar 21, so reaching 6px past the row on each side gives the design's
+ * 21px margins at any screen width without restating the number.
  *
  * It SCROLLS. The design clips Save at the frame edge because the row is a
  * carousel: 148 + 8 + 77 + 8 + 58 + 8 + 53 = 360 against 309 of usable width.
@@ -44,6 +49,8 @@ interface VerseActionBarProps {
   highlight: string | null;
   onHighlight: (colour: string | null) => void;
   actions: VerseAction[];
+  /** Below the verse, or above it when there is no room below. */
+  placement: "above" | "below";
 }
 
 /* Sampled from the design's swatches, left to right. */
@@ -57,13 +64,17 @@ export default function VerseActionBar({
   highlight,
   onHighlight,
   actions,
+  placement,
 }: VerseActionBarProps) {
   return (
     <div
-      className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999]
-                 h-[78px] w-[calc(100%-42px)] -translate-x-1/2 md:max-w-[348px]
-                 overflow-x-auto overflow-y-hidden scrollbar-hide
-                 rounded-[22px] p-[12px]"
+      className={`animate-slide-up absolute left-[-6px] right-[-6px] z-[40]
+                  h-[78px] overflow-x-auto overflow-y-hidden scrollbar-hide
+                  rounded-[22px] p-[12px]
+                  ${placement === "below" ? "top-[calc(100%+17px)]" : "bottom-[calc(100%+17px)]"}`}
+      // -6 either side because the verse column is inset 27 and the bar 21:
+      // the row's width plus 12 is exactly the design's calc(100% - 42px), at
+      // any screen width, without repeating the number.
       style={{ backgroundColor: "#0E0E0E" }}
     >
       {/* w-max so the row keeps its natural width and the container scrolls it,

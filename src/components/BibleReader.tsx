@@ -163,12 +163,22 @@ export default function BibleReader({
   // A selection is a SET of verse numbers, kept sorted so every label and
   // share string reads in reading order rather than tap order.
   const [selected, setSelected] = useState<number[]>([]);
+  // The bar hangs off the verse you tapped LAST, which the sorted list cannot
+  // tell us — so the anchor is tracked separately. Removing the anchor drops it
+  // to whatever is still selected rather than leaving the bar orphaned.
+  const [anchor, setAnchor] = useState<number | null>(null);
   const toggleVerse = useCallback((n: number) => {
-    setSelected((prev) =>
-      prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n].sort((a, b) => a - b),
-    );
+    setSelected((prev) => {
+      const removing = prev.includes(n);
+      const next = removing ? prev.filter((x) => x !== n) : [...prev, n].sort((a, b) => a - b);
+      setAnchor(removing ? (next.length ? next[next.length - 1] : null) : n);
+      return next;
+    });
   }, []);
-  const clearSelection = useCallback(() => setSelected([]), []);
+  const clearSelection = useCallback(() => {
+    setSelected([]);
+    setAnchor(null);
+  }, []);
   const [showBooks, setShowBooks] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const highlights =
@@ -285,20 +295,11 @@ export default function BibleReader({
     [handleShare, saved, toggleSaved],
   );
 
-  // The page recedes — scales down and rounds its corners on the 500ms iOS
-  // curve — under anything that sits above it. How far depends on how much is
-  // covering it: a sheet or the compare card takes the full 52px inset, the
-  // action bar the lighter 26px, because 78px of bar pushing the page back as
-  // far as a full sheet overstates what is actually on top of it.
-  //
-  // The Figma frames draw the verses full-size behind the bar and the card;
-  // receding at all is a deliberate departure, asked for so that the layer
-  // above always reads as a layer.
-  const recede = showBooks || showCompare
-    ? "sheet-open"
-    : selected.length > 0
-      ? "sheet-open-light"
-      : "";
+  // The page recedes under a sheet or the compare card, which cover it. It no
+  // longer recedes under the action bar: the bar is now anchored to a verse
+  // inside the scrolling column, and scaling the page would drag its anchor out
+  // from under it.
+  const recede = showBooks || showCompare ? "sheet-open" : "";
 
   // A ring is only honest when every selected verse carries that colour;
   // a mixed selection shows none rather than picking a winner.
@@ -310,14 +311,32 @@ export default function BibleReader({
   // iOS 26 toolbar morph — as verses scroll under the floating header, the pill
   // row shrinks ~4% and its glass panes saturate slightly.
   const versesScrollRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Below the verse unless the bar would fall off the bottom, in which case it
+  // goes above — the ordinary popover rule. Re-measured while scrolling,
+  // because the verse it hangs off moves.
+  const [placement, setPlacement] = useState<"above" | "below">("below");
   useEffect(() => {
     const el = versesScrollRef.current;
     if (!el) return;
-    const onScroll = () => setScrollProgress(Math.min(1, el.scrollTop / 40));
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+    const measure = () => {
+      setScrollProgress(Math.min(1, el.scrollTop / 40));
+      const row = anchorRef.current;
+      if (!row) return;
+      const bottom = row.getBoundingClientRect().bottom;
+      // 17 gap + 78 bar + 16 of breathing room at the edge.
+      setPlacement(bottom + 111 > window.innerHeight ? "above" : "below");
+    };
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      el.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [anchor]);
 
   return (
     <>
@@ -379,12 +398,17 @@ export default function BibleReader({
           {verses.map((verse) => {
             const isSelected = selected.includes(verse.number);
             const highlight = highlights[verse.number];
+            const isAnchor = anchor === verse.number;
             return (
               <div
                 key={verse.number}
+                ref={isAnchor ? anchorRef : undefined}
+                className="relative mb-[24px]"
+              >
+              <div
                 // select-none: a tap on a paragraph otherwise lands as a text
                 // selection instead of a tap, which swallowed the first press.
-                className="flex mb-[24px] select-none active:opacity-60 transition-opacity cursor-pointer"
+                className="flex select-none active:opacity-60 transition-opacity cursor-pointer"
                 onClick={() => toggleVerse(verse.number)}
               >
                 {/* Verse Number — 20px gutter, no gap; the design puts the
@@ -418,6 +442,20 @@ export default function BibleReader({
                   {verse.text}
                 </p>
               </div>
+
+              {/* The bar hangs off this verse rather than the screen, so it
+                  scrolls with it and stays next to what it acts on. Sibling of
+                  the row, not a child, so the row's press dimming does not take
+                  the bar down with it. */}
+              {isAnchor && !showCompare && (
+                <VerseActionBar
+                  highlight={commonHighlight}
+                  onHighlight={setHighlight}
+                  actions={actions}
+                  placement={placement}
+                />
+              )}
+              </div>
             );
           })}
         </div>
@@ -426,23 +464,6 @@ export default function BibleReader({
             so it is rendered outside the shell below. */}
         {!selected.length && !showBooks && !showCompare && <BottomNav activeTab="bible" />}
       </div>
-
-      {/* The bar takes the nav's place while a verse is selected, exactly as
-          the design does — its frame has no nav in it. The compare card lands
-          in that same slot, and the design's compare frame carries neither bar
-          nor nav, so the bar stands down while the card is up.
-
-          Rendered OUTSIDE .app-shell on purpose. The shell is what scales, and
-          a transformed ancestor turns position:fixed into position:absolute
-          against it — so a bar left inside would shrink along with the page it
-          is supposed to be sitting above. */}
-      {selected.length > 0 && !showCompare && (
-        <VerseActionBar
-          highlight={commonHighlight}
-          onHighlight={setHighlight}
-          actions={actions}
-        />
-      )}
 
       {/* Books Sheet */}
       {showBooks && (

@@ -326,8 +326,13 @@ export default function BibleReader({
       const row = anchorRef.current;
       if (!row) return;
       const bottom = row.getBoundingClientRect().bottom;
-      // 17 gap + 78 bar + 16 of breathing room at the edge.
-      setPlacement(bottom + 111 > window.innerHeight ? "above" : "below");
+      // The floor is the nav's top edge, not the viewport's, now that the nav
+      // stays through a selection — measured rather than assumed, so it keeps
+      // working if the nav's height or safe-area inset changes.
+      const nav = document.querySelector("nav");
+      const floor = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+      // 17 gap + 78 bar + 16 of breathing room.
+      setPlacement(bottom + 111 > floor ? "above" : "below");
     };
     measure();
     el.addEventListener("scroll", measure, { passive: true });
@@ -460,9 +465,12 @@ export default function BibleReader({
           })}
         </div>
 
-        {/* The nav belongs to the page and recedes with it. The bar does not,
-            so it is rendered outside the shell below. */}
-        {!selected.length && !showBooks && !showCompare && <BottomNav activeTab="bible" />}
+        {/* The nav stays through a selection. It used to be hidden because the
+            action bar took its slot; the bar is contextual now, so the slot is
+            free and there is no reason to take navigation away mid-read. The
+            design's selected-verse frames omit it — this is a deliberate
+            departure, and the flip below keeps the bar clear of it. */}
+        {!showBooks && !showCompare && <BottomNav activeTab="bible" />}
       </div>
 
       {/* Books Sheet */}

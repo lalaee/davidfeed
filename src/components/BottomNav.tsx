@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { NavBibleIcon, NavHomeIcon, NavLibraryIcon } from "./icons";
+
 /*
  * Built verbatim from the `Nav` instance in Dafod Reels (Figma 2623:939, an
  * instance of Type=Home). Values are fractional because the component set was
@@ -44,9 +46,9 @@ interface BottomNavProps {
 }
 
 const TABS = [
-  { key: "home", href: "/", label: "Home", active: "/assets/home-icon.svg", inactive: "/assets/home-inactive-icon.svg" },
-  { key: "bible", href: "/bible", label: "Bible", active: "/assets/bible-active-icon.svg", inactive: "/assets/bible-icon.svg" },
-  { key: "library", href: "/library", label: "Library", active: "/assets/library-active-icon.svg", inactive: "/assets/library-icon.svg" },
+  { key: "home", href: "/", label: "Home", Icon: NavHomeIcon },
+  { key: "bible", href: "/bible", label: "Bible", Icon: NavBibleIcon },
+  { key: "library", href: "/library", label: "Library", Icon: NavLibraryIcon },
 ] as const;
 
 export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
@@ -74,13 +76,12 @@ export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
                 style={{ backgroundColor: "#212121" }}
               />
             )}
-            <img
-              src={isActive ? tab.active : tab.inactive}
-              alt=""
-              width={24}
-              height={24}
-              className="pointer-events-none absolute left-[8.5px] top-[10.714px] h-[23.81px] w-[23.81px]"
-            />
+            {/* Inline, not <img>. A failed request used to leave a
+                broken-image box sitting in the nav with the label still under
+                it; there is nothing to request now. */}
+            <span className="pointer-events-none absolute left-[8.5px] top-[10.714px] block text-white">
+              <tab.Icon active={isActive} size={23.81} />
+            </span>
             <span
               className={`pointer-events-none absolute left-[-25.43px] top-[40.476px] block h-[14px] w-[91.667px]
                           text-center leading-none text-white ${isActive ? "font-medium" : "font-normal"}`}

@@ -188,3 +188,95 @@ export function CompareIcon({ size = 20, className }: IconProps) {
     </svg>
   );
 }
+
+/*
+ * Bottom-nav glyphs, inline rather than <img src="/assets/*.svg">.
+ *
+ * The files were always valid — they still are — but an <img> with alt="" puts
+ * a broken-image box on screen the moment a request does not land, and the
+ * whole nav goes with it while the labels stay. That is not hypothetical: it
+ * has happened twice in this project, once on the feed's bookmark and once
+ * here. Inline paths cannot fail to load, because there is nothing to load.
+ *
+ * Every fill and stroke is currentColor, so a caller can change the colour
+ * without a second asset. The Figma exports hard-coded white, which is also
+ * why they could never dim or tint.
+ *
+ * Each pair is a real pair, not one glyph two ways: active is the solid form,
+ * inactive the 1.25-stroke outline. Drawn on Figma's own 20 viewBox.
+ */
+export function NavHomeIcon({ active, size = 24, className }: IconProps & { active: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
+      {active ? (
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M9.78153 12.8568C9.51661 12.9663 9.21371 13.0696 8.93113 13.0696C8.71212 13.0696 8.50637 13.0078 8.33858 12.84C8.21583 12.7172 7.83876 12.3411 7.84936 9.85607C7.85907 7.38434 8.22025 7.02405 8.33858 6.90483C8.75539 6.4889 9.44508 6.77237 9.74002 6.89512C10.4677 7.19625 13.3165 8.76547 13.3165 9.87285C13.3165 10.9979 10.4059 12.598 9.78153 12.8568ZM9.99965 1.39001C3.64326 1.39001 1.38965 3.64363 1.38965 10C1.38965 16.3564 3.64326 18.61 9.99965 18.61C16.3569 18.61 18.6096 16.3564 18.6096 10C18.6096 3.64363 16.3569 1.39001 9.99965 1.39001Z"
+          fill="currentColor"
+        />
+      ) : (
+        <>
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M1.38965 10C1.38965 16.457 3.54262 18.61 9.99966 18.61C16.4567 18.61 18.6097 16.457 18.6097 10C18.6097 3.54298 16.4567 1.39001 9.99966 1.39001C3.54262 1.39001 1.38965 3.54298 1.38965 10Z"
+            stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
+          />
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M12.8467 9.8796C12.8467 9.12627 9.02674 6.7163 8.5934 7.14963C8.16094 7.58296 8.11844 12.1354 8.5934 12.6096C9.06924 13.0854 12.8467 10.6329 12.8467 9.8796Z"
+            stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
+          />
+        </>
+      )}
+    </svg>
+  );
+}
+
+export function NavBibleIcon({ active, size = 24, className }: IconProps & { active: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
+      {active ? (
+        <path
+          d="M13.748 1.375C15.2127 1.375 16.4485 1.89614 17.3145 2.82617C18.1757 3.75114 18.625 5.02978 18.625 6.46777V13.5322C18.625 14.9702 18.1758 16.2489 17.3145 17.1738C16.4483 18.1039 15.2121 18.625 13.7471 18.625H6.25098C4.78642 18.625 3.55132 18.1037 2.68555 17.1738C1.82449 16.2488 1.37502 14.9701 1.375 13.5322V6.46777C1.37502 5.02909 1.82665 3.75079 2.68848 2.82617C3.55489 1.89665 4.78977 1.375 6.25098 1.375H13.748ZM15.1348 13.2129C12.9349 14.1128 9.93528 14.113 7.73535 13.4131C5.93535 12.8131 4.53496 14.0131 4.33496 15.4131C5.13496 14.6131 5.93516 14.5131 7.03516 14.9131C9.53508 15.713 12.6349 15.7128 15.1348 14.7129V13.2129Z"
+          fill="currentColor"
+        />
+      ) : (
+        <>
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M13.7483 2H6.25081C3.63805 2 2 3.84995 2 6.46789V13.5321C2 16.1501 3.63027 18 6.25081 18H13.7475C16.3689 18 18 16.1501 18 13.5321V6.46789C18 3.84995 16.3689 2 13.7483 2Z"
+            stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
+          />
+          <path
+            d="M4.33496 15.413C4.53496 14.013 5.93496 12.813 7.73496 13.413C9.93496 14.113 12.935 14.113 15.135 13.213V14.713C12.635 15.713 9.53496 15.713 7.03496 14.913C5.93496 14.513 5.13496 14.613 4.33496 15.413Z"
+            fill="currentColor"
+          />
+        </>
+      )}
+    </svg>
+  );
+}
+
+export function NavLibraryIcon({ active, size = 24, className }: IconProps & { active: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
+      {active ? (
+        <path
+          d="M7.54199 1.66676C8.31783 1.65857 9.04199 2.01691 9.51699 2.62524L10.2503 3.60024C10.4837 3.89191 10.8337 4.06691 11.2087 4.06691H13.767C16.842 4.06691 18.342 5.70857 18.3337 9.07524V13.1336C18.3337 16.3502 16.3503 18.3336 13.1253 18.3336H6.86699C3.65866 18.3336 1.66699 16.3502 1.66699 13.1252V6.86691C1.66699 3.41691 3.20033 1.66676 6.22533 1.66676H7.54199ZM13.8587 11.4919H6.14199C5.79199 11.4919 5.51699 11.7669 5.51699 12.1169C5.51699 12.4586 5.79199 12.7419 6.14199 12.7419H13.8587C14.2003 12.7419 14.4753 12.4586 14.4753 12.1169C14.4753 11.7669 14.2003 11.4919 13.8587 11.4919Z"
+          fill="currentColor"
+        />
+      ) : (
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M8.03518 1.66663C8.82768 1.66746 9.58268 2.04579 10.056 2.67829L10.8152 3.68829C11.056 4.00829 11.4385 4.19913 11.8385 4.19996H14.196C17.4143 4.19996 18.9135 5.84913 18.9135 9.38996L18.8902 13.5291C18.8894 16.8358 16.8343 18.8908 13.526 18.8908H7.04102C3.72602 18.8908 1.66602 16.835 1.66602 13.5266V7.02746C1.66602 3.46996 3.24852 1.66663 6.36852 1.66663H8.03518ZM8.03435 2.91663H6.36852C3.94852 2.91663 2.91602 4.14663 2.91602 7.02746V13.5266C2.91602 16.18 4.38102 17.6408 7.04102 17.6408H13.526C16.1793 17.6408 17.6402 16.18 17.6402 13.5266V13.5241L17.6635 9.38663C17.6635 6.55413 16.6918 5.44996 14.196 5.44996H11.8377C11.0468 5.44913 10.2918 5.07163 9.81685 4.43996L9.05602 3.42829C8.81685 3.10746 8.43435 2.91746 8.03435 2.91663ZM13.9295 11.844C14.2745 11.844 14.5545 12.124 14.5545 12.469C14.5545 12.814 14.2745 13.094 13.9295 13.094H6.65035C6.30535 13.094 6.02535 12.814 6.02535 12.469C6.02535 12.124 6.30535 11.844 6.65035 11.844H13.9295Z"
+          fill="currentColor"
+        />
+      )}
+    </svg>
+  );
+}

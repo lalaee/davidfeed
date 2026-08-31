@@ -1,24 +1,20 @@
 /**
- * Psalm 46 in three translations, so the compare card can show the verses a
+ * Psalm 46 in several translations, so the compare card can show the verses a
  * reader actually selected instead of one hard-coded sample.
  *
- * All three are public domain. That is not an aesthetic choice — the compare
- * card's design names NIV and NKJV, and both are licensed texts that cannot be
- * reproduced here from memory without risking a misquotation. Scripture that is
- * subtly wrong is worse than scripture that is absent, so the app ships
- * translations that can be rendered exactly:
+ * NIV is the default and NIV, NKJV and ASV are what the compare card lists,
+ * matching the design. Licensing for NIV and NKJV is being handled separately.
  *
- *   WEB  World English Bible — public domain
- *   KJV  King James Version — public domain
- *   ASV  American Standard Version — public domain
+ * ⚠ NIV and NKJV here were TRANSCRIBED FROM MEMORY, not copied from a licensed
+ * source. They read correctly and Psalm 46 is well known, but "reads correctly"
+ * is not the standard for scripture in a devotional app — proofread both
+ * against the official text before launch. WEB, KJV and ASV are public domain
+ * and were already verifiable.
  *
- * WEB is the text the reader itself has always displayed. It was labelled
- * "NIV" in the page, which it is not: NIV 46:2 reads "though the earth give
- * way", NIV 46:5 "God is within her, she will not fall". The wording shipped
- * here is WEB's, so the label now says so.
- *
- * Swap in licensed texts by replacing a block's verses and label; nothing else
- * needs to change.
+ * WEB is kept because it is what the reader shipped until now: its wording was
+ * displayed under an "NIV" pill, which it never was. KJV is kept alongside it.
+ * Neither is listed in the compare card; both are here so the Versions button
+ * has something real to offer once it does something.
  */
 export interface Translation {
   id: string;
@@ -26,6 +22,36 @@ export interface Translation {
   /** Keyed by verse number. */
   verses: Record<number, string>;
 }
+
+/** ⚠ from memory — proofread against the licensed text. */
+const NIV: Record<number, string> = {
+  1: "God is our refuge and strength, an ever-present help in trouble.",
+  2: "Therefore we will not fear, though the earth give way and the mountains fall into the heart of the sea,",
+  3: "though its waters roar and foam and the mountains quake with their surging.",
+  4: "There is a river whose streams make glad the city of God, the holy place where the Most High dwells.",
+  5: "God is within her, she will not fall; God will help her at break of day.",
+  6: "Nations are in uproar, kingdoms fall; he lifts his voice, the earth melts.",
+  7: "The LORD Almighty is with us; the God of Jacob is our fortress.",
+  8: "Come and see what the LORD has done, the desolations he has brought on the earth.",
+  9: "He makes wars cease to the ends of the earth. He breaks the bow and shatters the spear; he burns the shields with fire.",
+  10: "He says, \"Be still, and know that I am God; I will be exalted among the nations, I will be exalted in the earth.\"",
+  11: "The LORD Almighty is with us; the God of Jacob is our fortress.",
+};
+
+/** ⚠ from memory — proofread against the licensed text. */
+const NKJV: Record<number, string> = {
+  1: "God is our refuge and strength, A very present help in trouble.",
+  2: "Therefore we will not fear, Even though the earth be removed, And though the mountains be carried into the midst of the sea;",
+  3: "Though its waters roar and be troubled, Though the mountains shake with its swelling. Selah",
+  4: "There is a river whose streams shall make glad the city of God, The holy place of the tabernacle of the Most High.",
+  5: "God is in the midst of her, she shall not be moved; God shall help her, just at the break of dawn.",
+  6: "The nations raged, the kingdoms were moved; He uttered His voice, the earth melted.",
+  7: "The LORD of hosts is with us; The God of Jacob is our refuge. Selah",
+  8: "Come, behold the works of the LORD, Who has made desolations in the earth.",
+  9: "He makes wars cease to the end of the earth; He breaks the bow and cuts the spear in two; He burns the chariot in the fire.",
+  10: "Be still, and know that I am God; I will be exalted among the nations, I will be exalted in the earth!",
+  11: "The LORD of hosts is with us; The God of Jacob is our refuge. Selah",
+};
 
 const WEB: Record<number, string> = {
   1: "God is our refuge and strength, a very present help in trouble.",
@@ -69,16 +95,23 @@ const ASV: Record<number, string> = {
   11: "Jehovah of hosts is with us; The God of Jacob is our refuge. Selah",
 };
 
+/** What the compare card lists, in the design's order. */
 export const PSALM_46_TRANSLATIONS: Translation[] = [
+  { id: "niv", label: "NIV", verses: NIV },
+  { id: "nkjv", label: "NKJV", verses: NKJV },
+  { id: "asv", label: "ASV", verses: ASV },
+];
+
+/** Carried but not listed — see the note at the top of this file. */
+export const PSALM_46_ALSO_AVAILABLE: Translation[] = [
   { id: "web", label: "WEB", verses: WEB },
   { id: "kjv", label: "KJV", verses: KJV },
-  { id: "asv", label: "ASV", verses: ASV },
 ];
 
 /** The translation the reader displays. */
 export const PSALM_46_PRIMARY = PSALM_46_TRANSLATIONS[0];
 
-export const psalm46Verses = Object.entries(WEB).map(([number, text]) => ({
+export const psalm46Verses = Object.entries(PSALM_46_PRIMARY.verses).map(([number, text]) => ({
   number: Number(number),
   text,
 }));

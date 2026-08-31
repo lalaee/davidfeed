@@ -280,3 +280,29 @@ export function NavLibraryIcon({ active, size = 24, className }: IconProps & { a
     </svg>
   );
 }
+
+/* The compare card's close button — Figma 2646:2256, exported verbatim. */
+export function CloseIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
+      <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/*
+ * Iconly Pro's Edit pencil, which the compare card uses on its "Versions"
+ * button — Figma 2646:2508, exported verbatim rather than redrawn.
+ */
+export function VersionsIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M15.0656 9.14058L16.2438 7.5711C16.8274 6.7935 17.0732 5.83542 16.9359 4.87254C16.7986 3.90966 16.2956 3.0591 15.518 2.47542C13.9138 1.27158 11.6271 1.5951 10.4223 3.20118L3.94038 11.8364C2.00886 14.412 3.72726 17.4802 3.80118 17.6098C3.90102 17.7836 4.06902 17.9074 4.26486 17.9525C4.32054 17.966 4.85814 18.085 5.6079 18.085C6.82038 18.085 8.58486 17.7749 9.76183 16.2063L14.9157 9.34036C14.9456 9.31223 14.9736 9.28103 14.9991 9.24704C15.0247 9.21296 15.0469 9.17735 15.0656 9.14058ZM4.90806 16.5999C5.65782 16.6911 7.54902 16.7554 8.60982 15.3413L13.4061 8.95175L9.88797 6.31036L5.09142 12.7004C4.0095 14.1442 4.6047 15.9116 4.90806 16.5999ZM10.7522 5.1592L14.2708 7.79984L15.0917 6.70614C15.8204 5.73654 15.6236 4.3551 14.654 3.62646C13.6834 2.89974 12.301 3.09654 11.5734 4.06518L10.7522 5.1592Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

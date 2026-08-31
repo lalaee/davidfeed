@@ -200,9 +200,10 @@ export default function BibleReader({
     [handleShare, saved, toggleSaved],
   );
 
-  // Only a real sheet makes the reader recede; the action bar is part of the
-  // page, not something laid over it.
-  const anySheetOpen = showBooks || showCompare;
+  // Only a real sheet makes the reader recede. Neither the action bar nor the
+  // compare card is one — the design draws the verses behind both at full
+  // brightness and full size.
+  const anySheetOpen = showBooks;
 
   // iOS 26 toolbar morph — as verses scroll under the floating header, the pill
   // row shrinks ~4% and its glass panes saturate slightly.
@@ -324,8 +325,10 @@ export default function BibleReader({
         </div>
 
         {/* The bar takes the nav's place while a verse is selected, exactly as
-            the design does — its frame has no nav in it. */}
-        {selectedVerse ? (
+            the design does — its frame has no nav in it. The compare card lands
+            in that same slot, and the design's compare frame carries neither
+            bar nor nav, so the bar stands down while the card is up. */}
+        {selectedVerse && !showCompare ? (
           <VerseActionBar
             highlight={highlights[selectedVerse.number] ?? null}
             onHighlight={setHighlight}

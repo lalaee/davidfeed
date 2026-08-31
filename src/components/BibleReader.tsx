@@ -200,10 +200,12 @@ export default function BibleReader({
     [handleShare, saved, toggleSaved],
   );
 
-  // Only a real sheet makes the reader recede. Neither the action bar nor the
-  // compare card is one — the design draws the verses behind both at full
-  // brightness and full size.
-  const anySheetOpen = showBooks;
+  // The page recedes — scales down and rounds its corners on the 500ms iOS
+  // curve — under anything that sits above it: a sheet, the verse action bar,
+  // or the compare card. The Figma frames draw the verses full-size behind the
+  // bar and the card; this is a deliberate departure, asked for so that the
+  // layer above always reads as a layer.
+  const anySheetOpen = showBooks || showCompare || !!selectedVerse;
 
   // iOS 26 toolbar morph — as verses scroll under the floating header, the pill
   // row shrinks ~4% and its glass panes saturate slightly.
@@ -324,20 +326,27 @@ export default function BibleReader({
           })}
         </div>
 
-        {/* The bar takes the nav's place while a verse is selected, exactly as
-            the design does — its frame has no nav in it. The compare card lands
-            in that same slot, and the design's compare frame carries neither
-            bar nor nav, so the bar stands down while the card is up. */}
-        {selectedVerse && !showCompare ? (
-          <VerseActionBar
-            highlight={highlights[selectedVerse.number] ?? null}
-            onHighlight={setHighlight}
-            actions={actions}
-          />
-        ) : (
-          !showBooks && !showCompare && <BottomNav activeTab="bible" />
-        )}
+        {/* The nav belongs to the page and recedes with it. The bar does not,
+            so it is rendered outside the shell below. */}
+        {!selectedVerse && !showBooks && !showCompare && <BottomNav activeTab="bible" />}
       </div>
+
+      {/* The bar takes the nav's place while a verse is selected, exactly as
+          the design does — its frame has no nav in it. The compare card lands
+          in that same slot, and the design's compare frame carries neither bar
+          nor nav, so the bar stands down while the card is up.
+
+          Rendered OUTSIDE .app-shell on purpose. The shell is what scales, and
+          a transformed ancestor turns position:fixed into position:absolute
+          against it — so a bar left inside would shrink along with the page it
+          is supposed to be sitting above. */}
+      {selectedVerse && !showCompare && (
+        <VerseActionBar
+          highlight={highlights[selectedVerse.number] ?? null}
+          onHighlight={setHighlight}
+          actions={actions}
+        />
+      )}
 
       {/* Books Sheet */}
       {showBooks && (

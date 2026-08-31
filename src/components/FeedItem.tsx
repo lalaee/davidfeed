@@ -21,7 +21,6 @@ interface FeedItemProps {
   subtitles?: Subtitle[];
   /** Feed-wide sound preference — shared by every card so it survives scrolling. */
   soundOn?: boolean;
-  onToggleSound?: () => void;
   /**
    * Called when the browser refuses to start audio with sound. Autoplay with
    * sound needs a prior user gesture, so the feed optimistically tries it and
@@ -73,7 +72,6 @@ export default function FeedItem({
   isActive = false,
   subtitles,
   soundOn = false,
-  onToggleSound,
   effect,
   onAutoplayBlocked,
   startAt,
@@ -85,7 +83,6 @@ export default function FeedItem({
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [shareAnimating, setShareAnimating] = useState(false);
   const [hearts, setHearts] = useState<HeartPosition[]>([]);
-  const [muteHint, setMuteHint] = useState(false);
   // A deliberate pause by the viewer, distinct from every other reason media
   // stops. Everything that restarts playback has to respect it.
   const [userPaused, setUserPaused] = useState(false);
@@ -107,7 +104,6 @@ export default function FeedItem({
   const lastTapRef = useRef(0);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const muteHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Held so a repeat tap can cancel the previous one. Without this the earlier
   // tap's timer survives and clears the class partway through the NEW
   // animation. Measured: tapping share ~1100ms after the last tap killed the
@@ -298,6 +294,56 @@ export default function FeedItem({
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
+  // The narration is locked to the artwork: if the video is not running, the
+  // audio must not be either.
+  //
+  // Chrome suspends muted, video-only media on a page it considers backgrounded
+  // and lets audio carry on — the rejection says so in as many words: "the
+  // play() request was interrupted because video-only background media was
+  // paused to save power". visibilityState stays "visible" through it, so the
+  // visibilitychange handler above never fires and the card is left showing a
+  // still frame over a talking track. Autoplay refusals and decode errors land
+  // the same way.
+  //
+  // The audio is stopped FIRST and unconditionally, so the forbidden state does
+  // not exist even for a frame; healing the video is a separate, later attempt.
+  useEffect(() => {
+    const art = videoRef.current ?? posterVideoRef.current;
+    const sound = audioRef.current;
+    if (!art || !sound) return;
+
+    let heal: ReturnType<typeof setTimeout> | null = null;
+
+    const onArtPause = () => {
+      if (!sound.paused) sound.pause();
+      // Deferred, because a card being scrolled away is paused by the
+      // activation effect and must stay paused. By the time this runs, that
+      // effect has settled and isActiveRef tells the truth.
+      if (heal) clearTimeout(heal);
+      heal = setTimeout(() => {
+        if (!isActiveRef.current || userPausedRef.current) return;
+        if (document.visibilityState !== "visible") return;
+        if (!art.getAttribute("src") || !art.paused) return;
+        art.play().catch(() => {});
+      }, 400);
+    };
+
+    // Whatever restarts the artwork — the heal above, a tap, the tab coming
+    // back — brings the narration with it.
+    const onArtPlay = () => {
+      if (!isActiveRef.current || userPausedRef.current) return;
+      if (sound.paused && sound.getAttribute("src")) sound.play().catch(() => {});
+    };
+
+    art.addEventListener("pause", onArtPause);
+    art.addEventListener("play", onArtPlay);
+    return () => {
+      if (heal) clearTimeout(heal);
+      art.removeEventListener("pause", onArtPause);
+      art.removeEventListener("play", onArtPlay);
+    };
+  }, []);
+
   // Track playing state (of the sound-bearing element) for subtitles
   useEffect(() => {
     const el = soundRef.current;
@@ -322,7 +368,6 @@ export default function FeedItem({
   useEffect(() => {
     return () => {
       if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
-      if (muteHintTimeoutRef.current) clearTimeout(muteHintTimeoutRef.current);
       if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (restartFrameRef.current) cancelAnimationFrame(restartFrameRef.current);
@@ -438,34 +483,13 @@ export default function FeedItem({
     []
   );
 
-  // Flip the feed-wide sound preference. The effect above applies it to this
-  // card, and every card scrolled to afterwards inherits it.
-  const toggleMute = useCallback(() => {
-    onToggleSound?.();
-
-    // Brief on-screen feedback (video keeps playing silently, so muting is otherwise invisible)
-    setMuteHint(true);
-    if (muteHintTimeoutRef.current) clearTimeout(muteHintTimeoutRef.current);
-    muteHintTimeoutRef.current = setTimeout(() => setMuteHint(false), 600);
-
-    if (navigator.vibrate) {
-      navigator.vibrate(10);
-    }
-  }, [onToggleSound]);
-
-  // Pause/resume this card. Reels toggles playback on tap; sound gets its own
-  // control inside the overlay.
+  // Pause/resume this card. One tap stops the artwork and the narration
+  // together and a second starts them together — the card has no separate
+  // sound control, so a tap means exactly one thing.
   const togglePlayback = useCallback(() => {
     const next = !userPausedRef.current;
     userPausedRef.current = next;
     setUserPaused(next);
-    if (!next) {
-      // Resuming. Drop any sound hint still in flight, or the container would
-      // wait it out while the playback circle leaves on its own — the two
-      // circles have to go together.
-      if (muteHintTimeoutRef.current) clearTimeout(muteHintTimeoutRef.current);
-      setMuteHint(false);
-    }
     [videoRef.current, posterVideoRef.current, audioRef.current].forEach((el) => {
       if (!el?.getAttribute("src")) return;
       if (next) el.pause();
@@ -614,12 +638,7 @@ export default function FeedItem({
         <audio ref={audioRef} loop muted preload={eagerAudio ? "auto" : "metadata"} />
       )}
 
-      <PlaybackOverlay
-        paused={userPaused}
-        soundOn={soundOn}
-        hinting={muteHint}
-        onToggleSound={toggleMute}
-      />
+      <PlaybackOverlay paused={userPaused} />
 
       {/* Heart animations from double tap */}
       {hearts.map((heart) => (

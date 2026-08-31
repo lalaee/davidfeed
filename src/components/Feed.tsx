@@ -102,13 +102,6 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
   const remember = (on: boolean) => {
     try { localStorage.setItem(SOUND_PREF, on ? "on" : "off"); } catch {}
   };
-  const toggleSound = useCallback(() => {
-    setUserChoice((prev) => {
-      const next = !(prev ?? true);
-      remember(next);
-      return next;
-    });
-  }, []);
   const enableSound = useCallback(() => {
     setUserChoice(true);
     remember(true);
@@ -375,7 +368,6 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
               isActive={index === activeIndex}
               subtitles={post.subtitles}
               soundOn={soundOn}
-              onToggleSound={toggleSound}
               effect={post.effect}
               startAt={post.startAt}
               eagerAudio={index === 0}

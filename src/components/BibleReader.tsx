@@ -61,6 +61,8 @@ interface BibleReaderProps {
 const HIGHLIGHT_KEY = "dafod.highlights";
 const SAVED_KEY = "dafod.saved";
 const VERSIONS_KEY = "dafod.versions";
+/* Which translation the READER shows, as opposed to which ones compare lists. */
+const READING_KEY = "dafod.reading";
 
 type ChapterMap<T> = Record<number, T>;
 const EMPTY_CHAPTER = {} as ChapterMap<never>;
@@ -125,6 +127,7 @@ const savedStore = makeJsonStore<ChapterStore<true>>(SAVED_KEY, EMPTY_STORE);
    ships as its default", so a reader who never opens the picker follows the
    design rather than a snapshot of it frozen at first run. */
 const versionsStore = makeJsonStore<string[] | null>(VERSIONS_KEY, null);
+const readingStore = makeJsonStore<string | null>(READING_KEY, null);
 
 /*
  * "v 1", "v 1-3", "v 1, 4-5". Runs are collapsed because a multi-verse
@@ -160,6 +163,27 @@ export default function BibleReader({
     () => [...translations, ...moreTranslations],
     [translations, moreTranslations],
   );
+
+  // Null until the reader picks one, so the default stays whatever the chapter
+  // ships rather than a snapshot of it frozen at first run.
+  const readingId = useSyncExternalStore(
+    readingStore.subscribe,
+    readingStore.read,
+    readingStore.serverSnapshot,
+  );
+  const reading = allTranslations.find((t) => t.id === readingId) ?? allTranslations[0];
+  const [versionOpen, setVersionOpen] = useState(false);
+
+  // Verses follow the chosen translation; the prop is the fallback for a caller
+  // that passes no translations at all.
+  const shownVerses = useMemo(
+    () =>
+      reading
+        ? Object.entries(reading.verses).map(([n, text]) => ({ number: Number(n), text }))
+        : verses,
+    [reading, verses],
+  );
+  const shownVersion = reading?.label ?? version;
   // A selection is a SET of verse numbers, kept sorted so every label and
   // share string reads in reading order rather than tap order.
   const [selected, setSelected] = useState<number[]>([]);
@@ -261,10 +285,10 @@ export default function BibleReader({
     const ref = `${chapterTitle} ${formatVerseRange(selected)}`;
     navigator.share({
       title: ref,
-      text: `"${body}" - ${ref} (${version})`,
+      text: `"${body}" - ${ref} (${shownVersion})`,
       url: window.location.href,
     });
-  }, [chapterTitle, selected, verses, version]);
+  }, [chapterTitle, selected, shownVerses, shownVersion]);
 
   // The three the design carries. It clips Save at the frame edge because the
   // row is a carousel, not because the action is provisional.
@@ -312,7 +336,7 @@ export default function BibleReader({
   // row shrinks ~4% and its glass panes saturate slightly.
   const versesScrollRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const morphRef = useRef<HTMLDivElement>(null);
 
   // Below the verse unless the bar would fall off the bottom, in which case it
   // goes above — the ordinary popover rule. Re-measured while scrolling,
@@ -322,7 +346,15 @@ export default function BibleReader({
     const el = versesScrollRef.current;
     if (!el) return;
     const measure = () => {
-      setScrollProgress(Math.min(1, el.scrollTop / 40));
+      // Straight to the element. Routing this through state re-rendered the
+      // whole reader — every verse, and the action bar — on every scroll event.
+      const morph = morphRef.current;
+      if (morph) {
+        const p = Math.min(1, el.scrollTop / 40);
+        morph.style.setProperty("--scroll-progress", String(p));
+        if (p > 0.05) morph.setAttribute("data-scrolled", "");
+        else morph.removeAttribute("data-scrolled");
+      }
       const row = anchorRef.current;
       if (!row) return;
       const bottom = row.getBoundingClientRect().bottom;
@@ -352,11 +384,7 @@ export default function BibleReader({
         {/* Header Section — absolutely overlaid so the verses scroll behind it */}
         <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[40px]">
           {/* Verse Artwork + Title Row — iOS 26 morph: scales with scroll */}
-          <div
-            className="app-header-morph flex items-center justify-between h-[72px]"
-            style={{ ["--scroll-progress" as string]: scrollProgress } as React.CSSProperties}
-            data-scrolled={scrollProgress > 0.05 ? "" : undefined}
-          >
+          <div ref={morphRef} className="app-header-morph flex items-center justify-between h-[72px]">
             <button
               type="button"
               onClick={() => setShowBooks(true)}
@@ -377,16 +405,67 @@ export default function BibleReader({
               </span>
             </button>
 
-            {/* Version Selector */}
+            {/* Version Selector — opens the reading translation picker. */}
             <button
               type="button"
-              className="rounded-[19.252px] px-[16px] h-[38px] flex items-center justify-center"
+              aria-haspopup="listbox"
+              aria-expanded={versionOpen}
+              aria-label={`Version: ${shownVersion}. Change version`}
+              onClick={() => setVersionOpen((o) => !o)}
+              className="rounded-[19.252px] px-[16px] h-[38px] flex items-center justify-center
+                         transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+                         active:scale-[0.94]"
               style={{ backgroundColor: "#0E0E0E" }}
             >
               <span className="text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px]">
-                {version}
+                {shownVersion}
               </span>
             </button>
+          </div>
+
+          {/* Reading translation. Same language as the feed's topic dropdown —
+              a panel under the control it belongs to, rather than a new kind of
+              surface for one list. Right-aligned because the pill is. */}
+          <div
+            role="listbox"
+            aria-label="Versions"
+            // 120 = the header's 40 top padding + its 72 row + 8 of gap, so
+            // the panel clears the pill it drops from instead of covering it.
+            className={`absolute right-[24px] top-[120px] z-[600] w-[190px] overflow-hidden rounded-[20px] p-[6px]
+                        origin-top-right transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
+                        ${versionOpen
+                          ? "pointer-events-auto scale-100 opacity-100"
+                          : "pointer-events-none scale-[0.96] opacity-0"}`}
+            style={{ backgroundColor: "rgba(20, 20, 22, 0.96)" }}
+          >
+            {allTranslations.map((t) => {
+              const current = t.id === reading?.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="option"
+                  aria-selected={current}
+                  tabIndex={versionOpen ? 0 : -1}
+                  onClick={() => {
+                    readingStore.write(t.id);
+                    setVersionOpen(false);
+                  }}
+                  className={`flex h-[44px] w-full items-center justify-between rounded-[14px]
+                              border-none px-[14px] text-left text-[16px] text-white
+                              ${current ? "font-medium" : "bg-transparent font-normal"}`}
+                  style={current ? { backgroundColor: "#212121" } : undefined}
+                >
+                  {t.label}
+                  {current && (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <path d="M3 8.5L6.2 11.5L13 4.5" stroke="currentColor" strokeWidth="1.8"
+                            strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -398,9 +477,10 @@ export default function BibleReader({
           // bar — the bar occupies the nav's slot, so there has to be a way back.
           onClick={(e) => {
             if (e.target === e.currentTarget) clearSelection();
+            setVersionOpen(false);
           }}
         >
-          {verses.map((verse) => {
+          {shownVerses.map((verse) => {
             const isSelected = selected.includes(verse.number);
             const highlight = highlights[verse.number];
             const isAnchor = anchor === verse.number;

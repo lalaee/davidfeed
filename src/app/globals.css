@@ -988,7 +988,15 @@ button, [role="button"], a {
    inline (0..1) by the BibleReader scroll listener. */
 .app-header-morph {
   transform-origin: top center;
-  transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* No transition. --scroll-progress is written on every scroll event, so a
+     240ms ease was always chasing a value that had already moved: each event
+     restarted the ease from wherever the last one had got to. Scrolling lagged,
+     and coming to rest at the top left the header still easing through a burst
+     of stale values — which is what read as a glitch as it landed.
+
+     A continuously driven value belongs on no transition at all: the transform
+     tracks the finger exactly. Only a value that CHANGES IN STEPS should be
+     transitioned. */
   transform: scale(calc(1 - 0.1 * var(--scroll-progress, 0)));
 }
 .app-header-morph[data-scrolled] .lg-pane {

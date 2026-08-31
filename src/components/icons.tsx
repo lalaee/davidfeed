@@ -151,3 +151,31 @@ export function BookmarkIcon({ filled, size = 40, className }: IconProps & { fil
     </svg>
   );
 }
+
+/*
+ * Icons/compare — the bookmark-shaped mark the design uses for the Compare
+ * action. Same path as the old action sheet's, restated on a 24 viewBox and
+ * taking currentColor so the action bar can render it white.
+ */
+export function CompareIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className={className}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M11.731 2.88013C5.59948 2.88013 4.56364 3.77485 4.56364 10.972C4.56364 19.0292 4.41292 21.1201 5.94508 21.1201C7.47628 21.1201 9.97704 17.5835 11.731 17.5835C13.4849 17.5835 15.9857 21.1201 17.5169 21.1201C19.049 21.1201 18.8983 19.0292 18.8983 10.972C18.8983 3.77485 17.8625 2.88013 11.731 2.88013Z"
+        stroke="currentColor"
+        strokeWidth="1.44"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

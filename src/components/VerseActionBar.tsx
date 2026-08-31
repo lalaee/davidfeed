@@ -10,19 +10,24 @@ import { useState } from "react";
  * in the design the nav instance is absent from the selected-verse frame, and
  * the bar sits in the same slot, 10px off the bottom.
  *
- *   bar        333x78, radius 18, fill #0E0E0E, 12px padding
- *   groups     54 tall, radius 11, fill #212121, 8px apart
- *   swatches   4 circles, 28.7 diameter, 34.433 pitch (= 5.733 apart)
- *   action     20x20 icon 8px from the group's top, label at 32
+ *   bar        333x78, radius 22, fill #0E0E0E, 12px padding
+ *   groups     54 tall, radius 14, fill #212121, 8px apart
+ *   swatches   4 circles, 28.7 across, in a fixed 148x54 group padded 8 and
+ *              space-between — which computes the 5.73 gap; do not hard-code it
+ *   action     column, 8px 12px padding, 20x20 icon, 4px gap, hugging its label
  *   label      the nav's own label style — the Figma layer is literally
- *              named "t.nav.Home" — 11.9048px, 0.02em, regular
+ *              named "t.nav.Home" — Inter 400, 11.9048px, 2% tracking
  *
  * #0E0E0E over #212121 is the bottom nav's palette exactly, which is the
  * point: this is the nav's slot, so it is built out of the nav's surfaces.
  *
- * It SCROLLS. The design clips its third action at the frame edge, which is
- * not an oversight — the row is a carousel. The actions below are the ones
- * legible in the design; more drop in by extending the array.
+ * It SCROLLS. The design clips Save at the frame edge because the row is a
+ * carousel: 148 + 8 + 77 + 8 + 58 + 8 + 53 = 360 against 309 of usable width.
+ * More actions drop in by extending the array.
+ *
+ * Radii and paddings here come from the file, not from measuring the render —
+ * a render measures ~3-4px low on a radius, which is how an earlier pass
+ * turned the bar's 22 into 18 and the groups' 14 into 11.
  */
 export interface VerseAction {
   id: string;
@@ -41,7 +46,8 @@ interface VerseActionBarProps {
 export const HIGHLIGHT_COLOURS = ["#F19AEA", "#FFFE54", "#FF548D", "#61D3FA"];
 
 const SWATCH = 28.7;
-const SWATCH_GAP = 34.433 - SWATCH;
+/* Fixed, because the group is fixed-width and space-between in the design. */
+const SWATCH_GROUP_W = 148;
 
 export default function VerseActionBar({
   highlight,
@@ -53,7 +59,7 @@ export default function VerseActionBar({
       className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999]
                  h-[78px] w-[calc(100%-42px)] max-w-[348px] -translate-x-1/2
                  overflow-x-auto overflow-y-hidden scrollbar-hide
-                 rounded-[18px] p-[12px]"
+                 rounded-[22px] p-[12px]"
       style={{ backgroundColor: "#0E0E0E" }}
     >
       {/* w-max so the row keeps its natural width and the container scrolls it,
@@ -61,8 +67,8 @@ export default function VerseActionBar({
       <div className="flex h-[54px] w-max items-center gap-[8px]">
         {/* Highlighter */}
         <div
-          className="flex h-[54px] flex-shrink-0 items-center rounded-[11px] px-[8px]"
-          style={{ backgroundColor: "#212121", gap: SWATCH_GAP }}
+          className="flex h-[54px] flex-shrink-0 items-center justify-between rounded-[14px] px-[8px]"
+          style={{ backgroundColor: "#212121", width: SWATCH_GROUP_W }}
         >
           {HIGHLIGHT_COLOURS.map((colour) => {
             const on = highlight === colour;
@@ -162,7 +168,7 @@ function ActionButton({ action }: { action: VerseAction }) {
       type="button"
       onClick={action.onSelect}
       {...handlers}
-      className="flex h-[54px] flex-shrink-0 flex-col items-center rounded-[11px] border-none px-[16px] pt-[8px]
+      className="flex h-[54px] flex-shrink-0 flex-col items-center gap-[4px] rounded-[14px] border-none px-[12px] py-[8px]
                  transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
       style={{
         backgroundColor: "#212121",
@@ -172,10 +178,9 @@ function ActionButton({ action }: { action: VerseAction }) {
       <span className="flex h-[20px] w-[20px] items-center justify-center text-white">
         {action.icon}
       </span>
-      {/* 32 from the group's top: 8 padding + 20 icon + 4. */}
       <span
-        className="mt-[4px] block h-[14px] leading-[14px] text-white"
-        style={{ fontSize: 11.9048, letterSpacing: "0.02em" }}
+        className="block whitespace-nowrap text-white"
+        style={{ fontSize: 11.9048, lineHeight: "14.4px", letterSpacing: "0.02em" }}
       >
         {action.label}
       </span>

@@ -153,28 +153,37 @@ export function BookmarkIcon({ filled, size = 40, className }: IconProps & { fil
 }
 
 /*
- * Icons/compare — the bookmark-shaped mark the design uses for the Compare
- * action. Same path as the old action sheet's, restated on a 24 viewBox and
- * taking currentColor so the action bar can render it white.
+ * Icons/compare — Figma "Icons/compare" 2642:2102, rebuilt from its geometry
+ * rather than guessed. Two overlapping rounded squares with a filled sliver
+ * where they meet; the first version of this shipped the old action sheet's
+ * bookmark path by mistake, which is a different glyph entirely.
+ *
+ * A 14.7 box sits at (2.39, 2.27) in the 20 frame, and the parts are placed
+ * relative to it: right 10 x 10.3 at (4.7, -0.43), left 9.7 x 10.4 at
+ * (0, 5.58), fill 5 x 4.44 at (4.7, 5.58). Strokes are 1.3, radii 2.8 and 0.8.
+ * Coordinates below are those sums, so the drawing is checkable against Figma.
  */
 export function CompareIcon({ size = 20, className }: IconProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="0 0 20 20"
       fill="none"
       aria-hidden
       className={className}
     >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M11.731 2.88013C5.59948 2.88013 4.56364 3.77485 4.56364 10.972C4.56364 19.0292 4.41292 21.1201 5.94508 21.1201C7.47628 21.1201 9.97704 17.5835 11.731 17.5835C13.4849 17.5835 15.9857 21.1201 17.5169 21.1201C19.049 21.1201 18.8983 19.0292 18.8983 10.972C18.8983 3.77485 17.8625 2.88013 11.731 2.88013Z"
-        stroke="currentColor"
-        strokeWidth="1.44"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <rect
+        x="7.09" y="1.84" width="10" height="10.3" rx="2.8"
+        stroke="currentColor" strokeWidth="1.3"
+      />
+      <rect
+        x="2.39" y="7.85" width="9.7" height="10.4" rx="2.8"
+        stroke="currentColor" strokeWidth="1.3"
+      />
+      <rect
+        x="7.09" y="7.85" width="5" height="4.44" rx="0.8"
+        fill="currentColor"
       />
     </svg>
   );

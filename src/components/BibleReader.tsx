@@ -5,7 +5,7 @@ import BottomNav from "./BottomNav";
 import BooksSheet from "./BooksSheet";
 import CompareSheet from "./CompareSheet";
 import VerseActionBar, { type VerseAction } from "./VerseActionBar";
-import { CompareIcon, SendIcon } from "./icons";
+import { BookmarkIcon, CompareIcon, SendIcon } from "./icons";
 
 /*
  * Geometry, type and colour follow Figma "Bible" — 2641:1161 (reading) and
@@ -14,7 +14,7 @@ import { CompareIcon, SendIcon } from "./icons";
  *   page margin   24 for the header, 27 for the verses (the design insets the
  *                 verse column 3px further than the header pill)
  *   header row    y=40, 72 tall
- *   title pill    158x72, radius 18, #212121, artwork inset 12, 12 gap
+ *   title pill    158x72, radius 22, #212121, artwork inset 12, 12 gap
  *   version pill  61x38, #212121
  *   verses top    144  (header row y=40 + 104)
  *   verse         21px/31.5 regular white, number 21px/24 regular #999999 in
@@ -52,48 +52,66 @@ interface BibleReaderProps {
  * call.
  */
 const HIGHLIGHT_KEY = "dafod.highlights";
+const SAVED_KEY = "dafod.saved";
 
-type ChapterHighlights = Record<number, string>;
-const NO_HIGHLIGHTS: ChapterHighlights = {};
-const EMPTY_STORE: Record<string, ChapterHighlights> = {};
+type ChapterMap<T> = Record<number, T>;
+const EMPTY_CHAPTER = {} as ChapterMap<never>;
+const EMPTY_STORE = {} as Record<string, ChapterMap<never>>;
 
-const listeners = new Set<() => void>();
-let cachedRaw: string | null = null;
-let cachedValue: Record<string, ChapterHighlights> = EMPTY_STORE;
+/*
+ * One localStorage-backed store per key, read through useSyncExternalStore.
+ *
+ * Not seeded in an effect: the page is prerendered, so reading during render
+ * would hydrate against markup that has neither highlights nor saves in it,
+ * and setState inside an effect is a cascading render this project rejects at
+ * build time. getSnapshot must also be referentially stable — a fresh object
+ * every call spins React forever — hence the parse cache keyed on the raw
+ * string.
+ */
+function makeStore<T>(key: string) {
+  const listeners = new Set<() => void>();
+  let cachedRaw: string | null = null;
+  let cachedValue: Record<string, ChapterMap<T>> = EMPTY_STORE;
 
-function readHighlights(): Record<string, ChapterHighlights> {
-  let raw = "{}";
-  try {
-    raw = localStorage.getItem(HIGHLIGHT_KEY) ?? "{}";
-  } catch {}
-  if (raw !== cachedRaw) {
-    cachedRaw = raw;
+  const read = (): Record<string, ChapterMap<T>> => {
+    let raw = "{}";
     try {
-      cachedValue = JSON.parse(raw);
-    } catch {
-      cachedValue = EMPTY_STORE;
+      raw = localStorage.getItem(key) ?? "{}";
+    } catch {}
+    if (raw !== cachedRaw) {
+      cachedRaw = raw;
+      try {
+        cachedValue = JSON.parse(raw);
+      } catch {
+        cachedValue = EMPTY_STORE;
+      }
     }
-  }
-  return cachedValue;
-}
+    return cachedValue;
+  };
 
-function writeHighlights(chapter: string, next: ChapterHighlights) {
-  try {
-    const all = { ...readHighlights(), [chapter]: next };
-    localStorage.setItem(HIGHLIGHT_KEY, JSON.stringify(all));
-  } catch {}
-  listeners.forEach((l) => l());
-}
-
-function subscribeHighlights(listener: () => void) {
-  listeners.add(listener);
-  // Another tab writing the same key should show up here too.
-  window.addEventListener("storage", listener);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", listener);
+  return {
+    read,
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      // Another tab writing the same key should show up here too.
+      window.addEventListener("storage", listener);
+      return () => {
+        listeners.delete(listener);
+        window.removeEventListener("storage", listener);
+      };
+    },
+    write(chapter: string, next: ChapterMap<T>) {
+      try {
+        localStorage.setItem(key, JSON.stringify({ ...read(), [chapter]: next }));
+      } catch {}
+      listeners.forEach((l) => l());
+    },
+    serverSnapshot: () => EMPTY_STORE as Record<string, ChapterMap<T>>,
   };
 }
+
+const highlightStore = makeStore<string>(HIGHLIGHT_KEY);
+const savedStore = makeStore<true>(SAVED_KEY);
 
 export default function BibleReader({
   chapterTitle = "Psalm 46",
@@ -104,23 +122,43 @@ export default function BibleReader({
   const [selectedVerse, setSelectedVerse] = useState<Verse | null>(null);
   const [showBooks, setShowBooks] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
-  const allHighlights = useSyncExternalStore(
-    subscribeHighlights,
-    readHighlights,
-    () => EMPTY_STORE,
-  );
-  const highlights = allHighlights[chapterTitle] ?? NO_HIGHLIGHTS;
+  const highlights =
+    useSyncExternalStore(
+      highlightStore.subscribe,
+      highlightStore.read,
+      highlightStore.serverSnapshot,
+    )[chapterTitle] ?? EMPTY_CHAPTER;
+
+  const savedVerses =
+    useSyncExternalStore(
+      savedStore.subscribe,
+      savedStore.read,
+      savedStore.serverSnapshot,
+    )[chapterTitle] ?? EMPTY_CHAPTER;
 
   const setHighlight = useCallback(
     (colour: string | null) => {
       if (!selectedVerse) return;
-      const next = { ...(readHighlights()[chapterTitle] ?? NO_HIGHLIGHTS) };
+      const next: Record<number, string> = {
+        ...(highlightStore.read()[chapterTitle] ?? EMPTY_CHAPTER),
+      };
       if (colour) next[selectedVerse.number] = colour;
       else delete next[selectedVerse.number];
-      writeHighlights(chapterTitle, next);
+      highlightStore.write(chapterTitle, next);
     },
     [chapterTitle, selectedVerse],
   );
+
+  const saved = !!(selectedVerse && savedVerses[selectedVerse.number]);
+  const toggleSaved = useCallback(() => {
+    if (!selectedVerse) return;
+    const next: Record<number, true> = {
+      ...(savedStore.read()[chapterTitle] ?? EMPTY_CHAPTER),
+    };
+    if (next[selectedVerse.number]) delete next[selectedVerse.number];
+    else next[selectedVerse.number] = true;
+    savedStore.write(chapterTitle, next);
+  }, [chapterTitle, selectedVerse]);
 
   const handleShare = useCallback(() => {
     if (!selectedVerse || !navigator.share) return;
@@ -131,8 +169,8 @@ export default function BibleReader({
     });
   }, [chapterTitle, selectedVerse, version]);
 
-  // The design clips its third action at the frame edge because the row is a
-  // carousel; these are the ones legible in it. Adding another is one entry.
+  // The three the design carries. It clips Save at the frame edge because the
+  // row is a carousel, not because the action is provisional.
   const actions = useMemo<VerseAction[]>(
     () => [
       {
@@ -147,8 +185,17 @@ export default function BibleReader({
         icon: <SendIcon size={20} />,
         onSelect: handleShare,
       },
+      {
+        id: "save",
+        label: "Save",
+        // The design's Save instance still carries the Icons/compare glyph —
+        // the component was duplicated and only its label changed — so a
+        // bookmark stands in rather than shipping two identical icons.
+        icon: <BookmarkIcon size={20} filled={saved} />,
+        onSelect: toggleSaved,
+      },
     ],
-    [handleShare],
+    [handleShare, saved, toggleSaved],
   );
 
   // Only a real sheet makes the reader recede; the action bar is part of the
@@ -184,7 +231,7 @@ export default function BibleReader({
             <button
               type="button"
               onClick={() => setShowBooks(true)}
-              className="flex h-[72px] w-[158px] items-center gap-[12px] rounded-[18px] p-[12px] active:opacity-70 transition-opacity"
+              className="flex h-[72px] w-[158px] items-center gap-[12px] rounded-[22px] p-[12px] active:opacity-70 transition-opacity"
               style={{ backgroundColor: "#212121" }}
             >
               {/* Artwork Thumbnail */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { CloseIcon, VersionsIcon } from "./icons";
+import type { Translation } from "@/data/psalm46";
 
 /*
  * The verse compared across translations.
@@ -29,22 +30,27 @@ import { CloseIcon, VersionsIcon } from "./icons";
  * phone. Capped unconditionally, this sat as a narrow column down the middle
  * of a wider screen while the verses behind it ran edge to edge.
  *
- * There is no scrim. The design leaves the verses behind it at full
- * brightness, so the reader does not recede either; the backdrop here is
- * transparent and exists only so a tap outside can close it.
+ * The backdrop is transparent and exists only so a tap outside can close it.
+ *
+ * The text is the verses the reader actually selected, in each translation,
+ * joined in reading order. It used to be one hard-coded sample of 46:1 no
+ * matter what was picked. A multi-verse selection can outgrow the design's
+ * fixed 444, so the body scrolls rather than the card growing off screen.
  */
-const VERSIONS = [
-  { label: "NIV", text: "God is our refuge and strength, an ever-present help in trouble." },
-  { label: "NKJV", text: "God is our refuge and strength, a very present help in trouble." },
-  { label: "ASV", text: "God is our refuge and strength, a very present help in trouble." },
-];
-
 interface CompareSheetProps {
   verseRef: string;
+  /** The selected verse numbers, already sorted. */
+  verseNumbers: number[];
+  translations: Translation[];
   onClose: () => void;
 }
 
-export default function CompareSheet({ verseRef, onClose }: CompareSheetProps) {
+export default function CompareSheet({
+  verseRef,
+  verseNumbers,
+  translations,
+  onClose,
+}: CompareSheetProps) {
   return (
     <>
       {/* Transparent — the design dims nothing. It is here to catch a tap. */}
@@ -52,8 +58,8 @@ export default function CompareSheet({ verseRef, onClose }: CompareSheetProps) {
 
       <div
         className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[111]
-                   flex w-[calc(100%-42px)] -translate-x-1/2 flex-col gap-[32px]
-                   md:max-w-[348px]
+                   flex max-h-[calc(100dvh-120px)] w-[calc(100%-42px)] -translate-x-1/2
+                   flex-col gap-[32px] md:max-w-[348px]
                    rounded-[18.8333px] px-[16px] py-[24px]"
         style={{ backgroundColor: "#0E0E0E" }}
       >
@@ -90,20 +96,28 @@ export default function CompareSheet({ verseRef, onClose }: CompareSheetProps) {
         </div>
 
         {/* Translations — no card behind each one; they sit on the surface. */}
-        <div className="flex flex-col gap-[32px]">
-          {VERSIONS.map((v) => (
-            <div key={v.label} className="flex flex-col gap-[12px]">
-              <p
-                className="text-[15px] font-medium leading-[18px]"
-                style={{ color: "#999999" }}
-              >
-                {v.label}
-              </p>
-              <p className="text-[18px] font-normal leading-[27px] text-white">
-                {v.text}
-              </p>
-            </div>
-          ))}
+        <div className="scrollbar-hide flex flex-col gap-[32px] overflow-y-auto">
+          {translations.map((t) => {
+            // A verse the translation does not carry is skipped rather than
+            // rendered as a gap, so a partial selection still reads cleanly.
+            const text = verseNumbers
+              .map((n) => t.verses[n])
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <div key={t.id} className="flex flex-col gap-[12px]">
+                <p
+                  className="text-[15px] font-medium leading-[18px]"
+                  style={{ color: "#999999" }}
+                >
+                  {t.label}
+                </p>
+                <p className="text-[18px] font-normal leading-[27px] text-white">
+                  {text || "Not available for this passage."}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>

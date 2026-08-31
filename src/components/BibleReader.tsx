@@ -6,6 +6,7 @@ import BooksSheet from "./BooksSheet";
 import CompareSheet from "./CompareSheet";
 import VerseActionBar, { type VerseAction } from "./VerseActionBar";
 import { BookmarkIcon, CompareIcon, SendIcon } from "./icons";
+import type { Translation } from "@/data/psalm46";
 
 /*
  * Geometry, type and colour follow Figma "Bible" — 2641:1161 (reading) and
@@ -39,6 +40,8 @@ interface BibleReaderProps {
   artworkSrc?: string;
   version?: string;
   verses: Verse[];
+  /** Every translation the compare card can show this chapter in. */
+  translations?: Translation[];
 }
 
 /*
@@ -139,8 +142,9 @@ function formatVerseRange(numbers: number[]): string {
 export default function BibleReader({
   chapterTitle = "Psalm 46",
   artworkSrc = "/assets/feed-poster-frame.jpg",
-  version = "NIV",
+  version = "WEB",
   verses = [],
+  translations = [],
 }: BibleReaderProps) {
   // A selection is a SET of verse numbers, kept sorted so every label and
   // share string reads in reading order rather than tap order.
@@ -402,6 +406,8 @@ export default function BibleReader({
       {showCompare && selected.length > 0 && (
         <CompareSheet
           verseRef={`${chapterTitle.replace("Psalm", "Ps")} ${formatVerseRange(selected)}`}
+          verseNumbers={selected}
+          translations={translations}
           onClose={() => setShowCompare(false)}
         />
       )}

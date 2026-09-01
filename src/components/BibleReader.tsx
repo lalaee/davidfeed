@@ -20,7 +20,9 @@ import type { Translation } from "@/data/psalm46";
  *   version pill  61x38, #0E0E0E
  *   verses top    144  (header row y=40 + 104)
  *   verse         Inter Regular 21/31.5 #FFFFFF; number Inter Medium 20, line
- *                 height auto (24 at that size), #999999, in a 20px gutter.
+ *                 height auto (24 at that size), #999999. The gutter is 20 in
+ *                 the design and is widened here to fit two- and three-digit
+ *                 verse numbers — see numberGutter below.
  *                 The number is very nearly the size of the verse — it reads
  *                 small because it is grey and its tighter line box lifts it
  *                 ~4px, not because it is set smaller.
@@ -192,6 +194,23 @@ export default function BibleReader({
     [reading, verses],
   );
   const shownVersion = reading?.label ?? version;
+
+  /*
+   * The verse-number gutter has to fit the widest number in the CHAPTER, not
+   * the widest the design happened to draw.
+   *
+   * Figma sets it at 20 and every verse in the mock reads "1" — a 10px glyph
+   * with 10px of air before the text. A two-digit number is ~21px, so it fills
+   * the gutter exactly and touches the verse: "10He says". Measured at -1px of
+   * gap on Psalm 46:10.
+   *
+   * One width for the whole chapter, so the text column stays straight down the
+   * page. Psalms runs to 150, hence the three-digit case.
+   */
+  const numberGutter = useMemo(() => {
+    const widest = shownVerses.reduce((n, v) => Math.max(n, v.number), 0);
+    return widest > 99 ? 40 : widest > 9 ? 30 : 20;
+  }, [shownVerses]);
   // A selection is a SET of verse numbers, kept sorted so every label and
   // share string reads in reading order rather than tap order.
   const [selected, setSelected] = useState<number[]>([]);
@@ -511,8 +530,8 @@ export default function BibleReader({
                 {/* Verse Number — 20px gutter, no gap; the design puts the
                     verse text at exactly 20 from the block's left edge. */}
                 <span
-                  className="w-[20px] flex-shrink-0 text-[20px] font-medium leading-[24px]"
-                  style={{ color: "#999999" }}
+                  className="flex-shrink-0 text-[20px] font-medium leading-[24px]"
+                  style={{ color: "#999999", width: numberGutter }}
                 >
                   {verse.number}
                 </span>

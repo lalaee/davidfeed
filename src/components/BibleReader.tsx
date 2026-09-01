@@ -388,7 +388,14 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
             <button
               type="button"
               onClick={() => setShowBooks(true)}
-              className="flex h-[72px] w-[158px] items-center gap-[12px] rounded-[22px] p-[12px] active:opacity-70 transition-opacity"
+              // The frame's 158 is a FLOOR, not the width. It was measured when
+              // the reader had one chapter called "Psalm 46"; any of 1,189 can
+              // open now, and 158 leaves the title 74px — enough for "John 3"
+              // and not for "Psalms 46", which ran straight through the 12px
+              // padding. Hugs its content above 158, and only truncates where
+              // the row genuinely cannot hold it (a 320px screen showing
+              // "1 Thessalonians 5").
+              className="flex h-[72px] w-fit min-w-[158px] items-center gap-[12px] rounded-[22px] p-[12px] active:opacity-70 transition-opacity"
               style={{ backgroundColor: "#0E0E0E" }}
             >
               {/* Artwork Thumbnail */}
@@ -400,7 +407,7 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
                 />
               </div>
               {/* Chapter Title */}
-              <span className="text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px] whitespace-nowrap">
+              <span className="min-w-0 truncate text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px]">
                 {chapterTitle}
               </span>
             </button>
@@ -412,7 +419,7 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
               aria-expanded={versionOpen}
               aria-label={`Version: ${shownVersion}. Change version`}
               onClick={() => setVersionOpen((o) => !o)}
-              className="rounded-[19.252px] px-[16px] h-[38px] flex items-center justify-center
+              className="flex h-[38px] flex-shrink-0 items-center justify-center rounded-[19.252px] px-[16px]
                          transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
                          active:scale-[0.94]"
               style={{ backgroundColor: "#0E0E0E" }}

@@ -1256,6 +1256,20 @@ html, body {
   }
 }
 
+/* The floating sheets — compare, books — inset 21 either side of the column
+   they belong to: 348 on the 390 phone shell, 740 on the 782 desk one.
+
+   Plain CSS for the third time and the same reason. desk:max-w-[740px] beside
+   md:max-w-[348px] is two utilities competing for one property, and at 1440
+   BOTH media queries match, so the winner is whichever Tailwind emits last —
+   which was md. Measured: the card stayed 348 with both classes on the
+   element. This rule is not a variant, so there is nothing to lose to. */
+@media (min-width: 1028px) {
+  .sheet-column {
+    max-width: 740px;
+  }
+}
+
 /* The desktop composition is drawn on a 1440 canvas and stops growing there.
    Past that width the page centres instead of stretching: the copy would drift
    to the far left and the feed to the far right, with a widening void between

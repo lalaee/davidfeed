@@ -85,7 +85,7 @@ export default function BooksSheet({
       <div
         className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[111]
                    flex h-[480px] max-h-[calc(100dvh-120px)] w-[calc(100%-42px)] -translate-x-1/2
-                   flex-col gap-[32px] md:max-w-[348px]
+                   flex-col gap-[32px] md:max-w-[348px] sheet-column
                    rounded-[18.8333px] px-[16px] py-[24px]"
         style={{ backgroundColor: "#0E0E0E" }}
       >

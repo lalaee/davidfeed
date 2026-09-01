@@ -27,10 +27,11 @@ import type { Translation } from "@/data/bible";
  * card, and set the verses at 22px — none of which the design has.
  *
  * The 333 is those 21px margins on the design's 375, so the width tracks the
- * app shell rather than a fixed number. The shell is w-full below md and 390
- * above it, so the cap is md:max-w-[348px] (390 - 42) and never applies on a
- * phone. Capped unconditionally, this sat as a narrow column down the middle
- * of a wider screen while the verses behind it ran edge to edge.
+ * app shell rather than a fixed number — and the cap has to track it too. The
+ * shell is w-full below md, 390 above it and 782 at desk, so the caps are
+ * 348 (390 - 42) and 740 (782 - 42). The desk one was missing, which left the
+ * card as a narrow strip down the middle of a wide reader with the verses
+ * running past it on both sides. Neither cap applies on a phone.
  *
  * The backdrop is transparent and exists only so a tap outside can close it.
  *
@@ -76,7 +77,7 @@ export default function CompareSheet({
       <div
         className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[111]
                    flex max-h-[calc(100dvh-120px)] w-[calc(100%-42px)] -translate-x-1/2
-                   flex-col gap-[32px] md:max-w-[348px]
+                   flex-col gap-[32px] md:max-w-[348px] sheet-column
                    rounded-[18.8333px] px-[16px] py-[24px]"
         style={{ backgroundColor: "#0E0E0E" }}
       >

@@ -1233,7 +1233,7 @@ html, body {
 @media (min-width: 1028px) {
   .sound-badge {
     left: auto;
-    right: 362px;
+    right: calc(var(--desk-gutter) + 362px);
     top: 643.5px;
     /* Only the custom property. Tailwind v4 centres with the independent
        `translate` property, not `transform`, so adding a transform here shifted
@@ -1250,5 +1250,43 @@ html, body {
   .reader-column {
     width: 782px;
     max-width: none;
+  }
+}
+
+/* The desktop composition is drawn on a 1440 canvas and stops growing there.
+   Past that width the page centres instead of stretching: the copy would drift
+   to the far left and the feed to the far right, with a widening void between
+   them, because every piece was anchored to a viewport edge.
+
+   --desk-gutter is whatever the viewport has spare over 1440, halved. It is 0
+   at and below 1440, so nothing moves at the design width or under it. Each
+   anchor then measures from the canvas rather than the window.
+
+   Plain CSS, and the Tailwind right-/left- utilities these replace were removed
+   rather than layered over: two rules for one property is a bet on emit order,
+   which this file has already lost twice. */
+:root {
+  --desk-gutter: 0px;
+}
+
+@media (min-width: 1028px) {
+  :root {
+    --desk-gutter: calc((100vw - min(100vw, 1440px)) / 2);
+  }
+  .desk-bar {
+    padding-left: calc(var(--desk-gutter) + 48px);
+    padding-right: calc(var(--desk-gutter) + 86.27px);
+  }
+  .desk-feed {
+    right: calc(var(--desk-gutter) + 51px);
+  }
+  .desk-copy {
+    left: calc(var(--desk-gutter) + 48px);
+  }
+  .desk-topic {
+    right: calc(var(--desk-gutter) + 113px);
+  }
+  .desk-paging {
+    right: calc(var(--desk-gutter) + 729px);
   }
 }

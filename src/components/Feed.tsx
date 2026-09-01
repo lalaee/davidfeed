@@ -386,7 +386,7 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
           card wrappers so scrolling never interrupts it. */}
       <audio ref={bedRef} src="/assets/ambient-bed.m4a" loop preload="auto" />
     <div className="feed-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
-                    md:max-w-[375px] desk:fixed desk:right-[51px] desk:top-[221px] desk:mx-0
+                    desk-feed md:max-w-[375px] desk:fixed desk:top-[221px] desk:mx-0
                     desk:h-[calc(100dvh-221px)]">
       {/* Scrollable Feed Container */}
       <div

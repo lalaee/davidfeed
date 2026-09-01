@@ -67,7 +67,7 @@ export default function DesktopChrome({
       <DesktopNav activeTab={activeTab} />
 
       {/* Left column */}
-      <section className="pointer-events-none fixed left-[48px] top-[250px] z-[500] hidden w-[366px] flex-col gap-[72px] desk:flex">
+      <section className="pointer-events-none desk-copy fixed top-[250px] z-[500] hidden w-[366px] flex-col gap-[72px] desk:flex">
         <div className="flex flex-col gap-[32px]">
           <h1 className="flex flex-col gap-[18px] text-[48px] leading-[1.15] text-white">
             <span className="font-light">Stop Doomscrolling</span>
@@ -100,7 +100,7 @@ export default function DesktopChrome({
         // Anchored to the card's own right edge, not the viewport centre, so
         // the two cannot drift apart as the window resizes. 51 + 622 - 560
         // leaves it starting 62 inside the card, as the frame draws it.
-        className="fixed right-[calc(51px+62px)] top-[156px] z-[500] hidden h-[41px]
+        className="desk-topic fixed top-[156px] z-[500] hidden h-[41px]
                    items-center gap-[16px] border-none bg-transparent p-0 desk:flex"
       >
         <span className="text-[27px] font-normal leading-none" style={{ color: "#999999" }}>
@@ -117,7 +117,7 @@ export default function DesktopChrome({
       <div
         role="listbox"
         aria-label="Topics"
-        className={`fixed right-[calc(51px+62px)] top-[210px] z-[600] hidden w-[280px] overflow-hidden
+        className={`desk-topic fixed top-[210px] z-[600] hidden w-[280px] overflow-hidden
                     rounded-[20px] p-[6px] desk:block
                     transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
                     ${open ? "pointer-events-auto scale-100 opacity-100" : "pointer-events-none scale-[0.96] opacity-0"}`}
@@ -148,7 +148,7 @@ export default function DesktopChrome({
       </div>
 
       {/* Paging, to the left of the card */}
-      <div className="fixed right-[calc(51px+622px+56px)] top-1/2 z-[500] hidden -translate-y-1/2
+      <div className="desk-paging fixed top-1/2 z-[500] hidden -translate-y-1/2
                       flex-col gap-[16px] desk:flex">
         <PageButton label="Previous verse" onClick={onPrev} disabled={!canPrev} up />
         <PageButton label="Next verse" onClick={onNext} disabled={!canNext} />

@@ -25,7 +25,7 @@ export default function DesktopNav({ activeTab }: { activeTab: TabKey }) {
   return (
       <header
         className="fixed inset-x-0 top-0 z-[500] hidden h-[97px] items-center justify-between
-                   pl-[48px] pr-[86.27px] desk:flex"
+                   desk-bar desk:flex"
         style={{ backgroundColor: "#000000", borderBottom: "1px solid #212121" }}
       >
         <span

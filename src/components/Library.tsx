@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import BottomNav from "./BottomNav";
 import DesktopNav from "./DesktopNav";
 import { HIGHLIGHT_COLOURS } from "./VerseActionBar";
-import { chapterTranslation } from "@/data/bible";
+import { fetchChapterIn, parseTitle, readingTranslation } from "@/data/bible";
 import { shortPosts } from "@/data/shorts";
 import { highlightStore, readingStore, savedPostStore } from "@/lib/stores";
 import { formatVerseRange } from "@/lib/verseRef";
@@ -69,10 +69,15 @@ import { formatVerseRange } from "@/lib/verseRef";
  *   makes the filter legible; recolouring the text the way the reader does
  *   would turn the list into a wall of pastel.
  *
- *   The reference reads "Psalm 46 v 1" where the frame says "Psalms 46". The
- *   title comes from the chapter itself, which is what the reader's own header
- *   and the storage key both say; a library disagreeing with the page it
- *   quotes is worse than matching the mock.
+ * (A fourth departure is gone. The reference used to read "Psalm 46 v 1" where
+ * the frame said "Psalms 46", because the reader's one hard-coded chapter was
+ * titled that way and a library must not disagree with the page it quotes. The
+ * reader now names its chapter from the canonical book list, so both say
+ * "Psalms 46" and the frame was right all along.)
+ *
+ * The verse text is FETCHED. It is 12.6MB of static JSON under public/bible,
+ * so only the chapters that actually hold a highlight are asked for, and only
+ * in the translation being read.
  */
 
 type LibraryTab = "feed" | "verses";
@@ -227,15 +232,18 @@ function SavedHighlights() {
     readingStore.serverSnapshot,
   );
   const [filter, setFilter] = useState<string | null>(null);
+  const version = readingTranslation(readingId);
 
-  const entries = useMemo<HighlightEntry[]>(() => {
-    const out: HighlightEntry[] = [];
+  /*
+   * A "run" is a chapter plus a stretch of consecutive verses sharing one
+   * colour. Built from storage alone, with no text in it — highlighting 2-4 is
+   * one act by the reader, and four identical-looking rows is not what they
+   * did. formatVerseRange is the reader's own label function, so "v 2-4" here
+   * and "v 2-4" under the thumb are the same string built the same way.
+   */
+  const runs = useMemo(() => {
+    const out: { key: string; chapter: string; numbers: number[]; colour: string }[] = [];
     for (const [chapter, verses] of Object.entries(store)) {
-      // A chapter dropped from the registry is a stale localStorage entry;
-      // skip it rather than rendering a row with no words in it.
-      const translation = chapterTranslation(chapter, readingId);
-      if (!translation) continue;
-
       const numbers = Object.keys(verses)
         .map(Number)
         .sort((a, b) => a - b);
@@ -244,20 +252,7 @@ function SavedHighlights() {
       let colour = "";
       const flush = () => {
         if (!run.length) return;
-        const text = run
-          .map((n) => translation.verses[n])
-          .filter(Boolean)
-          .join(" ");
-        if (text) {
-          out.push({
-            key: `${chapter}:${run[0]}`,
-            chapter,
-            numbers: run,
-            colour,
-            text,
-            version: translation.label,
-          });
-        }
+        out.push({ key: `${chapter}:${run[0]}`, chapter, numbers: run, colour });
         run = [];
       };
 
@@ -274,7 +269,56 @@ function SavedHighlights() {
       flush();
     }
     return out;
-  }, [store, readingId]);
+  }, [store]);
+
+  /*
+   * The words themselves have to be fetched — the text is 12.6MB of static
+   * JSON under public/bible, not something the bundle carries. Only the
+   * chapters that actually hold a highlight are asked for, and only in the
+   * translation being read; the other two are the compare card's business.
+   *
+   * The dependency is a joined STRING of chapter titles, not the array: the
+   * array is a fresh object every time the store ticks, which would re-fetch
+   * on every highlight made anywhere.
+   */
+  const chapterKeys = useMemo(
+    () => [...new Set(runs.map((r) => r.chapter))].sort().join("|"),
+    [runs],
+  );
+  const [texts, setTexts] = useState<Record<string, Record<number, string>>>({});
+  useEffect(() => {
+    const ac = new AbortController();
+    const titles = chapterKeys ? chapterKeys.split("|") : [];
+    Promise.all(
+      titles.map(async (title) => {
+        // A title naming a book that does not exist is a stale stored key.
+        const ref = parseTitle(title);
+        if (!ref) return [title, null] as const;
+        const verses = await fetchChapterIn(version.id, ref.book, ref.chapter, ac.signal);
+        return [title, verses] as const;
+      }),
+    ).then((pairs) => {
+      if (ac.signal.aborted) return;
+      const next: Record<string, Record<number, string>> = {};
+      for (const [title, verses] of pairs) if (verses) next[title] = verses;
+      setTexts(next);
+    });
+    return () => ac.abort();
+  }, [chapterKeys, version.id]);
+
+  // A run whose chapter has not arrived (or cannot be read) is left out rather
+  // than rendered as a reference with no words under it.
+  const entries = useMemo<HighlightEntry[]>(
+    () =>
+      runs.flatMap((run) => {
+        const verses = texts[run.chapter];
+        if (!verses) return [];
+        const text = run.numbers.map((n) => verses[n]).filter(Boolean).join(" ");
+        if (!text) return [];
+        return [{ ...run, text, version: version.label }];
+      }),
+    [runs, texts, version.label],
+  );
 
   const shown = filter ? entries.filter((e) => e.colour === filter) : entries;
 

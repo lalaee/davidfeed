@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { CloseIcon, DoneCheckIcon, VersionsIcon } from "./icons";
-import type { Translation } from "@/data/psalm46";
+import type { Translation } from "@/data/bible";
 
 /*
  * The verse compared across translations.

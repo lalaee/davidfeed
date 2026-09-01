@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import BottomNav from "./BottomNav";
 import DesktopNav from "./DesktopNav";
@@ -7,10 +8,17 @@ import BooksSheet from "./BooksSheet";
 import CompareSheet from "./CompareSheet";
 import VerseActionBar, { type VerseAction } from "./VerseActionBar";
 import { BookmarkIcon, CompareIcon, SendIcon } from "./icons";
-import type { Translation } from "@/data/psalm46";
+import {
+  TRANSLATIONS,
+  bookSlug,
+  chapterTitle as makeChapterTitle,
+  fetchChapter,
+  type Translation,
+} from "@/data/bible";
 import {
   EMPTY_CHAPTER,
   highlightStore,
+  migrateLegacyChapterKeys,
   readingStore,
   savedVerseStore,
   versionsStore,
@@ -53,30 +61,62 @@ interface Verse {
   text: string;
 }
 
+/** Stable identity — a fresh [] every render would re-run every memo below. */
+const NO_TRANSLATIONS: Translation[] = [];
+
 interface BibleReaderProps {
-  chapterTitle: string;
+  /** Book name as it appears in BOOKS, e.g. "Psalms". */
+  book: string;
+  chapter: number;
   artworkSrc?: string;
-  version?: string;
-  verses: Verse[];
-  /** The translations the compare card lists by default. */
-  translations?: Translation[];
-  /** Further translations the picker can offer but that are not listed. */
-  moreTranslations?: Translation[];
 }
 
-export default function BibleReader({
-  chapterTitle = "Psalm 46",
-  artworkSrc = "/assets/feed-poster-frame.jpg",
-  version = "WEB",
-  verses = [],
-  translations = [],
-  moreTranslations = [],
-}: BibleReaderProps) {
-  // Everything the picker can offer: the listed set first, then the rest.
+export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-poster-frame.jpg" }: BibleReaderProps) {
+  const router = useRouter();
+  const chapterTitle = makeChapterTitle(book, chapter);
+
+  /*
+   * The text arrives at runtime. 66 books in three translations is 12.6MB, so
+   * it is static JSON under public/bible rather than anything bundled, and the
+   * reader fetches the one chapter it is showing — about 4KB per translation,
+   * all three at once because the compare card wants them the moment a verse
+   * is selected.
+   *
+   * An abort on the way out matters here in a way it usually does not: tapping
+   * through the books sheet can start several of these in a row, and without it
+   * a slow early chapter could land after a fast later one and replace it.
+   */
+  const [loaded, setLoaded] = useState<{ key: string; translations: Translation[] } | null>(null);
+  useEffect(() => {
+    const ac = new AbortController();
+    fetchChapter(book, chapter, ac.signal).then((found) => {
+      if (ac.signal.aborted) return;
+      setLoaded({ key: makeChapterTitle(book, chapter), translations: found });
+    });
+    return () => ac.abort();
+  }, [book, chapter]);
+
+  /*
+   * What loaded is STAMPED with the chapter it is for, and the previous
+   * chapter's text is discarded by comparing that stamp — not by clearing
+   * state as the fetch starts. Clearing first is the obvious shape and it is a
+   * synchronous setState inside an effect, which is the cascading render this
+   * project rejects at build time. Comparing costs nothing and reads the same.
+   */
+  const ready = loaded?.key === chapterTitle;
   const allTranslations = useMemo(
-    () => [...translations, ...moreTranslations],
-    [translations, moreTranslations],
+    () => (ready && loaded ? loaded.translations : NO_TRANSLATIONS),
+    [ready, loaded],
   );
+  // Every translation failed to load — offline, most likely. Worth saying, as
+  // an empty column otherwise reads as an empty chapter.
+  const loadFailed = ready && allTranslations.length === 0;
+
+  // Highlights and saves made when the reader had one hard-coded chapter were
+  // filed under "Psalm 46"; the reference is "Psalms 46" now. Moves them once.
+  useEffect(() => {
+    migrateLegacyChapterKeys();
+  }, []);
 
   // Null until the reader picks one, so the default stays whatever the chapter
   // ships rather than a snapshot of it frozen at first run.
@@ -88,16 +128,16 @@ export default function BibleReader({
   const reading = allTranslations.find((t) => t.id === readingId) ?? allTranslations[0];
   const [versionOpen, setVersionOpen] = useState(false);
 
-  // Verses follow the chosen translation; the prop is the fallback for a caller
-  // that passes no translations at all.
-  const shownVerses = useMemo(
+  // Verses follow the chosen translation. Empty while the chapter loads, which
+  // is what leaves the column blank for the moment the fetch takes.
+  const shownVerses = useMemo<Verse[]>(
     () =>
       reading
         ? Object.entries(reading.verses).map(([n, text]) => ({ number: Number(n), text }))
-        : verses,
-    [reading, verses],
+        : [],
+    [reading],
   );
-  const shownVersion = reading?.label ?? version;
+  const shownVersion = reading?.label ?? TRANSLATIONS[0].label;
 
   /*
    * The verse-number gutter has to fit the widest number in the CHAPTER, not
@@ -175,16 +215,23 @@ export default function BibleReader({
     versionsStore.serverSnapshot,
   );
   const listedTranslations = useMemo(() => {
-    if (!chosenVersionIds) return translations;
+    if (!chosenVersionIds || !allTranslations.length) return allTranslations;
+    /*
+     * A stored choice naming a translation that no longer exists is stale as a
+     * WHOLE, not merely in that entry. NIV and NKJV were just dropped, so
+     * someone whose stored list was ["niv","nkjv","asv"] would otherwise have
+     * had it quietly pruned to ASV alone and been left comparing one
+     * translation against nothing, with no way to tell why.
+     */
+    const known = new Set(allTranslations.map((t) => t.id));
+    if (chosenVersionIds.some((id) => !known.has(id))) return allTranslations;
     const picked = allTranslations.filter((t) => chosenVersionIds.includes(t.id));
-    // A stored choice can go stale if a translation is renamed or dropped;
-    // fall back rather than showing an empty card.
-    return picked.length ? picked : translations;
-  }, [chosenVersionIds, translations, allTranslations]);
+    return picked.length ? picked : allTranslations;
+  }, [chosenVersionIds, allTranslations]);
 
   const toggleVersion = useCallback(
     (id: string) => {
-      const current = versionsStore.read() ?? translations.map((t) => t.id);
+      const current = versionsStore.read() ?? allTranslations.map((t) => t.id);
       const next = current.includes(id)
         ? current.filter((x) => x !== id)
         : // Keep the file's order rather than the order they were tapped in.
@@ -193,7 +240,7 @@ export default function BibleReader({
       if (!next.length) return;
       versionsStore.write(next);
     },
-    [translations, allTranslations],
+    [allTranslations],
   );
 
   const saved = selected.length > 0 && selected.every((n) => savedVerses[n]);
@@ -211,7 +258,7 @@ export default function BibleReader({
 
   const handleShare = useCallback(() => {
     if (!selected.length || !navigator.share) return;
-    const picked = verses.filter((v) => selected.includes(v.number));
+    const picked = shownVerses.filter((v) => selected.includes(v.number));
     const body = picked.map((v) => v.text).join(" ");
     const ref = `${chapterTitle} ${formatVerseRange(selected)}`;
     navigator.share({
@@ -434,6 +481,11 @@ export default function BibleReader({
             setVersionOpen(false);
           }}
         >
+          {loadFailed && (
+            <p className="text-[21px] font-normal leading-[31.5px]" style={{ color: "#999999" }}>
+              This chapter could not be loaded. Check your connection and try again.
+            </p>
+          )}
           {shownVerses.map((verse) => {
             const isSelected = selected.includes(verse.number);
             const highlight = highlights[verse.number];
@@ -510,9 +562,14 @@ export default function BibleReader({
       {/* Books Sheet */}
       {showBooks && (
         <BooksSheet
-          currentBook={chapterTitle.startsWith("Psalm ") ? "Psalms" : chapterTitle.split(" ")[0]}
-          currentChapter={parseInt(chapterTitle.split(" ").pop() ?? "1", 10)}
+          currentBook={book}
+          currentChapter={chapter}
           onClose={() => setShowBooks(false)}
+          onSelect={(nextBook, nextChapter) => {
+            // The reference lives in the URL, so a chapter can be linked to and
+            // the back button walks the chapters you actually read.
+            router.push(`/bible/${bookSlug(nextBook)}/${nextChapter}`);
+          }}
         />
       )}
 

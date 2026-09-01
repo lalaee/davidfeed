@@ -46,3 +46,4 @@ i2v-env/
 # Python bytecode from the cover-parallax scripts
 __pycache__/
 *.pyc
+.bible-cache/

@@ -91,3 +91,31 @@ export const readingStore = makeJsonStore<string | null>(READING_KEY, null);
  */
 export const EMPTY_POSTS = {} as Record<number, true>;
 export const savedPostStore = makeJsonStore<Record<number, true>>(SAVED_POSTS_KEY, EMPTY_POSTS);
+
+/*
+ * Chapters were keyed "Psalm 46" while the reader had exactly one chapter and
+ * its title was a hard-coded prop. They are keyed by their real reference now
+ * that the reader can open any of 1,189, and the book is named "Psalms" — so
+ * every highlight and save made before this would be stranded under a key
+ * nothing looks up any more.
+ *
+ * Renames them once, on the client, merging rather than overwriting in case
+ * both keys somehow exist. Cheap enough to attempt on every mount: it does
+ * nothing at all once there is no legacy key left, and it writes only when it
+ * actually moved something.
+ */
+const LEGACY_TITLES: Record<string, string> = { "Psalm 46": "Psalms 46" };
+
+export function migrateLegacyChapterKeys() {
+  for (const store of [highlightStore, savedVerseStore]) {
+    const current = store.read() as ChapterStore<string | true>;
+    let next: ChapterStore<string | true> | null = null;
+    for (const [from, to] of Object.entries(LEGACY_TITLES)) {
+      if (!current[from]) continue;
+      next ??= { ...current };
+      next[to] = { ...next[to], ...next[from] };
+      delete next[from];
+    }
+    if (next) (store as { write: (v: unknown) => void }).write(next);
+  }
+}

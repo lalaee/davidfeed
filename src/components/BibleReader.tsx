@@ -270,8 +270,8 @@ export default function BibleReader({
   const morphRef = useRef<HTMLDivElement>(null);
 
   // Below the verse unless the bar would fall off the bottom, in which case it
-  // goes above — the ordinary popover rule. Re-measured while scrolling,
-  // because the verse it hangs off moves.
+  // goes above — the ordinary popover rule, but only when above is CLEAR.
+  // Re-measured while scrolling, because the verse it hangs off moves.
   const [placement, setPlacement] = useState<"above" | "below">("below");
   useEffect(() => {
     const el = versesScrollRef.current;
@@ -288,14 +288,33 @@ export default function BibleReader({
       }
       const row = anchorRef.current;
       if (!row) return;
-      const bottom = row.getBoundingClientRect().bottom;
+      const rect = row.getBoundingClientRect();
       // The floor is the nav's top edge, not the viewport's, now that the nav
       // stays through a selection — measured rather than assumed, so it keeps
       // working if the nav's height or safe-area inset changes.
-      const nav = document.querySelector("nav");
-      const floor = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+      //
+      // By its data attribute, not "nav": DesktopNav renders its own <nav>
+      // BEFORE this one in the document, so a bare querySelector found the
+      // desktop bar at the top of the screen and put the floor at y=16. And a
+      // display:none element measures all zeros, which is what the phone nav is
+      // at desk — hence the height check rather than a null check.
+      const navEl = document.querySelector<HTMLElement>("[data-bottom-nav]");
+      const navRect = navEl?.getBoundingClientRect();
+      const floor = navRect && navRect.height > 0 ? navRect.top : window.innerHeight;
+      // The ceiling is the floating header's bottom edge. The verses scroll
+      // BEHIND it, so a bar placed above a verse near the top of the column
+      // does not run out of screen — it slides underneath the header and comes
+      // out on top of the chapter title and the version pill.
+      const ceiling = morph ? morph.getBoundingClientRect().bottom : 0;
       // 17 gap + 78 bar + 16 of breathing room.
-      setPlacement(bottom + 111 > floor ? "above" : "below");
+      const NEEDED = 111;
+      const fitsBelow = rect.bottom + NEEDED <= floor;
+      const fitsAbove = rect.top - NEEDED >= ceiling;
+      // Flip up only when up is actually clear. On a short viewport — Safari
+      // with its URL bar, or a zoomed page — neither side fits, and flipping
+      // regardless is what put the bar through the header. Below is the better
+      // of the two failures: the column can be scrolled to reach it.
+      setPlacement(!fitsBelow && fitsAbove ? "above" : "below");
     };
     measure();
     el.addEventListener("scroll", measure, { passive: true });

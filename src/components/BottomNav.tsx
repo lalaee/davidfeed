@@ -56,6 +56,9 @@ export const TABS = [
 export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
   return (
     <nav
+      // Read by the Bible reader to find the floor its action bar must stay
+      // above. DesktopNav renders a <nav> too, and earlier in the document.
+      data-bottom-nav
       className="fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999] flex h-[75px] w-fit
                  -translate-x-1/2 items-start justify-center gap-[47.619px] rounded-[47.619px]
                  px-[30.381px] py-[4.762px] desk:hidden"

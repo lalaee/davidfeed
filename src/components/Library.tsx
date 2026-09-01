@@ -45,11 +45,12 @@ import { formatVerseRange } from "@/lib/verseRef";
  * uses — 782 at x=329 on 1440 is centred — and almost nothing else changes,
  * because the numbers were written as fractions of the column rather than as
  * widths. The grid stays 3 up and its tiles go 107.33 to 243.33 on their own,
- * (column - 48 - 4) / 3 at either size; the filter bar spans the column and its
- * space-between spreads the same four swatches from a 59.73 gap to 195.73. What
- * genuinely differs is spacing: 32 above the grid where the phone has 24, 32
- * above the verse list where the phone has 40, and 32 of bottom padding in
- * place of the room the phone has to leave for its nav.
+ * (column - 48 - 4) / 3 at either size; the filter bar spans the column, though
+ * its swatches are held to the phone's 59.73 gap rather than the 195.73 that
+ * spreading them across 734 computes. What genuinely differs is spacing: 32
+ * above the grid where the phone has 24, 32 above the verse list where the
+ * phone has 40, and 32 of bottom padding in place of the room the phone has to
+ * leave for its nav.
  *
  * Three departures from the frames, all stated rather than smuggled:
  *
@@ -283,9 +284,18 @@ function SavedHighlights() {
           block of controls, 24 below the tabs, 40 above the list. */}
       <div className="flex-shrink-0 px-[24px] pt-[24px]">
         <div
-          className="flex h-[54px] items-center justify-between rounded-[30px] px-[16px]"
+          className="flex h-[54px] items-center rounded-[30px] px-[16px]"
           style={{ backgroundColor: "#212121" }}
         >
+          {/* The BAR spans the column, as the desktop frame draws it, but the
+              swatches do not spread with it. Space-between across 734 computes
+              a 195.73 gap — four small dots strung across the width, which is
+              what the frame literally specifies and reads as a mistake. Capped
+              at the phone bar's own content width, the gap comes back to 59.73:
+              the same rhythm at both sizes, and the first swatch still lands on
+              the frame's x=369. Below desk nothing changes — 294 is wider than
+              the content box there, so the cap never applies. */}
+          <div className="flex w-full items-center justify-between desk:max-w-[294px]">
           {HIGHLIGHT_COLOURS.map((colour) => {
             const on = filter === colour;
             return (
@@ -311,6 +321,7 @@ function SavedHighlights() {
               />
             );
           })}
+          </div>
         </div>
       </div>
 

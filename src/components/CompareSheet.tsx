@@ -17,7 +17,10 @@ import type { Translation } from "@/data/bible";
  *   header     48 tall (a MINIMUM here — see the reference below), gap 10: a
  *              48x48 close circle, the reference, then a hugging "Versions"
  *              button
- *   buttons    #212121, fully round, 6/20 padding, 4 gap, 20x20 icon
+ *   buttons    #212121, fully round, 6/20 padding, 4 gap, 20x20 icon. The
+ *              Versions button drops to a 48 circle below desk — see the note
+ *              on it; the reference beside it needs the room more than the
+ *              label does.
  *   reference  Inter Semi Bold 17/150%
  *   label      Inter Medium 15, #999999
  *   verse      Inter Regular 18/150%, #FFFFFF
@@ -117,9 +120,22 @@ export default function CompareSheet({
             type="button"
             onClick={() => setPicking((p) => !p)}
             aria-pressed={picking}
-            className="flex h-[48px] flex-shrink-0 items-center gap-[4px] rounded-full border-none
+            // The label carried the accessible name until it stopped being
+            // rendered below desk, so the button has to say what it is itself.
+            aria-label={picking ? "Done choosing versions" : "Choose versions"}
+            // A 48 circle on a phone, the design's labelled pill at desk. The
+            // label costs 69px of a 301px row, and the reference next to it is
+            // the card's TITLE — at 115.9px it could not hold "Psalms 46 v 1-2"
+            // on one line. Icon-only gives the reference 185px, which puts the
+            // common case back on one line at the design's 48 header, and the
+            // longest book names into two clean lines instead of overflowing.
+            // The label returns at desk, where the card is 740 and nothing is
+            // competing for the room.
+            className="flex h-[48px] w-[48px] flex-shrink-0 items-center justify-center gap-[4px]
+                       rounded-full border-none px-0 py-[6px]
                        transition-transform duration-[190ms]
-                       px-[20px] py-[6px] ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]"
+                       ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]
+                       desk:w-auto desk:px-[20px]"
             // White while picking, the way the nav marks its current tab —
             // the button is a mode, so it shows which mode you are in. #000000
             // rather than the card's #0E0E0E because the design specifies black
@@ -133,7 +149,7 @@ export default function CompareSheet({
                 two glyphs — the pencil sitting next to "Done" read as if it
                 would edit something. */}
             {picking ? <DoneCheckIcon size={20} /> : <VersionsIcon size={20} />}
-            <span className="whitespace-nowrap text-[13px] font-normal leading-[16px]">
+            <span className="hidden whitespace-nowrap text-[13px] font-normal leading-[16px] desk:block">
               {picking ? "Done" : "Versions"}
             </span>
           </button>

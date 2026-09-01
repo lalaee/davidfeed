@@ -1223,3 +1223,22 @@ html, body {
     max-width: none;
   }
 }
+
+/* "Tap for sound" belongs to the card, not the window.
+   At desk the card is 622 wide anchored 51 from the right, so its centre is
+   51 + 311 = 362 from the right edge; it starts at 221 and is 845 tall, so its
+   middle is 643.5 down. Written as plain CSS because the phone rule centres
+   with -translate-x-1/2 and this needs +1/2 — two utilities for one property,
+   where which one wins would come down to emit order. */
+@media (min-width: 1028px) {
+  .sound-badge {
+    left: auto;
+    right: 362px;
+    top: 643.5px;
+    /* Only the custom property. Tailwind v4 centres with the independent
+       `translate` property, not `transform`, so adding a transform here shifted
+       the badge a second time — half its width to the right and half its height
+       up, on top of the move it had already made. */
+    --tw-translate-x: 50%;
+  }
+}

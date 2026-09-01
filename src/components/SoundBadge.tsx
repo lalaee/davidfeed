@@ -21,6 +21,10 @@
  *
  * Vertical centring uses the card's own height, not the viewport's. A card is
  * calc(100dvh - 138px), so viewport-centring would sit 69px low.
+ *
+ * At desk the card is not the window either — it is 622 wide, anchored right,
+ * and starts 221 down — so .sound-badge in globals.css re-centres it on the
+ * card there. Centred on the viewport it sat out on the black beside the feed.
  */
 interface SoundBadgeProps {
   visible: boolean;
@@ -35,7 +39,7 @@ export default function SoundBadge({ visible, onEnable }: SoundBadgeProps) {
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
       aria-label="Tap for sound"
-      className={`fixed left-1/2 top-[calc((100dvh-138px)/2)] z-[9998]
+      className={`sound-badge fixed left-1/2 top-[calc((100dvh-138px)/2)] z-[9998]
                   flex -translate-x-1/2 items-center gap-[9px] rounded-full border-none
                   py-[13px] pl-[20px] pr-[24px] text-white
                   transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]

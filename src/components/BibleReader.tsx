@@ -25,6 +25,7 @@ import {
   versionsStore,
 } from "@/lib/stores";
 import { formatVerseRange } from "@/lib/verseRef";
+import { useScrollCollapse } from "@/hooks/useNavCollapse";
 
 /*
  * Geometry, type and colour follow Figma "Bible" — 2641:1161 (reading) and
@@ -75,6 +76,23 @@ interface BibleReaderProps {
 export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-poster-frame.jpg" }: BibleReaderProps) {
   const router = useRouter();
   const chapterTitle = makeChapterTitle(book, chapter);
+  // The bottom nav's minimize-on-scroll. Declared this early because the
+  // scroll-reset effect below lists the scroller as a dependency, and a
+  // dependency array is evaluated during render — a RefObject could hide
+  // inside a closure here; state cannot. Keyed on the chapter: paging to the
+  // next one swaps nothing in the DOM (same route pattern, same scroller), but
+  // a new chapter opens at its top, expanded.
+  //
+  // Destructured on purpose. Passed as `ref={...}` on the scroller, the
+  // callback is typed as a ref by the React Compiler — and if it is still a
+  // property of one object, the whole object is, and render is forbidden from
+  // reading `minimized` off it. Separate bindings, separate types.
+  const {
+    minimized: navMinimized,
+    expand: expandNav,
+    attach: attachScroller,
+    el: scroller,
+  } = useScrollCollapse(chapterTitle);
 
   /*
    * The text arrives at runtime. 66 books in three translations is 12.6MB, so
@@ -104,8 +122,8 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
    * have not read, or past the end of a shorter one.
    */
   useLayoutEffect(() => {
-    versesScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
-  }, [book, chapter]);
+    scroller?.scrollTo({ top: 0, behavior: "auto" });
+  }, [book, chapter, scroller]);
 
   /*
    * What loaded is STAMPED with the chapter it is for, and the previous
@@ -328,7 +346,6 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
 
   // iOS 26 toolbar morph — as verses scroll under the floating header, the pill
   // row shrinks ~4% and its glass panes saturate slightly.
-  const versesScrollRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const morphRef = useRef<HTMLDivElement>(null);
 
@@ -337,7 +354,7 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
   // Re-measured while scrolling, because the verse it hangs off moves.
   const [placement, setPlacement] = useState<"above" | "below">("below");
   useEffect(() => {
-    const el = versesScrollRef.current;
+    const el = scroller;
     if (!el) return;
     const measure = () => {
       // Straight to the element. Routing this through state re-rendered the
@@ -386,7 +403,7 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
       el.removeEventListener("scroll", measure);
       window.removeEventListener("resize", measure);
     };
-  }, [anchor]);
+  }, [anchor, scroller]);
 
   return (
     <>
@@ -494,7 +511,7 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
 
         {/* Verses */}
         <div
-          ref={versesScrollRef}
+          ref={attachScroller}
           // pb clears the PAGER, not just the nav. The buttons stand 97 to 149
           // off the bottom, and 140 left the last verse of a chapter sitting
           // under them; 165 is that 149 plus the 16 of air the design gives
@@ -584,7 +601,9 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
             free and there is no reason to take navigation away mid-read. The
             design's selected-verse frames omit it — this is a deliberate
             departure, and the flip below keeps the bar clear of it. */}
-        {!showBooks && !showCompare && <BottomNav activeTab="bible" />}
+        {!showBooks && !showCompare && (
+          <BottomNav activeTab="bible" minimized={navMinimized} onExpand={expandNav} />
+        )}
 
         {/*
          * Previous and next chapter. Figma "Bible" 2679:18153 / 2679:18156.

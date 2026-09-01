@@ -1129,6 +1129,15 @@ button, [role="button"], a {
     transition: none;
   }
 
+  [data-bottom-nav],
+  [data-bottom-nav] > a,
+  [data-bottom-nav] [data-nav-selected],
+  [data-bottom-nav] [data-nav-icon],
+  [data-bottom-nav] [data-nav-label] {
+    transition-duration: 1ms;
+    transition-delay: 0s;
+  }
+
   /* Press feedback is direct manipulation, not decoration, so it stays — but
      it lands instantly rather than easing. */
   .icon-press {
@@ -1268,6 +1277,98 @@ html, body {
   .sheet-column {
     max-width: 740px;
   }
+}
+
+/* === Bottom nav: iOS 26 minimize-on-scroll ===================================
+
+   The pill collapses to a single circle holding the active tab's icon, and
+   comes back. Apple specifies the behaviour and not the timing (WWDC25 284,
+   2:31; HIG "Tab bars"), so:
+
+   380ms, the app's iOS curve, no overshoot. This is a LAYOUT change — the bar
+   is resizing, and a layout that overshoots reads as broken rather than
+   lively; the one published attempt to match the native bar went critically
+   damped for the same reason. And it is a transition, not an animation: the
+   value changes in STEPS (expanded / minimized), which is the one case the
+   header-morph note above says a transition is for.
+
+   The circle's diameter is nav.selected's own height, 64.286 — the minimized
+   state is that pill with its width brought down to its height, so the rest
+   picture is one the design already drew. Plain CSS because it must override
+   the Tailwind utilities on the element, and unlayered author CSS beats
+   @layer utilities by cascade rule (see .feed-column).
+
+   overflow:hidden only while minimized: the expanded pill overflows its
+   labels by design (clipsContent is false in the file), so it cannot clip at
+   rest — but a collapsing pill must, or the 91px label bands poke out of a
+   64px circle for the length of the transition. */
+[data-bottom-nav] {
+  transition:
+    width 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    height 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    padding 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    gap 380ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-bottom-nav] > a {
+  transition:
+    width 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    height 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 240ms cubic-bezier(0.32, 0.72, 0, 1),
+    scale 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    /* Leaves the tab order only once it has finished going. */
+    visibility 0s linear 0s;
+}
+[data-bottom-nav] [data-nav-selected] {
+  transition:
+    left 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    top 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    height 380ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-bottom-nav] [data-nav-icon] {
+  transition:
+    left 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    top 380ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-bottom-nav] [data-nav-label] {
+  transition: opacity 160ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-bottom-nav][data-minimized] {
+  width: 64.286px;
+  height: 64.286px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+[data-bottom-nav][data-minimized] > a {
+  width: 0;
+  height: 64.286px;
+  opacity: 0;
+  scale: 0.6;
+  visibility: hidden;
+  transition-delay: 0s, 0s, 0s, 0s, 380ms;
+}
+[data-bottom-nav][data-minimized] > a[data-active] {
+  width: 64.286px;
+  opacity: 1;
+  scale: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+[data-bottom-nav][data-minimized] [data-nav-selected] {
+  left: 0;
+  top: 0;
+  width: 64.286px;
+  height: 64.286px;
+}
+/* (64.286 - 23.81) / 2 = 20.238: the icon centred in the circle. */
+[data-bottom-nav][data-minimized] [data-nav-icon] {
+  left: 20.238px;
+  top: 20.238px;
+}
+[data-bottom-nav][data-minimized] [data-nav-label] {
+  opacity: 0;
 }
 
 /* The desktop composition is drawn on a 1440 canvas and stops growing there.

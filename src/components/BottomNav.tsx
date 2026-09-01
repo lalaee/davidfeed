@@ -39,12 +39,36 @@ import { NavBibleIcon, NavHomeIcon, NavLibraryIcon } from "./icons";
  * both the item and the container. Neighbouring bands graze each other, so
  * both carry pointer-events-none; without it one tab's label swallows taps
  * aimed at the next tab's icon.
+ *
+ * MINIMIZED — the iOS 26 tab bar behaviour, driven by `minimized`:
+ *
+ *   The whole pill collapses to a single circle holding only the active tab's
+ *   icon. That is what iOS does (MacStories: "only the current tab item
+ *   remains visible as a small circular button"), and the circle is not a new
+ *   drawing — it is nav.selected with its width brought down to its height.
+ *   64.286 is already the pill's height, so the circle's diameter is a number
+ *   the design supplied. Landing by congruence: the rest state is the same
+ *   picture it always was.
+ *
+ *   The geometry lives in globals.css under [data-bottom-nav][data-minimized],
+ *   as plain CSS, because it has to override the Tailwind utilities here and
+ *   unlayered author CSS beats @layer utilities by cascade rule — the same
+ *   reason .feed-column, .reader-column and .sheet-column are plain CSS.
+ *
+ *   The other two tabs leave the tab order as well as the screen: opacity 0 is
+ *   invisible, not gone. A tap on the circle EXPANDS rather than navigating —
+ *   it is the current page, so navigation would at best be a no-op and at
+ *   worst reset the reader's scroll. Apple's third exit is exactly this tap.
  */
 
 export type TabKey = "home" | "bible" | "library";
 
 interface BottomNavProps {
   activeTab?: TabKey;
+  /** Collapsed to the active tab's circle. */
+  minimized?: boolean;
+  /** The tap on the minimized circle. Without it the tap navigates as usual. */
+  onExpand?: () => void;
 }
 
 export const TABS = [
@@ -53,12 +77,18 @@ export const TABS = [
   { key: "library", href: "/library", label: "Library", Icon: NavLibraryIcon },
 ] as const;
 
-export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
+export default function BottomNav({
+  activeTab = "home",
+  minimized = false,
+  onExpand,
+}: BottomNavProps) {
   return (
     <nav
       // Read by the Bible reader to find the floor its action bar must stay
       // above. DesktopNav renders a <nav> too, and earlier in the document.
       data-bottom-nav
+      data-minimized={minimized ? "" : undefined}
+      aria-label="Main"
       className="fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999] flex h-[75px] w-fit
                  -translate-x-1/2 items-start justify-center gap-[47.619px] rounded-[47.619px]
                  px-[30.381px] py-[4.762px] desk:hidden"
@@ -66,17 +96,31 @@ export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
     >
       {TABS.map((tab) => {
         const isActive = activeTab === tab.key;
+        const hidden = minimized && !isActive;
         return (
           <Link
             key={tab.key}
             href={tab.href}
             aria-current={isActive ? "page" : undefined}
+            aria-hidden={hidden || undefined}
+            tabIndex={hidden ? -1 : undefined}
+            aria-label={minimized && isActive ? "Show navigation" : undefined}
+            data-active={isActive ? "" : undefined}
+            onClick={
+              minimized && isActive && onExpand
+                ? (e) => {
+                    e.preventDefault();
+                    onExpand();
+                  }
+                : undefined
+            }
             className="relative block h-[65.476px] w-[41.667px] flex-shrink-0 no-underline"
           >
             {/* nav.selected — the pill behind the active tab */}
             {isActive && (
               <span
                 aria-hidden
+                data-nav-selected
                 className="pointer-events-none absolute left-[-25.25px] top-[0.262px] h-[64.286px] w-[91.31px] rounded-[57.143px]"
                 style={{ backgroundColor: "#212121" }}
               />
@@ -84,10 +128,11 @@ export default function BottomNav({ activeTab = "home" }: BottomNavProps) {
             {/* Inline, not <img>. A failed request used to leave a
                 broken-image box sitting in the nav with the label still under
                 it; there is nothing to request now. */}
-            <span className="pointer-events-none absolute left-[8.5px] top-[10.714px] block text-white">
+            <span data-nav-icon className="pointer-events-none absolute left-[8.5px] top-[10.714px] block text-white">
               <tab.Icon active={isActive} size={23.81} />
             </span>
             <span
+              data-nav-label
               className={`pointer-events-none absolute left-[-25.43px] top-[40.476px] block h-[14px] w-[91.667px]
                           text-center leading-none text-white ${isActive ? "font-medium" : "font-normal"}`}
               style={{ fontSize: "11.9048px", letterSpacing: "0.02em" }}

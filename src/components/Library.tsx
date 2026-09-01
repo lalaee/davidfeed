@@ -23,7 +23,10 @@ import { formatVerseRange } from "@/lib/verseRef";
  *   tabs       374x38 at y=40, padding 0/24, gap 12. Pills at radius 19.25,
  *              padding 8/16, Inter Semi Bold 17/22. ACTIVE is #FFFFFF with
  *              #0E0E0E text; inactive is #0E0E0E with white text — the same
- *              inversion the compare card's Versions button uses.
+ *              inversion the compare card's Versions button uses. The labels
+ *              read "Saved Feed" and "Highlighted Verses" rather than the
+ *              frames' "Feed" and "Verse highlights"; the pills hug their text,
+ *              so the frames' 71 and 160 were never fixed widths to hold to.
  *   grid       3 up, padding 0/24, gap 2 on BOTH axes (rows pitch 128 on a
  *              126 row). Tiles 107.33x126 radius 12, no caption. 107.33 is
  *              (374 - 48 - 4) / 3, so the tiles are fractions of the column
@@ -84,10 +87,16 @@ export default function Library() {
         {/* The head is pinned and the lists scroll under it, so the tabs stay
             reachable however far down the grid you are. */}
         <div className="flex-shrink-0 pt-[40px] desk:pt-[121px]">
-          <div className="flex gap-[12px] px-[24px]">
-            <TabPill label="Feed" active={tab === "feed"} onClick={() => setTab("feed")} />
+          {/* Scrolls rather than clips. The pills hug their labels, and the two
+              renamed ones total 327 against the 327 a 375 screen has spare —
+              exactly zero. Measured on a 360 Android the second ran 15.2px past
+              its own margin with nowhere to go. This is the answer the verse
+              action bar already gives to the same question, and it costs
+              nothing on a screen wide enough to hold both. */}
+          <div className="scrollbar-hide flex gap-[12px] overflow-x-auto px-[24px]">
+            <TabPill label="Saved Feed" active={tab === "feed"} onClick={() => setTab("feed")} />
             <TabPill
-              label="Verse highlights"
+              label="Highlighted Verses"
               active={tab === "verses"}
               onClick={() => setTab("verses")}
             />

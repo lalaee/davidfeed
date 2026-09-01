@@ -171,7 +171,7 @@ export function parseRef(segments: string[] | undefined): {
 /**
  * The chapter before or after this one, crossing book boundaries — Psalms 150
  * is followed by Proverbs 1 — and null at the two ends of the Bible, which is
- * what disables the pager at Genesis 1 and Revelation 22.
+ * why the pager renders no button at Genesis 1 and Revelation 22.
  */
 export function adjacentChapter(
   book: string,

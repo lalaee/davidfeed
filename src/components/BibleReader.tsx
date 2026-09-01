@@ -314,7 +314,7 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
   // from under it.
   const recede = showBooks || showCompare ? "sheet-open" : "";
 
-  // Null at Genesis 1 and Revelation 22, which is what greys the pager out.
+  // Null at Genesis 1 and Revelation 22, where that button is not rendered.
   // Everywhere else it crosses book boundaries: Psalms 150 -> Proverbs 1.
   const prevChapter = adjacentChapter(book, chapter, -1);
   const nextChapter = adjacentChapter(book, chapter, 1);
@@ -674,17 +674,22 @@ function ChapterPagerButton({
   target: { book: string; chapter: number } | null;
   onGo: (book: string, chapter: number) => void;
 }) {
+  // Nothing to page to means no button, rather than a dimmed one. There are
+  // exactly two places this happens in the whole Bible — before Genesis 1 and
+  // after Revelation 22 — so a greyed circle is a permanent piece of furniture
+  // explaining a rule almost nobody will meet.
+  if (!target) return null;
+
   return (
     <button
       type="button"
-      aria-label={target ? `${label}: ${target.book} ${target.chapter}` : label}
-      disabled={!target}
-      onClick={() => target && onGo(target.book, target.chapter)}
+      aria-label={`${label}: ${target.book} ${target.chapter}`}
+      onClick={() => onGo(target.book, target.chapter)}
       className={`absolute z-[60] flex h-[52px] w-[52px] items-center justify-center rounded-full
                   border-none text-white
                   bottom-[calc(97px+env(safe-area-inset-bottom))] desk:bottom-[32px]
-                  transition-[transform,opacity] duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                  enabled:active:scale-[0.94] disabled:opacity-30
+                  transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+                  active:scale-[0.94]
                   ${side === "left" ? "left-[47px]" : "right-[47px]"}`}
       style={{ backgroundColor: "#0E0E0E" }}
     >

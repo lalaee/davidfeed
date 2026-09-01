@@ -13,7 +13,8 @@ import { formatVerseRange } from "@/lib/verseRef";
 
 /*
  * The Library, rebuilt from Figma "Library-Feed" 2672:17521 and "Library-Verse"
- * 2672:17678. Both frames are 375x747 on #000000.
+ * 2672:17678 (375x747), with "Saved Feed Deskop view" 2676:17790 and
+ * "Highlighted verse Deskop view" 2676:17952 (1440) for desk. All on #000000.
  *
  * This replaced the page wholesale rather than amending it. What was here — a
  * "Library" title, a #1c1c1e menu card of three chevron rows, a "Recently
@@ -38,6 +39,17 @@ import { formatVerseRange } from "@/lib/verseRef";
  *   entry      padding 0/24, gap 12: a meta row, the verse, a #212121 hairline.
  *              Reference in Inter Medium 15 white, version in Inter Medium 15
  *              #999999, verse in Inter Regular 18/150% white. Entries 32 apart.
+ *   tracking   -0.41px on the pills, -0.26px on the verse, 0 on the meta row.
+ *
+ * At desk the whole page moves into the 782 column the Bible reader already
+ * uses — 782 at x=329 on 1440 is centred — and almost nothing else changes,
+ * because the numbers were written as fractions of the column rather than as
+ * widths. The grid stays 3 up and its tiles go 107.33 to 243.33 on their own,
+ * (column - 48 - 4) / 3 at either size; the filter bar spans the column and its
+ * space-between spreads the same four swatches from a 59.73 gap to 195.73. What
+ * genuinely differs is spacing: 32 above the grid where the phone has 24, 32
+ * above the verse list where the phone has 40, and 32 of bottom padding in
+ * place of the room the phone has to leave for its nav.
  *
  * Three departures from the frames, all stated rather than smuggled:
  *
@@ -81,7 +93,7 @@ export default function Library() {
     <>
       <div className="fixed inset-0 z-[-1] bg-black" />
       <div
-        className="relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
+        className="library-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
                    md:max-w-[390px]"
       >
         {/* The head is pinned and the lists scroll under it, so the tabs stay
@@ -133,6 +145,9 @@ function TabPill({
       style={{
         backgroundColor: active ? "#FFFFFF" : "#0E0E0E",
         color: active ? "#0E0E0E" : "#FFFFFF",
+        // Both frames carry it on this label, at both sizes. Missed on the
+        // first pass because the extraction did not read letterSpacing.
+        letterSpacing: "-0.41px",
       }}
     >
       {label}
@@ -161,19 +176,23 @@ function SavedFeed() {
   }
 
   return (
-    <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[24px]">
+    <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[24px]
+                    desk:pb-[32px] desk:pt-[32px]">
       <div className="grid grid-cols-3 gap-[2px] px-[24px]">
         {saved.map((post) => (
           <Link
             key={post.id}
             href={`/library/${post.id}`}
             aria-label={`Open ${post.title}`}
-            className="block overflow-hidden rounded-[12px] no-underline
+            // Each breakpoint gets its OWN ratio because the frames disagree:
+            // 107.33x126 is 0.8518 and 243.33x284 is 0.8568. Carrying the phone
+            // ratio up would make the desktop tile 285.7 tall against the 284
+            // its frame draws, so the difference is stated rather than averaged
+            // away. The WIDTH needs no breakpoint — (column - 48 - 4) / 3 is
+            // 107.33 at 375 and 243.33 at 782 on its own.
+            className="block aspect-[107.33/126] overflow-hidden rounded-[12px] no-underline
                        transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                       active:scale-[0.96]"
-            // 107.33 x 126 as a ratio, so the tiles keep the design's
-            // proportion at any column width instead of only at 375.
-            style={{ aspectRatio: "107.33 / 126" }}
+                       active:scale-[0.96] desk:aspect-[243.33/284]"
           >
             <img
               src={post.backgroundImage}
@@ -302,7 +321,8 @@ function SavedHighlights() {
             : "Highlight a verse in the Bible and it is kept here."}
         </Empty>
       ) : (
-        <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[40px]">
+        <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[40px]
+                        desk:pb-[32px] desk:pt-[32px]">
           <div className="flex flex-col gap-[32px]">
             {shown.map((entry) => (
               <div key={entry.key} className="flex flex-col gap-[12px] px-[24px]">
@@ -325,7 +345,12 @@ function SavedHighlights() {
                   </span>
                 </div>
 
-                <p className="text-[18px] font-normal leading-[27px] text-white">{entry.text}</p>
+                <p
+                  className="text-[18px] font-normal leading-[27px] text-white"
+                  style={{ letterSpacing: "-0.26px" }}
+                >
+                  {entry.text}
+                </p>
 
                 <div className="h-[1px] w-full" style={{ backgroundColor: "#212121" }} />
               </div>

@@ -168,6 +168,25 @@ export function parseRef(segments: string[] | undefined): {
   return { book: book.name, chapter: n };
 }
 
+/**
+ * The chapter before or after this one, crossing book boundaries — Psalms 150
+ * is followed by Proverbs 1 — and null at the two ends of the Bible, which is
+ * what disables the pager at Genesis 1 and Revelation 22.
+ */
+export function adjacentChapter(
+  book: string,
+  chapter: number,
+  delta: 1 | -1,
+): { book: string; chapter: number } | null {
+  const i = BOOKS.findIndex((b) => b.name === book);
+  if (i < 0) return null;
+  const next = chapter + delta;
+  if (next >= 1 && next <= BOOKS[i].chapters) return { book, chapter: next };
+  const j = i + delta;
+  if (j < 0 || j >= BOOKS.length) return null;
+  return { book: BOOKS[j].name, chapter: delta === 1 ? 1 : BOOKS[j].chapters };
+}
+
 /** The path a chapter's text lives at. */
 export function chapterUrl(translationId: string, book: string, chapter: number): string {
   return `/bible/${translationId}/${bookSlug(book)}/${chapter}.json`;

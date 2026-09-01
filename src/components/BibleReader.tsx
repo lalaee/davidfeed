@@ -1,15 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import BottomNav from "./BottomNav";
 import DesktopNav from "./DesktopNav";
 import BooksSheet from "./BooksSheet";
 import CompareSheet from "./CompareSheet";
 import VerseActionBar, { type VerseAction } from "./VerseActionBar";
-import { BookmarkIcon, CompareIcon, SendIcon } from "./icons";
+import { BookmarkIcon, ChevronIcon, CompareIcon, SendIcon } from "./icons";
 import {
   TRANSLATIONS,
+  adjacentChapter,
   bookSlug,
   chapterTitle as makeChapterTitle,
   fetchChapter,
@@ -94,6 +95,16 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
       setLoaded({ key: makeChapterTitle(book, chapter), translations: found });
     });
     return () => ac.abort();
+  }, [book, chapter]);
+
+  /*
+   * Start a new chapter at its first verse. The route pattern does not change
+   * when you page from Psalms 46 to 47, so React keeps this component mounted
+   * and the scroller keeps its offset — landing you a screen down a chapter you
+   * have not read, or past the end of a shorter one.
+   */
+  useLayoutEffect(() => {
+    versesScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [book, chapter]);
 
   /*
@@ -303,6 +314,11 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
   // from under it.
   const recede = showBooks || showCompare ? "sheet-open" : "";
 
+  // Null at Genesis 1 and Revelation 22, which is what greys the pager out.
+  // Everywhere else it crosses book boundaries: Psalms 150 -> Proverbs 1.
+  const prevChapter = adjacentChapter(book, chapter, -1);
+  const nextChapter = adjacentChapter(book, chapter, 1);
+
   // A ring is only honest when every selected verse carries that colour;
   // a mixed selection shows none rather than picking a winner.
   const commonHighlight =
@@ -479,8 +495,13 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
         {/* Verses */}
         <div
           ref={versesScrollRef}
-          className="flex-1 overflow-y-auto px-[27px] pt-[144px] pb-[140px] scrollbar-hide
-                     desk:px-[24px] desk:pt-[225px]"
+          // pb clears the PAGER, not just the nav. The buttons stand 97 to 149
+          // off the bottom, and 140 left the last verse of a chapter sitting
+          // under them; 165 is that 149 plus the 16 of air the design gives
+          // its other floating surfaces. At desk there is no bottom nav and
+          // the buttons sit at 32, so 100 is the same clearance there.
+          className="flex-1 overflow-y-auto px-[27px] pt-[144px] pb-[165px] scrollbar-hide
+                     desk:px-[24px] desk:pt-[225px] desk:pb-[100px]"
           // A tap on the column itself, rather than on a verse, dismisses the
           // bar — the bar occupies the nav's slot, so there has to be a way back.
           onClick={(e) => {
@@ -564,6 +585,47 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
             design's selected-verse frames omit it — this is a deliberate
             departure, and the flip below keeps the bar clear of it. */}
         {!showBooks && !showCompare && <BottomNav activeTab="bible" />}
+
+        {/*
+         * Previous and next chapter. Figma "Bible" 2679:18153 / 2679:18156.
+         *
+         *   button   52 circle, #0E0E0E — the app's floating-surface colour,
+         *            the same one the nav, the title pill and the sheets use
+         *   chevron  18.2x9.1 stroked 1.95, white, round cap and join, centred
+         *
+         * The glyph is ChevronIcon, which is already this exact curve at
+         * 14x7 in a 25 box stroked 1.5. 32.5 is that box scaled 1.3, which
+         * lands the path on 18.2x9.1 and the stroke on 1.95 — the frame's own
+         * numbers, so there is nothing new to draw and nothing to keep in step.
+         *
+         * The frame insets the left button 47 and the right 41, which reads as
+         * a slip rather than an intent: 47 is also where the nav pill's left
+         * edge falls on a 375 screen, so both are inset 47 here and the pair
+         * lines up with the nav beneath them.
+         *
+         * Absolute inside the shell rather than fixed, so they sit at the
+         * COLUMN's edges and follow it from 375 to 782 without being told to.
+         *
+         * Hidden while a verse is selected: the action bar is contextual and
+         * can hang anywhere, and two more floating circles under it is noise
+         * at exactly the moment the reader is doing something else.
+         */}
+        {!showBooks && !showCompare && !selected.length && (
+          <>
+            <ChapterPagerButton
+              label="Previous chapter"
+              side="left"
+              target={prevChapter}
+              onGo={(b, c) => router.push(`/bible/${bookSlug(b)}/${c}`)}
+            />
+            <ChapterPagerButton
+              label="Next chapter"
+              side="right"
+              target={nextChapter}
+              onGo={(b, c) => router.push(`/bible/${bookSlug(b)}/${c}`)}
+            />
+          </>
+        )}
       </div>
 
       {/* Books Sheet */}
@@ -598,5 +660,38 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
         />
       )}
     </>
+  );
+}
+
+function ChapterPagerButton({
+  label,
+  side,
+  target,
+  onGo,
+}: {
+  label: string;
+  side: "left" | "right";
+  target: { book: string; chapter: number } | null;
+  onGo: (book: string, chapter: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={target ? `${label}: ${target.book} ${target.chapter}` : label}
+      disabled={!target}
+      onClick={() => target && onGo(target.book, target.chapter)}
+      className={`absolute z-[60] flex h-[52px] w-[52px] items-center justify-center rounded-full
+                  border-none text-white
+                  bottom-[calc(97px+env(safe-area-inset-bottom))] desk:bottom-[32px]
+                  transition-[transform,opacity] duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+                  enabled:active:scale-[0.94] disabled:opacity-30
+                  ${side === "left" ? "left-[47px]" : "right-[47px]"}`}
+      style={{ backgroundColor: "#0E0E0E" }}
+    >
+      {/* Down by default, so a quarter turn each way points it along the row. */}
+      <span className={`flex ${side === "left" ? "rotate-90" : "-rotate-90"}`}>
+        <ChevronIcon size={32.5} />
+      </span>
+    </button>
   );
 }

@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 
-import Link from "next/link";
-
-import { TABS, type TabKey } from "./BottomNav";
+import DesktopNav from "./DesktopNav";
+import { type TabKey } from "./BottomNav";
 import { ChevronIcon } from "./icons";
 import { TOPICS } from "@/data/topics";
 
@@ -65,25 +64,7 @@ export default function DesktopChrome({
 
   return (
     <>
-      {/* Top bar */}
-      <header
-        className="fixed inset-x-0 top-0 z-[500] hidden h-[97px] items-center justify-between
-                   pl-[48px] pr-[86.27px] desk:flex"
-        style={{ backgroundColor: "#000000", borderBottom: "1px solid #212121" }}
-      >
-        <span
-          className="text-[24.55px] leading-none text-white"
-          style={{ fontFamily: "var(--font-wordmark)", fontWeight: 600, letterSpacing: "-0.02em" }}
-        >
-          Dafod
-        </span>
-
-        <nav className="flex items-center gap-[21px]">
-          {TABS.map((tab) => (
-            <NavPill key={tab.key} tab={tab} active={activeTab === tab.key} />
-          ))}
-        </nav>
-      </header>
+      <DesktopNav activeTab={activeTab} />
 
       {/* Left column */}
       <section className="pointer-events-none fixed left-[48px] top-[250px] z-[500] hidden w-[366px] flex-col gap-[72px] desk:flex">
@@ -173,40 +154,6 @@ export default function DesktopChrome({
         <PageButton label="Next verse" onClick={onNext} disabled={!canNext} />
       </div>
     </>
-  );
-}
-
-/*
- * A desktop nav tab. 170x64 at radius 50, icon and label side by side, and a
- * #212121 fill only when it is the current tab.
- */
-function NavPill({
-  tab,
-  active,
-}: {
-  tab: (typeof TABS)[number];
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={tab.href}
-      aria-current={active ? "page" : undefined}
-      className="flex h-[64px] w-[170px] items-center justify-center gap-[6px] rounded-[50px]
-                 px-[12px] py-[16px] text-white no-underline
-                 transition-[background-color,transform] duration-[190ms]
-                 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]"
-      style={{ backgroundColor: active ? "#212121" : "transparent" }}
-    >
-      <span className="flex flex-shrink-0">
-        <tab.Icon active={active} size={32} />
-      </span>
-      <span
-        className="whitespace-nowrap text-[18px] font-medium leading-[22px]"
-        style={{ letterSpacing: "0.02em" }}
-      >
-        {tab.label}
-      </span>
-    </Link>
   );
 }
 

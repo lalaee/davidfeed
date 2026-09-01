@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import BottomNav from "./BottomNav";
+import DesktopNav from "./DesktopNav";
 import BooksSheet from "./BooksSheet";
 import CompareSheet from "./CompareSheet";
 import VerseActionBar, { type VerseAction } from "./VerseActionBar";
@@ -29,6 +30,13 @@ import type { Translation } from "@/data/psalm46";
  * The motion is the app's own and is deliberately kept: the header still
  * morphs on scroll, presses answer on pointer-down, and the bar arrives on the
  * shared iOS curve.
+ *
+ * At 1028 and up the reader follows Figma "Bible Deskop view" 2669:17047: the
+ * column widens to 782 and centres under the desktop nav, its header sitting at
+ * 121 and the verses at 225, both inset 24 rather than the phone's 24/27. The
+ * header stays PINNED as it does on the phone — the frame draws one long
+ * auto-layout that would scroll away with the text, which was asked to work the
+ * phone's way instead.
  */
 interface Verse {
   number: number;
@@ -380,9 +388,12 @@ export default function BibleReader({
       {/* Fixed background for Safari safe area */}
       <div className="fixed inset-0 bg-black z-[-1]" />
 
-      <div className={`app-shell relative w-full md:max-w-[390px] h-[100dvh] bg-black mx-auto flex flex-col overflow-hidden ${recede}`}>
+      <DesktopNav activeTab="bible" />
+
+      <div className={`app-shell relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
+                       md:max-w-[390px] reader-column ${recede}`}>
         {/* Header Section — absolutely overlaid so the verses scroll behind it */}
-        <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[40px]">
+        <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[40px] desk:pt-[121px]">
           {/* Verse Artwork + Title Row — iOS 26 morph: scales with scroll */}
           <div ref={morphRef} className="app-header-morph flex items-center justify-between h-[72px]">
             <button
@@ -472,7 +483,8 @@ export default function BibleReader({
         {/* Verses */}
         <div
           ref={versesScrollRef}
-          className="flex-1 overflow-y-auto px-[27px] pt-[144px] pb-[140px] scrollbar-hide"
+          className="flex-1 overflow-y-auto px-[27px] pt-[144px] pb-[140px] scrollbar-hide
+                     desk:px-[24px] desk:pt-[225px]"
           // A tap on the column itself, rather than on a verse, dismisses the
           // bar — the bar occupies the nav's slot, so there has to be a way back.
           onClick={(e) => {

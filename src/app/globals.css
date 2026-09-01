@@ -1242,3 +1242,13 @@ html, body {
     --tw-translate-x: 50%;
   }
 }
+
+/* The desktop reader column: 782 centred, per Figma "Bible Deskop view".
+   Plain CSS for the same reason as .feed-column — it has to beat
+   md:max-w-[390px], and which utility Tailwind emits last is not a rule. */
+@media (min-width: 1028px) {
+  .reader-column {
+    width: 782px;
+    max-width: none;
+  }
+}

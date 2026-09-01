@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import BottomNav from "./BottomNav";
@@ -40,6 +41,11 @@ import { formatVerseRange } from "@/lib/verseRef";
  *   The frames draw no bottom nav and stand 747 tall rather than 812, which
  *   reads as the scroll content and not the whole screen. BottomNav stays and
  *   the lists scroll under it.
+ *
+ *   The frames draw no tap state on a tile either, but a grid of saved things
+ *   that cannot be opened is a dead end. A tile opens /library/[psalm], which
+ *   is the saved set played as a feed starting on the one you tapped — not the
+ *   home feed, whose topic filter would drop the very cards you saved.
  *
  *   A highlight's colour is drawn nowhere in the verse frame — the text is
  *   plain white — which leaves the colour filter above it filtering on
@@ -149,19 +155,23 @@ function SavedFeed() {
     <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[24px]">
       <div className="grid grid-cols-3 gap-[2px] px-[24px]">
         {saved.map((post) => (
-          <div
+          <Link
             key={post.id}
-            className="overflow-hidden rounded-[12px]"
+            href={`/library/${post.id}`}
+            aria-label={`Open ${post.title}`}
+            className="block overflow-hidden rounded-[12px] no-underline
+                       transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+                       active:scale-[0.96]"
             // 107.33 x 126 as a ratio, so the tiles keep the design's
             // proportion at any column width instead of only at 375.
             style={{ aspectRatio: "107.33 / 126" }}
           >
             <img
               src={post.backgroundImage}
-              alt={post.title}
+              alt=""
               className="h-full w-full object-cover"
             />
-          </div>
+          </Link>
         ))}
       </div>
     </div>

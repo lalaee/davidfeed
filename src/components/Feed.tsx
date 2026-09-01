@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useLayoutEffect, useMemo, useState, useCallback, useSyncExternalStore } from "react";
 import FeedItem from "./FeedItem";
-import BottomNav from "./BottomNav";
+import BottomNav, { type TabKey } from "./BottomNav";
 import SoundBadge from "./SoundBadge";
 import FeedHeader from "./FeedHeader";
 import DesktopChrome from "./DesktopChrome";
@@ -53,17 +53,53 @@ interface FeedProps {
    */
   posts?: Post[];
   /** Which bottom-nav tab this feed sits under. */
-  activeTab?: "home";
+  activeTab?: TabKey;
+  /**
+   * Names a fixed COLLECTION — the Library opening its saved cards — instead
+   * of a topic. Topic filtering is off in this mode: the caller has already
+   * decided what the list is, and re-filtering it by topic would drop cards the
+   * viewer explicitly saved.
+   */
+  collectionLabel?: string;
+  /** Where the collection's back control returns to. */
+  collectionBackHref?: string;
+  /** Which card to open on. Defaults to the first. */
+  initialPostId?: number;
 }
 
-export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home" }: FeedProps) {
+export default function Feed({
+  posts: allPosts = chapterPosts,
+  activeTab = "home",
+  collectionLabel,
+  collectionBackHref,
+  initialPostId,
+}: FeedProps) {
   const [topicId, setTopicId] = useState(DEFAULT_TOPIC);
-  const posts = useMemo(() => postsForTopic(allPosts, topicId), [allPosts, topicId]);
+  const posts = useMemo(
+    () => (collectionLabel ? allPosts : postsForTopic(allPosts, topicId)),
+    [allPosts, topicId, collectionLabel],
+  );
 
-  const [activeIndexRaw, setActiveIndex] = useState(0);
+  // Which card the feed opens on. Live rather than frozen at first render: the
+  // saved list comes out of localStorage, which the prerender cannot see, so
+  // the first render of /library/[psalm] holds only the requested card and the
+  // rest arrive on hydration. Frozen, this would resolve to 0 against that
+  // one-card list and open on the wrong card. The layout effect below is what
+  // stops a later change from moving a reader who has already scrolled.
+  const openAt = useMemo(() => {
+    if (initialPostId == null) return 0;
+    const i = posts.findIndex((p) => p.id === initialPostId);
+    return i < 0 ? 0 : i;
+  }, [posts, initialPostId]);
+
+  // Null until the observer reports, so the feed treats the card it was ASKED
+  // to open as active from the very first frame. Starting at 0 instead let
+  // card 0 be active for as long as it took the opening scroll to land, which
+  // is long enough to start its narration and stop it again.
+  const [activeIndexRaw, setActiveIndex] = useState<number | null>(null);
   // Derived, not synced: a shorter topic can leave the stored index past the
   // end, and clamping in an effect would be a cascading render.
-  const activeIndex = Math.min(activeIndexRaw, posts.length - 1);
+  const activeIndex = Math.min(activeIndexRaw ?? openAt, posts.length - 1);
   // Sound is a feed-wide preference, not per-card: every card scrolled to
   // inherits it. It starts ON so the feed opens with narration where the
   // browser permits it — Chrome grants autoplay-with-sound on sites the viewer
@@ -330,9 +366,42 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
   // scrollTop 7546, still playing. Resetting before the render was undone by
   // the anchoring; overflow-anchor:none on the scroller stops it happening at
   // all.
+  //
+  // The same effect is what opens on the card the Library asked for, which is
+  // why it distinguishes "the topic changed" from "this just mounted" by
+  // comparing topics rather than by a ran-once flag. A flag is wrong twice
+  // over: StrictMode invokes mount effects a second time in development, and
+  // the second pass would take the reset branch and undo the jump — measured,
+  // landing on card 0 from a tap while a hard load of the same URL was fine.
+  // Written this way both passes do the same thing, which is the property that
+  // actually matters.
+  const lastTopicRef = useRef(topicId);
+  const placedRef = useRef(false);
   useLayoutEffect(() => {
+    const switched = lastTopicRef.current !== topicId;
+    lastTopicRef.current = topicId;
+    if (switched) {
+      placedRef.current = true;
+      containerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+      return;
+    }
+    // Placed already. Un-bookmarking a card shortens the list and shifts every
+    // index after it, so without this the reader would be yanked back to the
+    // card the URL names every time the saved set changed under them.
+    if (placedRef.current) return;
+    if (openAt > 0) {
+      const target = itemRefs.current[openAt];
+      // The list is still the one-card prerender; wait for the real one.
+      if (!target) return;
+      target.scrollIntoView({ block: "start", behavior: "auto" });
+      placedRef.current = true;
+      return;
+    }
     containerRef.current?.scrollTo({ top: 0, behavior: "auto" });
-  }, [topicId]);
+    // Only settled if there was never a particular card to find. With one
+    // asked for, openAt is still 0 because the list has not arrived.
+    if (initialPostId == null) placedRef.current = true;
+  }, [topicId, openAt, initialPostId]);
 
   // How far either side of the active card keeps its media attached.
   //
@@ -421,11 +490,19 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
         ))}
       </div>
 
-      <FeedHeader topicId={topicId} onSelect={chooseTopic} />
+      <FeedHeader
+        topicId={topicId}
+        onSelect={chooseTopic}
+        collectionLabel={collectionLabel}
+        collectionBackHref={collectionBackHref}
+      />
 
       <DesktopChrome
+        activeTab={activeTab}
         topicId={topicId}
         onSelectTopic={chooseTopic}
+        collectionLabel={collectionLabel}
+        collectionBackHref={collectionBackHref}
         onPrev={() => goToCard(-1)}
         onNext={() => goToCard(1)}
         canPrev={activeIndex > 0}

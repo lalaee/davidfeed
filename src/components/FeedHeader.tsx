@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+
+import { ChevronIcon } from "./icons";
 import { TOPICS } from "@/data/topics";
 
 /*
@@ -53,13 +56,26 @@ import { TOPICS } from "@/data/topics";
 interface FeedHeaderProps {
   topicId: string;
   onSelect: (topicId: string) => void;
+  /**
+   * A COLLECTION rather than a topic — the Library opening its saved cards as
+   * a feed. The set is fixed, so the topic menu would be offering to replace
+   * the very thing you asked to see: the header becomes its name plus a way
+   * back, and the menu is not rendered at all.
+   */
+  collectionLabel?: string;
+  collectionBackHref?: string;
 }
 
 const TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) - 1px)";
 // Held 39px below the header, the gap it has always had.
 const PANEL_TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) + 38px)";
 
-export default function FeedHeader({ topicId, onSelect }: FeedHeaderProps) {
+export default function FeedHeader({
+  topicId,
+  onSelect,
+  collectionLabel,
+  collectionBackHref,
+}: FeedHeaderProps) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const label = TOPICS.find((t) => t.id === topicId)?.label ?? TOPICS[0].label;
@@ -77,6 +93,42 @@ export default function FeedHeader({ topicId, onSelect }: FeedHeaderProps) {
   useEffect(() => {
     if (open) panelRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
   }, [open]);
+
+  if (collectionLabel) {
+    return (
+      <>
+        {collectionBackHref && (
+          <Link
+            href={collectionBackHref}
+            aria-label="Back to Library"
+            // A 44 square at the left edge, vertically centred on the label —
+            // the label's own line box is 29, so the button hangs 7.5 above and
+            // below it and the tap target clears Apple's 44 without the glyph
+            // sitting off the baseline.
+            className="fixed left-[8px] z-[600] flex h-[44px] w-[44px] items-center justify-center
+                       text-white no-underline desk:hidden
+                       transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+                       active:scale-[0.9]"
+            style={{ top: `calc(${TOP} - 7.5px)` }}
+          >
+            {/* The header's own chevron, turned a quarter to point back. A
+                separate left-arrow glyph would be a second drawing of the same
+                idea, and this one is Iconly's curve rather than a straight V. */}
+            <span className="flex rotate-90">
+              <ChevronIcon size={25} />
+            </span>
+          </Link>
+        )}
+        <span
+          className="fixed left-1/2 z-[600] w-max -translate-x-1/2 whitespace-nowrap
+                     text-[24px] font-semibold leading-[29px] text-white desk:hidden"
+          style={{ top: TOP, letterSpacing: "-0.02em" }}
+        >
+          {collectionLabel}
+        </span>
+      </>
+    );
+  }
 
   return (
     <>

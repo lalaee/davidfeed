@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import DesktopNav from "./DesktopNav";
@@ -40,6 +41,14 @@ interface DesktopChromeProps {
   activeTab?: TabKey;
   topicId: string;
   onSelectTopic: (id: string) => void;
+  /**
+   * A fixed collection instead of a topic. "Scroll verses on <Topic>" becomes
+   * the collection's name with a way back, and the topic menu is not rendered:
+   * the set was chosen before arriving here, so offering to replace it would
+   * be offering to leave.
+   */
+  collectionLabel?: string;
+  collectionBackHref?: string;
   onPrev: () => void;
   onNext: () => void;
   canPrev: boolean;
@@ -50,6 +59,8 @@ export default function DesktopChrome({
   activeTab = "home",
   topicId,
   onSelectTopic,
+  collectionLabel,
+  collectionBackHref,
   onPrev,
   onNext,
   canPrev,
@@ -91,61 +102,86 @@ export default function DesktopChrome({
         </button>
       </section>
 
-      {/* Topic switcher, above the card */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        // Anchored to the card's own right edge, not the viewport centre, so
-        // the two cannot drift apart as the window resizes. 51 + 622 - 560
-        // leaves it starting 62 inside the card, as the frame draws it.
-        className="desk-topic fixed top-[156px] z-[500] hidden h-[41px]
-                   items-center gap-[16px] border-none bg-transparent p-0 desk:flex"
-      >
-        <span className="text-[27px] font-normal leading-none" style={{ color: "#999999" }}>
-          Scroll verses on
-        </span>
-        <span className="text-[27px] font-bold leading-none text-white">{topicLabel}</span>
-        <span className={`flex text-white transition-transform duration-300
-                          ease-[cubic-bezier(0.32,0.72,0,1)] ${open ? "rotate-180" : ""}`}>
-          <ChevronIcon size={41} />
-        </span>
-      </button>
-
-      {/* Topic menu — the feed header's panel in the desktop's place. */}
-      <div
-        role="listbox"
-        aria-label="Topics"
-        className={`desk-topic fixed top-[210px] z-[600] hidden w-[280px] overflow-hidden
-                    rounded-[20px] p-[6px] desk:block
-                    transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
-                    ${open ? "pointer-events-auto scale-100 opacity-100" : "pointer-events-none scale-[0.96] opacity-0"}`}
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.96)" }}
-      >
-        {TOPICS.map((t) => {
-          const current = t.id === topicId;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="option"
-              aria-selected={current}
-              tabIndex={open ? 0 : -1}
-              onClick={() => {
-                onSelectTopic(t.id);
-                setOpen(false);
-              }}
-              className={`flex h-[48px] w-full items-center justify-between rounded-[14px] border-none
-                          px-[16px] text-left text-[17px] text-white
-                          ${current ? "font-medium" : "bg-transparent font-normal"}`}
-              style={current ? { backgroundColor: "#212121" } : undefined}
+      {collectionLabel ? (
+        /* A collection names itself and offers the way back. Same slot, same
+           27px type as the topic line, so the card below it does not move. */
+        <div
+          className="desk-topic fixed top-[156px] z-[500] hidden h-[41px] items-center gap-[16px] desk:flex"
+        >
+          {collectionBackHref && (
+            <Link
+              href={collectionBackHref}
+              aria-label="Back to Library"
+              className="flex h-[41px] w-[41px] items-center justify-center text-white no-underline
+                         transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
+                         active:scale-[0.9]"
             >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+              <span className="flex rotate-90">
+                <ChevronIcon size={41} />
+              </span>
+            </Link>
+          )}
+          <span className="text-[27px] font-bold leading-none text-white">{collectionLabel}</span>
+        </div>
+      ) : (
+        <>
+        {/* Topic switcher, above the card */}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          // Anchored to the card's own right edge, not the viewport centre, so
+          // the two cannot drift apart as the window resizes. 51 + 622 - 560
+          // leaves it starting 62 inside the card, as the frame draws it.
+          className="desk-topic fixed top-[156px] z-[500] hidden h-[41px]
+                     items-center gap-[16px] border-none bg-transparent p-0 desk:flex"
+        >
+          <span className="text-[27px] font-normal leading-none" style={{ color: "#999999" }}>
+            Scroll verses on
+          </span>
+          <span className="text-[27px] font-bold leading-none text-white">{topicLabel}</span>
+          <span className={`flex text-white transition-transform duration-300
+                            ease-[cubic-bezier(0.32,0.72,0,1)] ${open ? "rotate-180" : ""}`}>
+            <ChevronIcon size={41} />
+          </span>
+        </button>
+
+        {/* Topic menu — the feed header's panel in the desktop's place. */}
+        <div
+          role="listbox"
+          aria-label="Topics"
+          className={`desk-topic fixed top-[210px] z-[600] hidden w-[280px] overflow-hidden
+                      rounded-[20px] p-[6px] desk:block
+                      transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
+                      ${open ? "pointer-events-auto scale-100 opacity-100" : "pointer-events-none scale-[0.96] opacity-0"}`}
+          style={{ backgroundColor: "rgba(20, 20, 22, 0.96)" }}
+        >
+          {TOPICS.map((t) => {
+            const current = t.id === topicId;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="option"
+                aria-selected={current}
+                tabIndex={open ? 0 : -1}
+                onClick={() => {
+                  onSelectTopic(t.id);
+                  setOpen(false);
+                }}
+                className={`flex h-[48px] w-full items-center justify-between rounded-[14px] border-none
+                            px-[16px] text-left text-[17px] text-white
+                            ${current ? "font-medium" : "bg-transparent font-normal"}`}
+                style={current ? { backgroundColor: "#212121" } : undefined}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        </>
+      )}
 
       {/* Paging, to the left of the card */}
       <div className="desk-paging fixed top-1/2 z-[500] hidden -translate-y-1/2

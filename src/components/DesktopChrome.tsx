@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
-import BottomNav from "./BottomNav";
+import Link from "next/link";
+
+import { TABS, type TabKey } from "./BottomNav";
 import { ChevronIcon } from "./icons";
 import { TOPICS } from "@/data/topics";
 
@@ -14,9 +16,14 @@ import { TOPICS } from "@/data/topics";
  * to the top right, a column of marketing copy appears on the left, and the
  * feed sits right of centre with paging buttons beside it.
  *
- *   top bar    1440x97, 48 padding. Wordmark "Dafod" in Zalando Sans Expanded
- *              SemiBold 24.55 at the left; the nav pill, 691x75 at radius 47.6
- *              with 58 gaps, at the right.
+ *   top bar    1440x97, black with a #212121 rule along the bottom. Wordmark
+ *              "Dafod" at x=48 in Zalando Sans Expanded SemiBold 24.55, -2%.
+ *   nav        THREE separate 170x64 pills at radius 50, 21 apart, ending
+ *              86.27 from the right. Icon and label sit side by side with a 6
+ *              gap inside 16/12 padding — 32px icon, Inter Medium 18 at 2%.
+ *              Only the ACTIVE pill is filled, in #212121; the others are
+ *              transparent. Every pill is named "Navicon/active" in the file,
+ *              so the fill is what marks the current tab, not the name.
  *   copy       366 wide at x=48, y=250, 72 between the text block and button.
  *              "Stop Doomscrolling" Inter Light 48 over "Start Faithscrolling"
  *              Inter Extra Bold 48, then a description in Inter Medium 24/150%
@@ -31,6 +38,7 @@ import { TOPICS } from "@/data/topics";
  * so this renders nothing rather than reflowing into it.
  */
 interface DesktopChromeProps {
+  activeTab?: TabKey;
   topicId: string;
   onSelectTopic: (id: string) => void;
   onPrev: () => void;
@@ -40,6 +48,7 @@ interface DesktopChromeProps {
 }
 
 export default function DesktopChrome({
+  activeTab = "home",
   topicId,
   onSelectTopic,
   onPrev,
@@ -57,16 +66,23 @@ export default function DesktopChrome({
   return (
     <>
       {/* Top bar */}
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-[500] hidden h-[97px] items-center justify-between px-[48px] desk:flex">
+      <header
+        className="fixed inset-x-0 top-0 z-[500] hidden h-[97px] items-center justify-between
+                   pl-[48px] pr-[86.27px] desk:flex"
+        style={{ backgroundColor: "#000000", borderBottom: "1px solid #212121" }}
+      >
         <span
-          className="pointer-events-auto text-[24.55px] leading-none text-white"
-          style={{ fontFamily: "var(--font-wordmark)", fontWeight: 600 }}
+          className="text-[24.55px] leading-none text-white"
+          style={{ fontFamily: "var(--font-wordmark)", fontWeight: 600, letterSpacing: "-0.02em" }}
         >
           Dafod
         </span>
-        <div className="pointer-events-auto">
-          <BottomNav activeTab="home" placement="inline" />
-        </div>
+
+        <nav className="flex items-center gap-[21px]">
+          {TABS.map((tab) => (
+            <NavPill key={tab.key} tab={tab} active={activeTab === tab.key} />
+          ))}
+        </nav>
       </header>
 
       {/* Left column */}
@@ -157,6 +173,40 @@ export default function DesktopChrome({
         <PageButton label="Next verse" onClick={onNext} disabled={!canNext} />
       </div>
     </>
+  );
+}
+
+/*
+ * A desktop nav tab. 170x64 at radius 50, icon and label side by side, and a
+ * #212121 fill only when it is the current tab.
+ */
+function NavPill({
+  tab,
+  active,
+}: {
+  tab: (typeof TABS)[number];
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={tab.href}
+      aria-current={active ? "page" : undefined}
+      className="flex h-[64px] w-[170px] items-center justify-center gap-[6px] rounded-[50px]
+                 px-[12px] py-[16px] text-white no-underline
+                 transition-[background-color,transform] duration-[190ms]
+                 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]"
+      style={{ backgroundColor: active ? "#212121" : "transparent" }}
+    >
+      <span className="flex flex-shrink-0">
+        <tab.Icon active={active} size={32} />
+      </span>
+      <span
+        className="whitespace-nowrap text-[18px] font-medium leading-[22px]"
+        style={{ letterSpacing: "0.02em" }}
+      >
+        {tab.label}
+      </span>
+    </Link>
   );
 }
 

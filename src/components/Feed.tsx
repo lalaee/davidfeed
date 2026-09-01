@@ -400,6 +400,7 @@ export default function Feed({ posts: allPosts = chapterPosts, activeTab = "home
             ref={(el) => { itemRefs.current[index] = el; }}
           >
             <FeedItem
+              postId={post.id}
               title={post.title}
               backgroundImage={post.backgroundImage}
               videoSrc={post.videoSrc}

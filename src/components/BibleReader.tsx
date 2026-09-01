@@ -8,6 +8,14 @@ import CompareSheet from "./CompareSheet";
 import VerseActionBar, { type VerseAction } from "./VerseActionBar";
 import { BookmarkIcon, CompareIcon, SendIcon } from "./icons";
 import type { Translation } from "@/data/psalm46";
+import {
+  EMPTY_CHAPTER,
+  highlightStore,
+  readingStore,
+  savedVerseStore,
+  versionsStore,
+} from "@/lib/stores";
+import { formatVerseRange } from "@/lib/verseRef";
 
 /*
  * Geometry, type and colour follow Figma "Bible" — 2641:1161 (reading) and
@@ -54,110 +62,6 @@ interface BibleReaderProps {
   translations?: Translation[];
   /** Further translations the picker can offer but that are not listed. */
   moreTranslations?: Translation[];
-}
-
-/*
- * Highlights outlive the visit, so they live in localStorage, keyed per
- * chapter.
- *
- * Read through useSyncExternalStore rather than seeded in an effect. The page
- * is prerendered, so reading during render would hydrate against markup that
- * has no highlights in it; and setState inside an effect is a cascading render
- * this project already rejects at build time. The store answers with a stable
- * reference — reparsing only when the raw string actually changes — because
- * useSyncExternalStore loops forever on a snapshot that is a new object each
- * call.
- */
-const HIGHLIGHT_KEY = "dafod.highlights";
-const SAVED_KEY = "dafod.saved";
-const VERSIONS_KEY = "dafod.versions";
-/* Which translation the READER shows, as opposed to which ones compare lists. */
-const READING_KEY = "dafod.reading";
-
-type ChapterMap<T> = Record<number, T>;
-const EMPTY_CHAPTER = {} as ChapterMap<never>;
-const EMPTY_STORE = {} as Record<string, ChapterMap<never>>;
-
-/*
- * One localStorage-backed store per key, read through useSyncExternalStore.
- *
- * Not seeded in an effect: the page is prerendered, so reading during render
- * would hydrate against markup that has neither highlights nor saves in it,
- * and setState inside an effect is a cascading render this project rejects at
- * build time. getSnapshot must also be referentially stable — a fresh object
- * every call spins React forever — hence the parse cache keyed on the raw
- * string.
- */
-function makeJsonStore<T>(key: string, empty: T) {
-  const listeners = new Set<() => void>();
-  let cachedRaw: string | null = null;
-  let cachedValue: T = empty;
-
-  const read = (): T => {
-    let raw = "";
-    try {
-      raw = localStorage.getItem(key) ?? "";
-    } catch {}
-    if (raw !== cachedRaw) {
-      cachedRaw = raw;
-      try {
-        cachedValue = raw ? (JSON.parse(raw) as T) : empty;
-      } catch {
-        cachedValue = empty;
-      }
-    }
-    return cachedValue;
-  };
-
-  return {
-    read,
-    subscribe(listener: () => void) {
-      listeners.add(listener);
-      // Another tab writing the same key should show up here too.
-      window.addEventListener("storage", listener);
-      return () => {
-        listeners.delete(listener);
-        window.removeEventListener("storage", listener);
-      };
-    },
-    write(value: T) {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-      } catch {}
-      listeners.forEach((l) => l());
-    },
-    serverSnapshot: () => empty,
-  };
-}
-
-type ChapterStore<T> = Record<string, ChapterMap<T>>;
-const highlightStore = makeJsonStore<ChapterStore<string>>(HIGHLIGHT_KEY, EMPTY_STORE);
-const savedStore = makeJsonStore<ChapterStore<true>>(SAVED_KEY, EMPTY_STORE);
-/* Which translations the compare card lists. Null means "whatever the chapter
-   ships as its default", so a reader who never opens the picker follows the
-   design rather than a snapshot of it frozen at first run. */
-const versionsStore = makeJsonStore<string[] | null>(VERSIONS_KEY, null);
-const readingStore = makeJsonStore<string | null>(READING_KEY, null);
-
-/*
- * "v 1", "v 1-3", "v 1, 4-5". Runs are collapsed because a multi-verse
- * selection is usually contiguous, and "v 3-9" is what a person would write
- * where a list of seven numbers is what a loop would produce.
- */
-function formatVerseRange(numbers: number[]): string {
-  if (!numbers.length) return "";
-  const runs: string[] = [];
-  let start = numbers[0];
-  let prev = numbers[0];
-  for (const n of numbers.slice(1).concat(NaN)) {
-    if (n === prev + 1) {
-      prev = n;
-      continue;
-    }
-    runs.push(start === prev ? `${start}` : `${start}-${prev}`);
-    start = prev = n;
-  }
-  return `v ${runs.join(", ")}`;
 }
 
 export default function BibleReader({
@@ -241,9 +145,9 @@ export default function BibleReader({
 
   const savedVerses =
     useSyncExternalStore(
-      savedStore.subscribe,
-      savedStore.read,
-      savedStore.serverSnapshot,
+      savedVerseStore.subscribe,
+      savedVerseStore.read,
+      savedVerseStore.serverSnapshot,
     )[chapterTitle] ?? EMPTY_CHAPTER;
 
   const setHighlight = useCallback(
@@ -295,14 +199,14 @@ export default function BibleReader({
   const saved = selected.length > 0 && selected.every((n) => savedVerses[n]);
   const toggleSaved = useCallback(() => {
     if (!selected.length) return;
-    const current = savedStore.read()[chapterTitle] ?? EMPTY_CHAPTER;
+    const current = savedVerseStore.read()[chapterTitle] ?? EMPTY_CHAPTER;
     const allSaved = selected.every((n) => current[n]);
     const next: Record<number, true> = { ...current };
     for (const n of selected) {
       if (allSaved) delete next[n];
       else next[n] = true;
     }
-    savedStore.write({ ...savedStore.read(), [chapterTitle]: next });
+    savedVerseStore.write({ ...savedVerseStore.read(), [chapterTitle]: next });
   }, [chapterTitle, selected]);
 
   const handleShare = useCallback(() => {

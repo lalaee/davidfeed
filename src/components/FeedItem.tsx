@@ -1,17 +1,25 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from "react";
 import HeartAnimation from "./HeartAnimation";
 import VideoSubtitles from "./VideoSubtitles";
 import PlaybackOverlay from "./PlaybackOverlay";
 import IconButton from "./IconButton";
 import { BookmarkIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
+import { savedPostStore } from "@/lib/stores";
 
 /** A/B-testable cover-art life effects — each feed card can carry one. */
 export type CoverEffect = "kenburns" | "breathe" | "grain" | "parallax";
 
 interface FeedItemProps {
+  /**
+   * The psalm number. The bookmark is stored against it rather than against
+   * the title, because a short is titled "Psalm 23:1-3" and its chapter
+   * "Psalm 23" — the same artwork under two names, and the Library has to
+   * recognise them as one card.
+   */
+  postId: number;
   title: string;
   backgroundImage: string;
   videoSrc?: string;
@@ -66,6 +74,7 @@ interface HeartPosition {
 }
 
 export default function FeedItem({
+  postId,
   title,
   backgroundImage,
   videoSrc,
@@ -82,7 +91,16 @@ export default function FeedItem({
   restartToken,
   inWindow = true,
 }: FeedItemProps) {
-  const [isSaved, setIsSaved] = useState(false);
+  // Persisted, not component state: the Library's grid is a list of these,
+  // and a bookmark that dies with the component has nothing to list. Read
+  // through the store so a save made here shows up there without a reload.
+  const isSaved = Boolean(
+    useSyncExternalStore(
+      savedPostStore.subscribe,
+      savedPostStore.read,
+      savedPostStore.serverSnapshot,
+    )[postId],
+  );
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [shareAnimating, setShareAnimating] = useState(false);
   const [hearts, setHearts] = useState<HeartPosition[]>([]);
@@ -545,7 +563,11 @@ export default function FeedItem({
   }, []);
 
   const handleSave = useCallback(() => {
-    setIsSaved((prev) => !prev);
+    const current = savedPostStore.read();
+    const next = { ...current };
+    if (next[postId]) delete next[postId];
+    else next[postId] = true;
+    savedPostStore.write(next);
     // Drop the class for a frame first. Setting it true when it is already
     // true is not a state change, so React does not re-render and the CSS
     // animation never replays — the second tap would do nothing.
@@ -558,7 +580,7 @@ export default function FeedItem({
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
-  }, []);
+  }, [postId]);
 
   const handleShare = useCallback(() => {
     // Restart cleanly if it is tapped again mid-flight; re-applying the same

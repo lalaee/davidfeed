@@ -583,7 +583,13 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
       {/* Compare Sheet — reached from the action bar */}
       {showCompare && selected.length > 0 && (
         <CompareSheet
-          verseRef={`${chapterTitle.replace("Psalm", "Ps")} ${formatVerseRange(selected)}`}
+          // The real reference, not an abbreviation. This used to shorten
+          // "Psalm" to "Ps" to fit the card's narrow header, which turned
+          // "Psalms 46" into "Pss 46" the moment the book was named from the
+          // canonical list. There is nothing to abbreviate FOR any more: the
+          // header is min-w-0 flex-1 truncate, so a reference too long for the
+          // row ellipsises on its own, and the card is 740 wide at desk.
+          verseRef={`${chapterTitle} ${formatVerseRange(selected)}`}
           verseNumbers={selected}
           translations={listedTranslations}
           allTranslations={allTranslations}

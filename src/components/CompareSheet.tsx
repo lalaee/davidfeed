@@ -14,8 +14,9 @@ import type { Translation } from "@/data/bible";
  *   at         x=21, 10 from the bottom — the same slot the nav and the verse
  *              action bar occupy, so the three never disagree about where a
  *              floating surface sits
- *   header     48 tall, gap 10: a 48x48 close circle, the reference, then a
- *              hugging "Versions" button
+ *   header     48 tall (a MINIMUM here — see the reference below), gap 10: a
+ *              48x48 close circle, the reference, then a hugging "Versions"
+ *              button
  *   buttons    #212121, fully round, 6/20 padding, 4 gap, 20x20 icon
  *   reference  Inter Semi Bold 17/150%
  *   label      Inter Medium 15, #999999
@@ -82,7 +83,7 @@ export default function CompareSheet({
         style={{ backgroundColor: "#0E0E0E" }}
       >
         {/* Header — close, reference, versions */}
-        <div className="flex h-[48px] flex-shrink-0 items-center gap-[10px]">
+        <div className="flex min-h-[48px] flex-shrink-0 items-center gap-[10px]">
           <button
             type="button"
             onClick={onClose}
@@ -95,7 +96,20 @@ export default function CompareSheet({
             <CloseIcon size={20} />
           </button>
 
-          <p className="min-w-0 flex-1 truncate text-[17px] font-semibold leading-[25.5px] text-white">
+          {/*
+            Wraps rather than truncating. The row leaves the reference 115.9px
+            on a phone, and it is the card's own TITLE — "Psalms 46 v 1-2"
+            needs 129.4 and was arriving as "Psalms 46 …", while
+            "1 Thessalonians 5 v 12-14" needs 208.2, so no amount of trimming
+            the controls either side buys a single line for every chapter.
+            Two lines, not three: the constraint is WIDTH, not line count.
+            "Thessalonians" alone is ~118px in a 115.9px column, so it overflows
+            its line whatever the clamp is — measured, three lines still
+            overflowed horizontally and cost a 76.5px header. Two covers every
+            Psalms reference, which is what this app is about, and the header is
+            min-h so the common single-line case still sits at the design's 48.
+          */}
+          <p className="line-clamp-2 min-w-0 flex-1 text-[17px] font-semibold leading-[25.5px] text-white">
             {verseRef}
           </p>
 

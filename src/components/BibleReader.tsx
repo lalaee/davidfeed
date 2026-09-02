@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import BottomNav from "./BottomNav";
 import DesktopNav from "./DesktopNav";
 import BooksSheet from "./BooksSheet";
 import CompareSheet from "./CompareSheet";
@@ -25,6 +24,7 @@ import {
   versionsStore,
 } from "@/lib/stores";
 import { formatVerseRange } from "@/lib/verseRef";
+import { navHiddenStore } from "@/lib/uiStore";
 
 /*
  * Geometry, type and colour follow Figma "Bible" — 2641:1161 (reading) and
@@ -313,6 +313,13 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
   // inside the scrolling column, and scaling the page would drag its anchor out
   // from under it.
   const recede = showBooks || showCompare ? "sheet-open" : "";
+  // The sheets float in the nav's slot. The nav lives in the root layout and
+  // cannot be withheld from here, so it is asked to step aside instead — and
+  // put back on the way out, so leaving mid-sheet never strands a hidden nav.
+  useEffect(() => {
+    navHiddenStore.set(showBooks || showCompare);
+    return () => navHiddenStore.set(false);
+  }, [showBooks, showCompare]);
 
   // Null at Genesis 1 and Revelation 22, where that button is not rendered.
   // Everywhere else it crosses book boundaries: Psalms 150 -> Proverbs 1.
@@ -579,12 +586,11 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
           })}
         </div>
 
-        {/* The nav stays through a selection. It used to be hidden because the
-            action bar took its slot; the bar is contextual now, so the slot is
-            free and there is no reason to take navigation away mid-read. The
-            design's selected-verse frames omit it — this is a deliberate
-            departure, and the flip below keeps the bar clear of it. */}
-        {!showBooks && !showCompare && <BottomNav activeTab="bible" />}
+        {/* The nav is the root layout's now, so it survives navigation and
+            its pill can glide. It still stays through a selection — the bar
+            is contextual and the flip above keeps it clear — but it steps
+            aside for the sheets, which float in its slot: see the
+            navHiddenStore effect. */}
 
         {/*
          * Previous and next chapter. Figma "Bible" 2679:18153 / 2679:18156.

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AgentationWrapper from "@/components/AgentationWrapper";
+import BottomNav from "@/components/BottomNav";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -51,6 +52,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         {children}
+        {/* Once, here, not per page: a layout survives navigation, and that
+            is what lets the nav's selected pill glide between tabs instead of
+            being remounted with each page. See BottomNav. */}
+        <BottomNav />
         <AgentationWrapper />
       </body>
     </html>

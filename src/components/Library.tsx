@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-import BottomNav from "./BottomNav";
 import DesktopNav from "./DesktopNav";
 import { HIGHLIGHT_COLOURS } from "./VerseActionBar";
 import { fetchChapterIn, parseTitle, readingTranslation } from "@/data/bible";
@@ -123,7 +122,6 @@ export default function Library() {
 
         {tab === "feed" ? <SavedFeed /> : <SavedHighlights />}
 
-        <BottomNav activeTab="library" />
         <DesktopNav activeTab="library" />
       </div>
     </>

@@ -1129,6 +1129,10 @@ button, [role="button"], a {
     transition: none;
   }
 
+  [data-bottom-nav] [data-nav-selected] {
+    transition-duration: 1ms;
+  }
+
   /* Press feedback is direct manipulation, not decoration, so it stays — but
      it lands instantly rather than easing. */
   .icon-press {
@@ -1268,6 +1272,14 @@ html, body {
   .sheet-column {
     max-width: 740px;
   }
+}
+
+/* === Bottom nav: the gliding selector =======================================
+   One pill travels between tabs on `translate`. 420ms on the app's iOS curve
+   with no overshoot; a transition because the position changes in steps.
+   See BottomNav.tsx for where the numbers come from. */
+[data-bottom-nav] [data-nav-selected] {
+  transition: translate 420ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* The desktop composition is drawn on a 1440 canvas and stops growing there.

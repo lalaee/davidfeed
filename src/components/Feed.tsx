@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useLayoutEffect, useMemo, useState, useCallback, useSyncExternalStore } from "react";
 import FeedItem from "./FeedItem";
-import BottomNav, { type TabKey } from "./BottomNav";
+import { type TabKey } from "./BottomNav";
 import SoundBadge from "./SoundBadge";
 import FeedHeader from "./FeedHeader";
 import DesktopChrome from "./DesktopChrome";
@@ -511,8 +511,7 @@ export default function Feed({
 
       <SoundBadge visible={soundBlocked} onEnable={enableSound} />
 
-      {/* Bottom Navigation Bar */}
-      <BottomNav activeTab={activeTab} />
+      {/* The bottom nav is rendered once by the root layout, not here. */}
 
     </div>
     </>

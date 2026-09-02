@@ -44,15 +44,27 @@ FONT = ROOT / "scripts/fonts/Inter.ttf"
 W, H = 1080, 1920
 K = W / 375  # 2.88 — every measurement below is the card's own, scaled by this.
 
-CAPTION_PX = round(24 * K)      # text-[24px]
-CAPTION_LINE = round(24 * 1.3 * K)  # leading-[1.3]
-CAPTION_MAX = round(320 * K)    # max-w-[320px]
-TITLE_PX = round(24 * K)
-TITLE_LEFT = round(20 * K)      # left-[20px]
-TITLE_BOTTOM = round(24 * K)    # bottom-[24px]
+# All of it read off the Figma frame "New Feed UI" (2702:18159), a 375x610 card,
+# and scaled by K. The clip itself stays 1080x1920 because that is what Stories
+# and Status want; the frame is a card mock, not a delivery format. So the top
+# furniture is anchored to the TOP and the reference to the BOTTOM, and the
+# extra height that 9:16 adds falls in the middle, where the artwork is.
 WORDMARK = "Dafod.app"
-WORDMARK_TOP = round(24 * K)    # mirrors the reference's own inset at the foot
-WEIGHT_SEMIBOLD = 600           # font-semibold, on Inter's variable wght axis
+WORDMARK_TOP = round(55 * K)            # y=55 in the frame, and CENTRED
+WORDMARK_PX = round(24 * K)
+
+CAPTION_TOP = round(90.23 * K)          # sits just under the wordmark, not mid-frame
+CAPTION_PX = round(21 * K)              # 21, and Medium — lighter than the card's own
+CAPTION_LINE = round(21 * 1.11 * K)     # line-height 1.11em
+CAPTION_MAX = round(245.97 * K)         # the layer's own width
+
+TITLE_PX = round(24 * K)
+TITLE_LEFT = round(20 * K)              # x=20
+TITLE_BOTTOM = round(20.82 * K)         # 610 - (560.18 + 29)
+
+TRACKING = -0.02                        # letter-spacing: -2% on the 24px pair
+WEIGHT_SEMIBOLD = 600
+WEIGHT_MEDIUM = 500
 
 
 def font(px, weight=WEIGHT_SEMIBOLD):
@@ -61,11 +73,37 @@ def font(px, weight=WEIGHT_SEMIBOLD):
     return f
 
 
-def wrap(text, f, max_w):
+def advance(f, ch):
+    return f.getlength(ch)
+
+
+def tracked_width(text, f, track):
+    """Width with letter-spacing applied, which PIL has no notion of."""
+    if not text:
+        return 0.0
+    return sum(advance(f, c) for c in text) + track * (len(text) - 1)
+
+
+def draw_tracked(d, xy, text, f, fill, track):
+    """Draw a run character by character so letter-spacing can exist at all.
+
+    Figma sets -2% on the 24px pair. PIL draws whole strings at the font's own
+    advances and has no letter-spacing, so the only way to honour it is to place
+    each glyph. Kerning pairs are lost doing this; at -2% on a 69px face that is
+    a sub-pixel difference and invisible, whereas the 12px the tracking removes
+    from "Dafod.app" is not.
+    """
+    x, y = xy
+    for c in text:
+        d.text((x, y), c, font=f, fill=fill)
+        x += advance(f, c) + track
+
+
+def wrap(text, f, max_w, track=0.0):
     words, lines, line = text.split(), [], ""
     for w in words:
         trial = f"{line} {w}".strip()
-        if f.getbbox(trial)[2] <= max_w or not line:
+        if tracked_width(trial, f, track) <= max_w or not line:
             line = trial
         else:
             lines.append(line)
@@ -75,48 +113,49 @@ def wrap(text, f, max_w):
     return lines
 
 
-def text_layer(lines, f, line_h, centre_y, align_left=None, shadow=(3, 8, 140)):
+def text_layer(lines, f, line_h, top, align="center", track=0.0, shadow=(3, 8, 140)):
     """A full-frame RGBA layer, so ffmpeg can overlay it at 0:0 and forget geometry.
 
-    The shadow is the card's own `0 1px 6px rgba(0,0,0,0.55)`, scaled: a blurred
-    copy of the same text sitting a few pixels lower. Drawn on its own layer and
-    composited under, or the blur would eat into the glyphs it is meant to lift.
+    Anchored by the TOP of the first line, because that is how the frame places
+    everything: the wordmark at y=55, the caption at y=90.23. Centring on a
+    midpoint instead would move the block whenever a caption wrapped to a
+    different number of lines.
+
+    The shadow is not in the frame — the mock's artwork happens to be dark
+    exactly where its text sits. Twenty-eight covers do not all have that
+    courtesy, so the card's own `0 1px 6px rgba(0,0,0,0.55)` is carried over,
+    scaled: a blurred copy a few pixels lower, on its own layer so the blur
+    cannot eat the glyphs it is there to lift.
     """
     dy, blur, alpha = shadow
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     shade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d, ds = ImageDraw.Draw(layer), ImageDraw.Draw(shade)
-    total = line_h * len(lines)
-    y = centre_y - total // 2
+    y = top
     for ln in lines:
-        bbox = f.getbbox(ln)
-        x = TITLE_LEFT if align_left else (W - (bbox[2] - bbox[0])) // 2 - bbox[0]
-        ds.text((x, y + dy), ln, font=f, fill=(0, 0, 0, alpha))
-        d.text((x, y), ln, font=f, fill=(255, 255, 255, 255))
+        x = TITLE_LEFT if align == "left" else (W - tracked_width(ln, f, track)) / 2
+        draw_tracked(ds, (x, y + dy), ln, f, (0, 0, 0, alpha), track)
+        draw_tracked(d, (x, y), ln, f, (255, 255, 255, 255), track)
         y += line_h
     shade = shade.filter(ImageFilter.GaussianBlur(blur))
     return Image.alpha_composite(shade, layer)
 
 
-def chrome_layer(title, f):
-    """The card's furniture, plus the one thing the card does not need.
+def chrome_layer(title):
+    """Everything that is not the artwork or the caption: scrims, mark, reference.
 
-    On screen the reader already knows where they are, so the card carries no
-    wordmark. A shared clip travels without that context — it lands in someone
-    else's Story with nothing around it — so this is where the name has to be,
-    and it is given the reference's own treatment at the opposite corner: same
-    Inter, same size, same inset, same shadow.
-
-    Both scrims are here for legibility, not decoration. The bottom one is the
-    card's own; the top is its mirror at half strength, because the wordmark is
-    one short line rather than a wrapping title and needs less to sit on.
+    The frame shows no scrims — its own cover is dark top and bottom, so the
+    text simply sits on it. That is a property of one painting, not of the
+    twenty-eight this has to serve, so the card's bottom gradient is kept and
+    the top is given a lighter mirror. Both are subtle enough that the frame's
+    look survives them, and without them a wordmark over Proverbs 18:10's pale
+    sky disappears.
     """
-    line_h = round(TITLE_PX * 1.2)
+    mark_f = font(WORDMARK_PX, WEIGHT_SEMIBOLD)
+    title_f = font(TITLE_PX, WEIGHT_SEMIBOLD)
+    line_h = round(TITLE_PX * 1.2102)   # the frame's own line-height
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
-    # bg-gradient-to-b from-transparent via-transparent to-black/40 — flat for the
-    # top half, then ramping in, exactly as the utility describes it. The top
-    # scrim ramps the other way over the first fifth of the frame.
     grad = Image.new("RGBA", (1, H), (0, 0, 0, 0))
     top_span = H * 0.20
     for y in range(H):
@@ -125,13 +164,18 @@ def chrome_layer(title, f):
         grad.putpixel((0, y), (0, 0, 0, int(255 * max(down, up))))
     layer = Image.alpha_composite(layer, grad.resize((W, H)))
 
-    mark = text_layer([WORDMARK], f, line_h, WORDMARK_TOP + line_h // 2, align_left=True)
-    layer = Image.alpha_composite(layer, mark)
+    # Centred at the top, per the frame — not tucked into a corner.
+    track = TRACKING * WORDMARK_PX
+    layer = Image.alpha_composite(
+        layer, text_layer([WORDMARK], mark_f, line_h, WORDMARK_TOP, "center", track)
+    )
 
-    lines = wrap(title, f, W - TITLE_LEFT - round(80 * K))  # right-[80px]
-    baseline = H - TITLE_BOTTOM - round(line_h * len(lines)) // 2
+    # The reference, bottom left, measured up from the foot of the frame.
+    t_track = TRACKING * TITLE_PX
+    lines = wrap(title, title_f, W - TITLE_LEFT - round(80 * K), t_track)
+    top = H - TITLE_BOTTOM - line_h * len(lines)
     return Image.alpha_composite(
-        layer, text_layer(lines, f, line_h, baseline, align_left=True)
+        layer, text_layer(lines, title_f, line_h, top, "left", t_track)
     )
 
 
@@ -152,16 +196,16 @@ def render(post):
 
     work = WORK / str(pid)
     work.mkdir(parents=True, exist_ok=True)
-    cap_f, title_f = font(CAPTION_PX), font(TITLE_PX)
+    cap_f = font(CAPTION_PX, WEIGHT_MEDIUM)
 
-    chrome_layer(post["title"], title_f).save(work / "chrome.png")
+    chrome_layer(post["title"]).save(work / "chrome.png")
 
     # One PNG per caption, shown over its own window. The card centres captions
     # in the frame, so these do too.
     caps = []
     for i, s in enumerate(post["subtitles"]):
         lines = wrap(s["t"], cap_f, CAPTION_MAX)
-        text_layer(lines, cap_f, CAPTION_LINE, H // 2).save(work / f"c{i}.png")
+        text_layer(lines, cap_f, CAPTION_LINE, CAPTION_TOP).save(work / f"c{i}.png")
         caps.append((work / f"c{i}.png", max(0.0, s["s"] - start), max(0.0, s["e"] - start)))
 
     cmd = ["ffmpeg", "-v", "error", "-y",

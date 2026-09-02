@@ -161,17 +161,6 @@ export default function FeedItem({
    * attach/detach effect to drive, and means the loop fades in rather than
    * cutting over the still it was rendered from.
    */
-  const [posterReady, setPosterReady] = useState(false);
-  // Reset at RENDER time, not in an effect — the same "adjust state when a prop
-  // changes" shape Feed and useScrolledDown use, because an effect here is the
-  // cascading render this project fails the build over.
-  const posterKey = `${posterVideoSrc ?? ""}|${inWindow}`;
-  const [seenPosterKey, setSeenPosterKey] = useState(posterKey);
-  if (seenPosterKey !== posterKey) {
-    setSeenPosterKey(posterKey);
-    setPosterReady(false);
-  }
-
   // Live view of isActive for async callbacks. The play() guard must ask "is
   // this card still the active one?" rather than "did the effect re-run?" —
   // toggling sound re-runs the effect while the card is still active, and a
@@ -674,12 +663,28 @@ export default function FeedItem({
               muted
               playsInline
               preload="metadata"
-              // readyState >= 2: a frame exists to paint. `emptied` fires when the
-              // attach effect pulls the src on the way out of the window.
-              onLoadedData={() => setPosterReady(true)}
-              onEmptied={() => setPosterReady(false)}
-              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-              style={{ opacity: posterReady ? 1 : 0 }}
+              /*
+               * poster IS the still, and it is what stops an empty video box
+               * painting over the artwork.
+               *
+               * This element sits on top of the cover, full-bleed and opaque, so
+               * whatever it paints is what you see — and an empty one paints
+               * nothing in Chrome but BLACK in Safari. Two JS gates were tried
+               * against that and both could strand a card: they flipped a flag on
+               * `loadeddata` and cleared it when the source or window membership
+               * changed, but the two are not symmetric. The attach effect only
+               * calls load() `if (el.getAttribute("src") !== src)`, so when the
+               * source is already right it does nothing and no further event ever
+               * arrives to undo the clear. Measured: two of twenty-seven cards
+               * ended at readyState 4 and opacity 0 — a decoded frame, hidden.
+               *
+               * `poster` is the platform's own answer and has no state to get
+               * wrong: the browser paints it until it has a frame, then swaps.
+               * Same URL as the <img> below, so it is one cache entry, and the
+               * loop was rendered FROM this still, so the swap is invisible.
+               */
+              poster={backgroundImage}
+              className="absolute inset-0 w-full h-full object-cover"
             />
           )}
           {/* Cover-art life overlays */}

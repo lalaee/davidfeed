@@ -99,6 +99,11 @@ const VERSE_CARDS: VerseCard[] = [
   { id: 1009, title: "Romans 8:31", clip: "romans8-v31-web", seconds: 11.33,
     cover: "figure-before-golden-expanse.jpg",
     art: "'If God is for us, who can be against us?' — the widest, grandest frame in the set, for the widest claim." },
+  // The one NIV recording in this list, so its clip carries no -web suffix and
+  // its caption wording lives in the manifest rather than in public/bible/web.
+  { id: 1010, title: "Isaiah 45:2", clip: "isaiah45-v2", seconds: 10.91,
+    cover: "road-toward-vast-figure.jpg",
+    art: "'I will go before you and will level the mountains' — the road is already laid across the desert, and the one who goes ahead of it fills the sky." },
 ];
 
 /*
@@ -119,34 +124,16 @@ export const HELD_VERSE_CARDS: VerseCard[] = [
 ];
 
 /*
- * WAITING ON A RECORDING — the artwork is in, the voice is not.
+ * A NOTE ON THE ISAIAH 45:2 LOOP, because it breaks the rule on purpose.
  *
- * The cover and its loop are built and sitting in /assets/verses, and the WEB
- * text is already ours: "I will go before you, and make the rough places
- * smooth. I will break the doors of brass in pieces, and cut apart the bars of
- * iron." What is missing is the reading, and a card cannot ship without one —
- * the feed plays narration, and the captions are force-aligned TO that
- * narration, so without it there is nothing to hear and nothing to time
- * against. Hence a list of its own rather than a half-filled entry in
- * VERSE_CARDS, which would throw on the missing captions.
- *
- * Its loop was rendered at strength 46, not the 104 that
- * `round(60 * width / 736)` prescribes for a 1280px cover. The giant's hand is
- * a thin limb silhouetted against a far, empty sky — a depth discontinuity —
- * and at 104 the forearm tore into visible banding. Compared at 104/70/46/30:
- * 70 still streaked, 46 is clean and still reads as motion.
- *
- * To finish when the mp3 lands:
- *   1. public/assets/shorts/isaiah45-v2-web.mp3
- *   2. add it to scripts/web-clips.json, run scripts/align-web-clips.py
- *   3. move this entry into VERSE_CARDS with its measured `seconds`
- *   4. re-run scripts/build-share-videos.py so it has a shareable clip
+ * It is rendered at strength 46, not the 104 that round(60 * width / 736)
+ * prescribes for a 1280px cover. The giant's hand is a thin limb silhouetted
+ * against far, empty sky — exactly the depth discontinuity the parallax skill
+ * warns tears first — and at 104 the forearm broke into visible banding.
+ * Compared at 104/70/46/30 on the hand at the orbit's extreme: 70 still
+ * streaked, 46 is clean and still measures as oscillation rather than a frozen
+ * frame. Re-render it at 46 or the tear comes back.
  */
-export const AWAITING_AUDIO: Omit<VerseCard, "seconds">[] = [
-  { id: 1010, title: "Isaiah 45:2", clip: "isaiah45-v2-web",
-    cover: "road-toward-vast-figure.jpg",
-    art: "'I will go before you, and make the rough places smooth' — the road is already laid across the desert, and the one who goes ahead of it fills the sky." },
-];
 
 /** Same floor the psalm shorts use: below this a card is a fragment, not a short. */
 const MIN_SECONDS = 7;

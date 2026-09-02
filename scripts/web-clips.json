@@ -193,5 +193,19 @@
     "text": "What then shall we say about these things? If God is for us, who can be against us?",
     "words": 18,
     "seconds": 11.33
+  },
+  {
+    "file": "isaiah45-v2.mp3",
+    "book": "Isaiah",
+    "ch": 45,
+    "verses": "2",
+    "nums": [
+      2,
+      2
+    ],
+    "translation": "NIV",
+    "text": "I will go before you and will level the mountains; I will break down gates of bronze and cut through bars of iron.",
+    "words": 22,
+    "seconds": 10.91
   }
 ]

@@ -975,5 +975,31 @@
     "t": "who can be against us?"
    }
   ]
+ },
+ {
+  "id": 1010,
+  "title": "Isaiah 45:2",
+  "image": "/assets/verses/road-toward-vast-figure.jpg",
+  "loop": "/assets/verses/road-toward-vast-figure-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/isaiah45-v2.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 3.2,
+    "e": 6.53,
+    "t": "I will go before you and will level the mountains;"
+   },
+   {
+    "s": 6.53,
+    "e": 8.82,
+    "t": "I will break down gates of bronze and"
+   },
+   {
+    "s": 8.82,
+    "e": 10.91,
+    "t": "cut through bars of iron."
+   }
+  ]
  }
 ]

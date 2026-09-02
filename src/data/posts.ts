@@ -33,10 +33,9 @@ export interface Post {
 //
 // Psalms 5 and 7 now carry NEW paintings rather than reassigned ones, because
 // no image in the original set served them: 5 needs morning prayer and "will
-// look up", 7 needs pursuit, and the pool held neither. Both carry no
-// posterVideoSrc — their parallax loops have not been rendered yet, and
-// pointing at the old loop would animate a different picture than the still
-// shows. Run the cover-parallax skill to generate them.
+// look up", 7 needs pursuit, and the pool held neither. Their parallax loops
+// are now rendered from those paintings, so they animate the picture they
+// actually show rather than the one the reassigned filename used to hold.
 //
 // The hero is the sheep footage, and it now carries Psalm 23 — "The LORD is my
 // shepherd" over grazing sheep. That makes the deer-in-shrubs cover redundant as
@@ -59,8 +58,8 @@ export const chapterPosts: Post[] = [
   },
   { id: 27, title: "Psalm 27", backgroundImage: "/assets/chapters/psalm5.jpg", posterVideoSrc: "/assets/chapters/psalm5-loop.mp4", audioSrc: "/assets/chapters/psalm27.mp3", subtitles: chapterSubtitles.psalm27 },
   { id: 91, title: "Psalm 91", backgroundImage: "/assets/chapters/psalm91.jpg", posterVideoSrc: "/assets/chapters/psalm91-loop.mp4", audioSrc: "/assets/psalm91.mp3", subtitles: psalm91Subtitles },
-  { id: 5,  title: "Psalm 5",  backgroundImage: "/assets/chapters/figure-looking-up.jpg",  audioSrc: "/assets/chapters/psalm5.mp3", subtitles: chapterSubtitles.psalm5  },
-  { id: 7,  title: "Psalm 7",  backgroundImage: "/assets/chapters/figure-running-rain.jpg",  audioSrc: "/assets/chapters/psalm7.mp3", startAt: 0.27, subtitles: chapterSubtitles.psalm7  },
+  { id: 5,  title: "Psalm 5",  backgroundImage: "/assets/chapters/figure-looking-up.jpg",  posterVideoSrc: "/assets/chapters/figure-looking-up-loop.mp4",  audioSrc: "/assets/chapters/psalm5.mp3", subtitles: chapterSubtitles.psalm5  },
+  { id: 7,  title: "Psalm 7",  backgroundImage: "/assets/chapters/figure-running-rain.jpg",  posterVideoSrc: "/assets/chapters/figure-running-rain-loop.mp4",  audioSrc: "/assets/chapters/psalm7.mp3", startAt: 0.27, subtitles: chapterSubtitles.psalm7  },
   { id: 16, title: "Psalm 16", backgroundImage: "/assets/chapters/psalm27.jpg", posterVideoSrc: "/assets/chapters/psalm27-loop.mp4", audioSrc: "/assets/chapters/psalm16.mp3", startAt: 1.27, subtitles: chapterSubtitles.psalm16 },
   { id: 20, title: "Psalm 20", backgroundImage: "/assets/chapters/psalm3.jpg", posterVideoSrc: "/assets/chapters/psalm3-loop.mp4", audioSrc: "/assets/chapters/psalm20.mp3", subtitles: chapterSubtitles.psalm20 },
   { id: 25, title: "Psalm 25", backgroundImage: "/assets/chapters/psalm25.jpg", posterVideoSrc: "/assets/chapters/psalm25-loop.mp4", audioSrc: "/assets/chapters/psalm25.mp3", startAt: 1.02, subtitles: chapterSubtitles.psalm25 },

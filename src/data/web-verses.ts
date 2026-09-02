@@ -31,10 +31,15 @@ import { webSubtitles } from "@/data/web-subtitles";
  * psalms take their own psalm numbers, which were free. The other books take
  * 1001+, well clear of the 1-150 a psalm can occupy.
  *
- * COVERS live in /assets/verses and are named for what they SHOW, not for the
- * verse they serve. posts.ts learned this the hard way: its covers were
- * reassigned once and every filename there now lies about which psalm it
- * belongs to. A descriptive name cannot go stale that way.
+ * COVERS live in /assets/verses, each beside a `-loop.mp4` rendered from it by
+ * the cover-parallax skill — a depth map, then the image displaced through it
+ * along a closed elliptical camera path, so the loop is exact and nothing can
+ * be invented. Without one a card just sits there while its neighbours drift.
+ *
+ * They are named for what they SHOW, not for the verse they serve. posts.ts
+ * learned that the hard way: its covers were reassigned once and every filename
+ * there now lies about which psalm it belongs to. A descriptive name cannot go
+ * stale that way.
  */
 
 interface VerseCard {
@@ -126,6 +131,9 @@ export const webVersePosts: Post[] = VERSE_CARDS.map(({ id, title, clip, cover, 
     id,
     title,
     backgroundImage: `/assets/verses/${cover}`,
+    // Derived from the cover, never declared, so the still and its loop cannot
+    // drift apart the way a second hand-written path eventually would.
+    posterVideoSrc: `/assets/verses/${cover.replace(/\.jpg$/, "-loop.mp4")}`,
     audioSrc: `/assets/shorts/${clip}.mp3`,
     subtitles,
   };

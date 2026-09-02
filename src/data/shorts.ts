@@ -1,5 +1,6 @@
 import { chapterPosts, type Post } from "@/data/posts";
 import { shortSubtitles } from "@/data/shorts-subtitles";
+import { webVersePosts } from "@/data/web-verses";
 
 /*
  * Shorts — one spotlighted passage per chapter instead of the whole reading.
@@ -66,7 +67,7 @@ const MAX_SECONDS = 20;
 
 const byId = new Map(chapterPosts.map((p) => [p.id, p]));
 
-export const shortPosts: Post[] = SPANS.map(({ id, verses, seconds, startAt }) => {
+const psalmShortPosts: Post[] = SPANS.map(({ id, verses, seconds, startAt }) => {
   const source = byId.get(id);
   if (!source) throw new Error(`shorts: no chapter post for Psalm ${id}`);
 
@@ -91,5 +92,13 @@ export const shortPosts: Post[] = SPANS.map(({ id, verses, seconds, startAt }) =
     subtitles,
   };
 });
+
+/*
+ * The feed is these thirteen plus the World English Bible verse cards, which
+ * are built the other way round — they declare their own artwork and title
+ * instead of borrowing a chapter's. See web-verses.ts for why they cannot be
+ * SPANS entries.
+ */
+export const shortPosts: Post[] = [...psalmShortPosts, ...webVersePosts];
 
 export const overLength = SPANS.filter((s) => s.seconds > MAX_SECONDS);

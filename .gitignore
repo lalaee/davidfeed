@@ -47,3 +47,6 @@ i2v-env/
 __pycache__/
 *.pyc
 .bible-cache/
+
+# whisper.cpp working files for scripts/align-*.py (wavs + raw transcripts)
+.align-web/

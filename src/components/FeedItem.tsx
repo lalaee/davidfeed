@@ -9,6 +9,12 @@ import { BookmarkIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { savedPostStore } from "@/lib/stores";
 import ShareSheet from "./ShareSheet";
+import {
+  readCanShareFiles,
+  serverCanShareFiles,
+  shareVideoFile,
+  subscribeNever as shareSubscribeNever,
+} from "@/lib/shareVideo";
 
 /** A/B-testable cover-art life effects — each feed card can carry one. */
 export type CoverEffect = "kenburns" | "breathe" | "grain" | "parallax";
@@ -599,12 +605,23 @@ export default function FeedItem({
   }, [postId]);
 
   /*
-   * The share button opens our own menu rather than going straight to the
-   * system sheet. See ShareSheet for why the rows are what they are — the short
-   * version is that a website cannot put a video into a NAMED app, so the menu
-   * offers only what it can actually deliver and leaves the named destinations
-   * to the system sheet one tap further in.
+   * Two different buttons wearing one icon.
+   *
+   * Where the phone can take a file, the share button IS the system sheet —
+   * straight there, video attached, no menu of ours in between. That sheet is
+   * already the list the reader wants: WhatsApp Status, Instagram Feed and
+   * Story, Messages, Save to Photos, built from what they actually have.
+   * Anything we put in front of it is a tap in the way.
+   *
+   * Where it cannot — a desktop browser, mostly — there is nothing to fall
+   * through to, so our own sheet opens instead and offers what that platform
+   * genuinely can do.
    */
+  const canShareFiles = useSyncExternalStore(
+    shareSubscribeNever,
+    readCanShareFiles,
+    serverCanShareFiles,
+  );
   const [shareOpen, setShareOpen] = useState(false);
   // A sheet belongs to the card that opened it. Scroll away and the card is no
   // longer the one on screen, so its sheet has to go with it — otherwise two
@@ -626,8 +643,12 @@ export default function FeedItem({
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
+    if (canShareFiles) {
+      void shareVideoFile(postId, title);
+      return;
+    }
     setShareOpen(true);
-  }, []);
+  }, [canShareFiles, postId, title]);
 
   return (
     <div className="relative w-full h-[calc(100dvh-138px)] min-h-[calc(100svh-138px)] snap-start snap-always flex-shrink-0 mb-[12px]

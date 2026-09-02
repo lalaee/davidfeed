@@ -391,13 +391,67 @@ export default function Feed({
   // element is simply reused by the next post at that index.
   // Desktop paging. It moves the same scroll container the phone swipes, so
   // buttons and swipe are one mechanism rather than two states to reconcile.
+  /*
+   * Where the last step was AIMED, which is not where the feed is yet.
+   *
+   * activeIndex is reported by the intersection observer, so it does not update
+   * until the smooth scroll has actually landed — a few hundred ms. Stepping
+   * from it means every press inside that window computes the same target:
+   * measured, three ArrowDowns in a row advanced exactly one card. A held arrow
+   * key makes that obvious in a way clicking a chevron never did.
+   *
+   * So steps chain off the pending target while one is in flight, and the ref
+   * clears on any activeIndex change — both when the scroll lands where it was
+   * sent, and when the reader swipes somewhere else entirely and the aim is
+   * stale.
+   */
+  const pendingIndexRef = useRef<number | null>(null);
+  useEffect(() => {
+    pendingIndexRef.current = null;
+  }, [activeIndex]);
+
   const goToCard = useCallback(
     (delta: number) => {
-      const target = itemRefs.current[activeIndex + delta];
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const from = pendingIndexRef.current ?? activeIndex;
+      const next = Math.min(Math.max(from + delta, 0), posts.length - 1);
+      if (next === from) return;
+      pendingIndexRef.current = next;
+      itemRefs.current[next]?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
-    [activeIndex],
+    [activeIndex, posts.length],
   );
+
+  /*
+   * Up and down page the feed, the same one card at a time the chevrons do.
+   *
+   * It calls goToCard rather than scrolling directly, so the keyboard, the
+   * desktop buttons and the phone swipe are all the one mechanism — and it
+   * inherits the clamp for free, because goToCard indexes itemRefs and simply
+   * finds nothing at either end.
+   *
+   * preventDefault is load-bearing, not tidiness. The scroller is a real
+   * overflow-y element, so the browser's own arrow-key scrolling would move it
+   * ~40px at the same time as the smooth scrollIntoView, and the two fight:
+   * snap-mandatory then settles wherever that tug-of-war ended.
+   *
+   * Two things it must not steal the arrows from — a field that is taking text,
+   * and a menu that has opened over the feed, where up/down belong to the
+   * options rather than the cards.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.isContentEditable) return;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (document.querySelector('[aria-expanded="true"]')) return;
+      e.preventDefault();
+      goToCard(e.key === "ArrowDown" ? 1 : -1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [goToCard]);
 
   const chooseTopic = useCallback((next: string) => {
     if (next === topicId) return;

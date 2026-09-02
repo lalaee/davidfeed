@@ -118,6 +118,36 @@ export const HELD_VERSE_CARDS: VerseCard[] = [
     art: "'Show me your ways... Guide me in your truth' — a lit path across an otherwise trackless field." },
 ];
 
+/*
+ * WAITING ON A RECORDING — the artwork is in, the voice is not.
+ *
+ * The cover and its loop are built and sitting in /assets/verses, and the WEB
+ * text is already ours: "I will go before you, and make the rough places
+ * smooth. I will break the doors of brass in pieces, and cut apart the bars of
+ * iron." What is missing is the reading, and a card cannot ship without one —
+ * the feed plays narration, and the captions are force-aligned TO that
+ * narration, so without it there is nothing to hear and nothing to time
+ * against. Hence a list of its own rather than a half-filled entry in
+ * VERSE_CARDS, which would throw on the missing captions.
+ *
+ * Its loop was rendered at strength 46, not the 104 that
+ * `round(60 * width / 736)` prescribes for a 1280px cover. The giant's hand is
+ * a thin limb silhouetted against a far, empty sky — a depth discontinuity —
+ * and at 104 the forearm tore into visible banding. Compared at 104/70/46/30:
+ * 70 still streaked, 46 is clean and still reads as motion.
+ *
+ * To finish when the mp3 lands:
+ *   1. public/assets/shorts/isaiah45-v2-web.mp3
+ *   2. add it to scripts/web-clips.json, run scripts/align-web-clips.py
+ *   3. move this entry into VERSE_CARDS with its measured `seconds`
+ *   4. re-run scripts/build-share-videos.py so it has a shareable clip
+ */
+export const AWAITING_AUDIO: Omit<VerseCard, "seconds">[] = [
+  { id: 1010, title: "Isaiah 45:2", clip: "isaiah45-v2-web",
+    cover: "road-toward-vast-figure.jpg",
+    art: "'I will go before you, and make the rough places smooth' — the road is already laid across the desert, and the one who goes ahead of it fills the sky." },
+];
+
 /** Same floor the psalm shorts use: below this a card is a fragment, not a short. */
 const MIN_SECONDS = 7;
 

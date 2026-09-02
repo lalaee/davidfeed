@@ -606,7 +606,7 @@ export default function FeedItem({
 
   return (
     <div className="relative w-full h-[calc(100dvh-138px)] min-h-[calc(100svh-138px)] snap-start snap-always flex-shrink-0 mb-[12px]
-                    desk:h-[845px] desk:min-h-[845px] desk:mb-[24px]">
+                    desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]">
       {/* Tappable Background Area for Double-Tap */}
       <div
         className={`absolute inset-0 z-[1] overflow-hidden ${isActive ? "rounded-b-[32px]" : "rounded-[32px]"}`}

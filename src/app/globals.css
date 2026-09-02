@@ -1237,15 +1237,15 @@ html, body {
 
 /* "Tap for sound" belongs to the card, not the window.
    At desk the card is 622 wide anchored 51 from the right, so its centre is
-   51 + 311 = 362 from the right edge; it starts at 221 and is 845 tall, so its
-   middle is 643.5 down. Written as plain CSS because the phone rule centres
+   51 + 311 = 362 from the right edge; it starts at 221 and is --desk-card-h
+   tall, so its middle is half of that below the column top. Written as plain CSS because the phone rule centres
    with -translate-x-1/2 and this needs +1/2 — two utilities for one property,
    where which one wins would come down to emit order. */
 @media (min-width: 1028px) {
   .sound-badge {
     left: auto;
     right: calc(var(--desk-gutter) + 362px);
-    top: 643.5px;
+    top: calc(221px + var(--desk-card-h) / 2);
     /* Only the custom property. Tailwind v4 centres with the independent
        `translate` property, not `transform`, so adding a transform here shifted
        the badge a second time — half its width to the right and half its height
@@ -1335,11 +1335,34 @@ html, body {
    which this file has already lost twice. */
 :root {
   --desk-gutter: 0px;
+  --desk-card-h: 845px;
 }
 
+/* THE DESK CARD HEIGHT, and why it is not simply 845.
+ *
+ * 845 is the Figma height and it is still what you get — but only on a window
+ * tall enough to hold it. As a fixed value it needed 1090px of viewport before
+ * the next card's edge appeared (221 top + 845 card + 24 gap), and 1066 before
+ * the card's own bottom did. Measured on a 1440x900 laptop the card ran 166px
+ * past the fold and the next card sat 190px below it; even at 1440x1080 the
+ * edge missed by 10px. A desktop window is routinely shorter than a design
+ * canvas, and this one never adapted.
+ *
+ * So 845 becomes a CEILING rather than a constant. The reserve below it is
+ * 371 = 221 top + 24 gap + 126 of the next card, and 126 is not a new number:
+ * it is exactly what the phone shows, where the card is 100dvh-138 against a
+ * 12px gap. Both breakpoints now guarantee the same thing — the whole card,
+ * plus a readable edge of the one after it, inside the viewport. It has to
+ * clear the 53px corner radius to read as a card rather than a stray curve,
+ * and 126 does that twice over.
+ *
+ * Everything anchored to the card's geometry has to derive from this, not
+ * restate it — the sound badge sits at its centre and was written as a flat
+ * 643.5px, which is 221 + 845/2 and silently wrong the moment the card moves. */
 @media (min-width: 1028px) {
   :root {
     --desk-gutter: calc((100vw - min(100vw, 1440px)) / 2);
+    --desk-card-h: min(845px, calc(100dvh - 371px));
   }
   .desk-bar {
     padding-left: calc(var(--desk-gutter) + 48px);

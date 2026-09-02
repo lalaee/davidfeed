@@ -8,7 +8,6 @@ import FeedHeader from "./FeedHeader";
 import DesktopChrome from "./DesktopChrome";
 import { chapterPosts, type Post } from "@/data/posts";
 import { DEFAULT_TOPIC, TOPICS, postsForTopic } from "@/data/topics";
-import { useIndexCollapse } from "@/hooks/useNavCollapse";
 
 /**
  * Ambient bed level under the narration. dafod mixes voice 0.95 / bed 0.25.
@@ -101,8 +100,6 @@ export default function Feed({
   // Derived, not synced: a shorter topic can leave the stored index past the
   // end, and clamping in an effect would be a cascading render.
   const activeIndex = Math.min(activeIndexRaw ?? openAt, posts.length - 1);
-  // The feed snaps card to card, so "scrolled down" is the index going up.
-  const nav = useIndexCollapse(activeIndex);
   // Sound is a feed-wide preference, not per-card: every card scrolled to
   // inherits it. It starts ON so the feed opens with narration where the
   // browser permits it — Chrome grants autoplay-with-sound on sites the viewer
@@ -515,7 +512,7 @@ export default function Feed({
       <SoundBadge visible={soundBlocked} onEnable={enableSound} />
 
       {/* Bottom Navigation Bar */}
-      <BottomNav activeTab={activeTab} minimized={nav.minimized} onExpand={nav.expand} />
+      <BottomNav activeTab={activeTab} />
 
     </div>
     </>

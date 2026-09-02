@@ -10,7 +10,6 @@ import { fetchChapterIn, parseTitle, readingTranslation } from "@/data/bible";
 import { shortPosts } from "@/data/shorts";
 import { highlightStore, readingStore, savedPostStore } from "@/lib/stores";
 import { formatVerseRange } from "@/lib/verseRef";
-import { useScrollCollapse } from "@/hooks/useNavCollapse";
 
 /*
  * The Library, rebuilt from Figma "Library-Feed" 2672:17521 and "Library-Verse"
@@ -95,10 +94,6 @@ interface HighlightEntry {
 
 export default function Library() {
   const [tab, setTab] = useState<LibraryTab>("feed");
-  // Its callback ref goes on whichever tab's scroller is mounted — including
-  // one that mounts LATE, after an empty state gives way to a loaded list.
-  // Switching tabs swaps the element, which is what resets it to expanded.
-  const { minimized: navMinimized, expand: expandNav, attach: attachScroller } = useScrollCollapse(tab);
 
   return (
     <>
@@ -126,9 +121,9 @@ export default function Library() {
           </div>
         </div>
 
-        {tab === "feed" ? <SavedFeed attachScroller={attachScroller} /> : <SavedHighlights attachScroller={attachScroller} />}
+        {tab === "feed" ? <SavedFeed /> : <SavedHighlights />}
 
-        <BottomNav activeTab="library" minimized={navMinimized} onExpand={expandNav} />
+        <BottomNav activeTab="library" />
         <DesktopNav activeTab="library" />
       </div>
     </>
@@ -174,7 +169,7 @@ function TabPill({
  * they went in, so insertion order is not recoverable. Feed order at least
  * matches where the reader met them.
  */
-function SavedFeed({ attachScroller }: { attachScroller: (el: HTMLElement | null) => void }) {
+function SavedFeed() {
   const savedIds = useSyncExternalStore(
     savedPostStore.subscribe,
     savedPostStore.read,
@@ -187,11 +182,8 @@ function SavedFeed({ attachScroller }: { attachScroller: (el: HTMLElement | null
   }
 
   return (
-    <div
-      ref={attachScroller}
-      className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[24px]
-                 desk:pb-[32px] desk:pt-[32px]"
-    >
+    <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[24px]
+                    desk:pb-[32px] desk:pt-[32px]">
       <div className="grid grid-cols-3 gap-[2px] px-[24px]">
         {saved.map((post) => (
           <Link
@@ -228,7 +220,7 @@ function SavedFeed({ attachScroller }: { attachScroller: (el: HTMLElement | null
  * did. formatVerseRange is the reader's own label function, so "v 2-4" here
  * and "v 2-4" under the thumb are the same string built the same way.
  */
-function SavedHighlights({ attachScroller }: { attachScroller: (el: HTMLElement | null) => void }) {
+function SavedHighlights() {
   const store = useSyncExternalStore(
     highlightStore.subscribe,
     highlightStore.read,
@@ -384,11 +376,8 @@ function SavedHighlights({ attachScroller }: { attachScroller: (el: HTMLElement 
             : "Highlight a verse in the Bible and it is kept here."}
         </Empty>
       ) : (
-        <div
-          ref={attachScroller}
-          className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[40px]
-                     desk:pb-[32px] desk:pt-[32px]"
-        >
+        <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[40px]
+                        desk:pb-[32px] desk:pt-[32px]">
           <div className="flex flex-col gap-[32px]">
             {shown.map((entry) => (
               <div key={entry.key} className="flex flex-col gap-[12px] px-[24px]">

@@ -15,7 +15,7 @@ import { webSubtitles } from "@/data/web-subtitles";
  *
  * The recordings are the World English Bible, and they arrived as a set: every
  * one of them is about refuge — rock, fortress, stronghold, strong tower, "don't
- * be afraid". They are grouped as the "Refuge" topic in topics.ts.
+ * be afraid". They are grouped as the "Fear" topic in topics.ts.
  *
  * Two things differ from the NIV shorts, both measured off the files:
  *

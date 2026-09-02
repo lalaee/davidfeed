@@ -33,13 +33,35 @@ export interface Topic {
   ids: number[] | null;
 }
 
+/*
+ * The labels are what the reader is CARRYING, not what the psalm supplies.
+ *
+ * The desktop header reads "Deal with <label>", and that sentence only works
+ * one way round: you deal with a difficulty, never with its remedy. "Deal with
+ * Mental strength" is not English. So each label is now the trouble the reader
+ * brings, and the psalms under it are the answer to it — which is also the way
+ * someone actually arrives at a devotional feed. They come with the problem.
+ *
+ * Each one is read off what its cards actually say, not chosen for symmetry:
+ *
+ *   Pressure     enemies, pursuit, chariots and horses, "whom shall I fear"
+ *   Anxiety      green pastures, quiet waters, lying down and sleeping in peace
+ *   Uncertainty  "show me your ways", "lead me", the path of life
+ *   Guilt        "create in me a pure heart", the lament, the plea
+ *   Fear         rock, fortress, stronghold, "don't be afraid" — the WEB set
+ *
+ * Both Pressure and Fear are about threat, and they are not the same thing:
+ * Pressure is being closed in on by people, Fear is the dread itself, which is
+ * why the refuge verses sit under the second and the enemy psalms under the
+ * first.
+ */
 export const TOPICS: Topic[] = [
-  { id: "mental-strength", label: "Mental strength", ids: [27, 3, 20, 91, 7] },
-  { id: "peace",           label: "Peace",           ids: [23, 4, 16] },
-  { id: "guidance",        label: "Guidance",        ids: [25, 5, 16] },
-  { id: "renewal",         label: "Renewal",         ids: [51, 44, 45] },
-  { id: "refuge",          label: "Refuge",          ids: webVerseIds },
-  { id: "all",             label: "All",             ids: null },
+  { id: "pressure",    label: "Pressure",    ids: [27, 3, 20, 91, 7] },
+  { id: "anxiety",     label: "Anxiety",     ids: [23, 4, 16] },
+  { id: "uncertainty", label: "Uncertainty", ids: [25, 5, 16] },
+  { id: "guilt",       label: "Guilt",       ids: [51, 44, 45] },
+  { id: "fear",        label: "Fear",        ids: webVerseIds },
+  { id: "all",         label: "Anything",    ids: null },
 ];
 
 export const DEFAULT_TOPIC = TOPICS[0].id;

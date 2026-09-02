@@ -26,6 +26,55 @@ const SOUND_PREF = "davidfeed:sound";
 /** The verdict never changes after load, so there is nothing to subscribe to. */
 const subscribeNever = () => () => {};
 
+/*
+ * A DIFFERENT ORDER EVERY VISIT.
+ *
+ * postsForTopic hands back the topic's own array, in the order it is written,
+ * so the home feed opened on Psalm 27:1 every single time — the same card, the
+ * same verse, for a feed whose whole premise is that you scroll it.
+ *
+ * The shuffle has to happen on the client. `/` is a static prerender: its HTML
+ * is built once and served to everyone, so there is no per-request server to
+ * vary anything. That makes this the same shape as the sound verdict directly
+ * below — a value the server cannot know and the client can — and it uses the
+ * same hook for the same reason: useSyncExternalStore takes a server snapshot
+ * and a client snapshot and reconciles them, instead of the mismatch that
+ * randomising during render would produce.
+ *
+ * One seed per page load, not per render, or every render would re-deal the
+ * feed under the reader's thumb. Each topic then shuffles deterministically
+ * from that one seed, so switching topics and switching back returns the order
+ * you left rather than a fresh one.
+ */
+let feedSeed = 0;
+const readFeedSeed = () => {
+  // Never 0 — that is the server's value, and it means "leave the order alone".
+  if (feedSeed === 0) feedSeed = 1 + Math.floor(Math.random() * 0xfffffffe);
+  return feedSeed;
+};
+const serverFeedSeed = () => 0;
+
+/**
+ * Fisher-Yates driven by mulberry32, so one seed always deals one order.
+ * Seed 0 returns the array untouched, which is what the prerender renders.
+ */
+function shuffled<T>(items: T[], seed: number): T[] {
+  if (!seed) return items;
+  let s = seed;
+  const rand = () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = items.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 /**
  * Whether this browser will let the feed open with sound. Must return a stable
  * primitive — useSyncExternalStore re-reads it on every render.
@@ -75,9 +124,16 @@ export default function Feed({
   initialPostId,
 }: FeedProps) {
   const [topicId, setTopicId] = useState(DEFAULT_TOPIC);
+  const feedSeedValue = useSyncExternalStore(subscribeNever, readFeedSeed, serverFeedSeed);
   const posts = useMemo(
-    () => (collectionLabel ? allPosts : postsForTopic(allPosts, topicId)),
-    [allPosts, topicId, collectionLabel],
+    () =>
+      // A collection keeps the order it arrived in — the Library's saved list
+      // belongs to the reader, and reshuffling it would lose the place they
+      // put things in. Only the topic feed is dealt.
+      collectionLabel
+        ? allPosts
+        : shuffled(postsForTopic(allPosts, topicId), feedSeedValue),
+    [allPosts, topicId, collectionLabel, feedSeedValue],
   );
 
   // Which card the feed opens on. Live rather than frozen at first render: the

@@ -30,7 +30,7 @@ import { TOPICS } from "@/data/topics";
  *              #999999.
  *   button     366x59, radius 100, #0096E5 — the first colour in the app that
  *              is not greyscale.
- *   topic      above the feed at y=156: "Scroll verses on" #999999 beside the
+ *   topic      above the feed at y=156: "Deal with" #999999 beside the
  *              topic in bold white, both Inter 27, then a chevron.
  *   paging     two 72x72 #212121 circles, 16 apart, to the LEFT of the card.
  *
@@ -42,7 +42,7 @@ interface DesktopChromeProps {
   topicId: string;
   onSelectTopic: (id: string) => void;
   /**
-   * A fixed collection instead of a topic. "Scroll verses on <Topic>" becomes
+   * A fixed collection instead of a topic. "Deal with <Topic>" becomes
    * the collection's name with a way back, and the topic menu is not rendered:
    * the set was chosen before arriving here, so offering to replace it would
    * be offering to leave.
@@ -138,7 +138,7 @@ export default function DesktopChrome({
                      items-center gap-[16px] border-none bg-transparent p-0 desk:flex"
         >
           <span className="text-[27px] font-normal leading-none" style={{ color: "#999999" }}>
-            Scroll verses on
+            Deal with
           </span>
           <span className="text-[27px] font-bold leading-none text-white">{topicLabel}</span>
           <span className={`flex text-white transition-transform duration-300

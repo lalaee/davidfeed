@@ -53,10 +53,21 @@ WORDMARK = "Dafod.app"
 WORDMARK_TOP = round(55 * K)            # y=55 in the frame, and CENTRED
 WORDMARK_PX = round(24 * K)
 
-CAPTION_TOP = round(90.23 * K)          # sits just under the wordmark, not mid-frame
-CAPTION_PX = round(21 * K)              # 21, and Medium — lighter than the card's own
-CAPTION_LINE = round(21 * 1.11 * K)     # line-height 1.11em
-CAPTION_MAX = round(245.97 * K)         # the layer's own width
+# The 21/Medium line under the wordmark is the TAGLINE, not the verse. Its layer
+# in the frame is called "Incoming Verse", which is a trap: the words in it are
+# "Stop Doomscrolling. Start Hopescrolling". The frame has no caption in it at
+# all, so the verse keeps the place the card gives it — the middle.
+TAGLINE = "Stop Doomscrolling. Start Faithscrolling"
+TAGLINE_TOP = round(90.23 * K)
+TAGLINE_PX = round(21 * K)
+TAGLINE_LINE = round(21 * 1.11 * K)
+TAGLINE_MAX = round(245.97 * K)
+
+# The verse, exactly as the card draws it: centred in the frame, 24 Semibold,
+# leading 1.3, in a 320 column.
+CAPTION_PX = round(24 * K)
+CAPTION_LINE = round(24 * 1.3 * K)
+CAPTION_MAX = round(320 * K)
 
 TITLE_PX = round(24 * K)
 TITLE_LEFT = round(20 * K)              # x=20
@@ -170,6 +181,13 @@ def chrome_layer(title):
         layer, text_layer([WORDMARK], mark_f, line_h, WORDMARK_TOP, "center", track)
     )
 
+    # The tagline sits under it, in the frame's lighter 21/Medium.
+    tag_f = font(TAGLINE_PX, WEIGHT_MEDIUM)
+    layer = Image.alpha_composite(
+        layer,
+        text_layer(wrap(TAGLINE, tag_f, TAGLINE_MAX), tag_f, TAGLINE_LINE, TAGLINE_TOP),
+    )
+
     # The reference, bottom left, measured up from the foot of the frame.
     t_track = TRACKING * TITLE_PX
     lines = wrap(title, title_f, W - TITLE_LEFT - round(80 * K), t_track)
@@ -196,7 +214,7 @@ def render(post):
 
     work = WORK / str(pid)
     work.mkdir(parents=True, exist_ok=True)
-    cap_f = font(CAPTION_PX, WEIGHT_MEDIUM)
+    cap_f = font(CAPTION_PX, WEIGHT_SEMIBOLD)
 
     chrome_layer(post["title"]).save(work / "chrome.png")
 
@@ -205,7 +223,10 @@ def render(post):
     caps = []
     for i, s in enumerate(post["subtitles"]):
         lines = wrap(s["t"], cap_f, CAPTION_MAX)
-        text_layer(lines, cap_f, CAPTION_LINE, CAPTION_TOP).save(work / f"c{i}.png")
+        # Vertically centred, as on the card — the block moves with its own
+        # line count so a two-line caption straddles the midline like a one.
+        top = H // 2 - (CAPTION_LINE * len(lines)) // 2
+        text_layer(lines, cap_f, CAPTION_LINE, top).save(work / f"c{i}.png")
         caps.append((work / f"c{i}.png", max(0.0, s["s"] - start), max(0.0, s["e"] - start)))
 
     cmd = ["ffmpeg", "-v", "error", "-y",

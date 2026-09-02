@@ -1374,8 +1374,33 @@ html, body {
   .desk-copy {
     left: calc(var(--desk-gutter) + 48px);
   }
+  /* The topic label is CENTRED on the card, and centring is why it cannot be
+   * anchored by an edge at all.
+   *
+   * It used to sit at right: gutter + 113, which is 51 + 622 - 560 — the card's
+   * inset, plus its width, less the width of the words "Scroll verses on Mental
+   * strength". That put the button's left edge exactly on the card's left edge,
+   * but only while the label measured 560. The label is the one thing here
+   * guaranteed to change, and "Deal with Anything" measures 312: the same anchor
+   * left it starting 248px inside the card, drifting right by precisely what it
+   * had shrunk by.
+   *
+   * So anchor the CENTRE and let the width fall where it likes. 362 is
+   * 51 + 622/2 — the card's own axis, measured from the right edge, and the
+   * same number .sound-badge above is centred on. `right` puts the element's
+   * right edge on that axis and the +50% translate slides it back by half its
+   * own width, which lands its centre there whatever the label says.
+   *
+   * translate, not transform: Tailwind v4 centres with the independent
+   * property, and a transform here would be a second rule for one property —
+   * the bet on emit order this file has already lost twice.
+   *
+   * The menu inherits the anchor and is centred under the label rather than
+   * hung off one end of it. */
   .desk-topic {
-    right: calc(var(--desk-gutter) + 113px);
+    left: auto;
+    right: calc(var(--desk-gutter) + 362px);
+    translate: 50% 0;
   }
   .desk-paging {
     right: calc(var(--desk-gutter) + 729px);

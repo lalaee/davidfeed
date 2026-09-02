@@ -50,6 +50,8 @@ CAPTION_MAX = round(320 * K)    # max-w-[320px]
 TITLE_PX = round(24 * K)
 TITLE_LEFT = round(20 * K)      # left-[20px]
 TITLE_BOTTOM = round(24 * K)    # bottom-[24px]
+WORDMARK = "Dafod.app"
+WORDMARK_TOP = round(24 * K)    # mirrors the reference's own inset at the foot
 WEIGHT_SEMIBOLD = 600           # font-semibold, on Inter's variable wght axis
 
 
@@ -97,20 +99,39 @@ def text_layer(lines, f, line_h, centre_y, align_left=None, shadow=(3, 8, 140)):
 
 
 def chrome_layer(title, f):
-    """The card's own furniture: the bottom scrim, and the reference over it."""
+    """The card's furniture, plus the one thing the card does not need.
+
+    On screen the reader already knows where they are, so the card carries no
+    wordmark. A shared clip travels without that context — it lands in someone
+    else's Story with nothing around it — so this is where the name has to be,
+    and it is given the reference's own treatment at the opposite corner: same
+    Inter, same size, same inset, same shadow.
+
+    Both scrims are here for legibility, not decoration. The bottom one is the
+    card's own; the top is its mirror at half strength, because the wordmark is
+    one short line rather than a wrapping title and needs less to sit on.
+    """
+    line_h = round(TITLE_PX * 1.2)
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+
     # bg-gradient-to-b from-transparent via-transparent to-black/40 — flat for the
-    # top half, then ramping in, exactly as the utility describes it.
+    # top half, then ramping in, exactly as the utility describes it. The top
+    # scrim ramps the other way over the first fifth of the frame.
     grad = Image.new("RGBA", (1, H), (0, 0, 0, 0))
+    top_span = H * 0.20
     for y in range(H):
-        t = max(0.0, (y - H / 2) / (H / 2))
-        grad.putpixel((0, y), (0, 0, 0, int(255 * 0.40 * t)))
+        down = max(0.0, (y - H / 2) / (H / 2)) * 0.40
+        up = max(0.0, (top_span - y) / top_span) * 0.20
+        grad.putpixel((0, y), (0, 0, 0, int(255 * max(down, up))))
     layer = Image.alpha_composite(layer, grad.resize((W, H)))
 
+    mark = text_layer([WORDMARK], f, line_h, WORDMARK_TOP + line_h // 2, align_left=True)
+    layer = Image.alpha_composite(layer, mark)
+
     lines = wrap(title, f, W - TITLE_LEFT - round(80 * K))  # right-[80px]
-    baseline = H - TITLE_BOTTOM - round(TITLE_PX * 1.2 * len(lines)) // 2
+    baseline = H - TITLE_BOTTOM - round(line_h * len(lines)) // 2
     return Image.alpha_composite(
-        layer, text_layer(lines, f, round(TITLE_PX * 1.2), baseline, align_left=True)
+        layer, text_layer(lines, f, line_h, baseline, align_left=True)
     )
 
 

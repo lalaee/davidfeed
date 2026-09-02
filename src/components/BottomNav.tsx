@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { NavBibleIcon, NavHomeIcon, NavLibraryIcon } from "./icons";
 import { navHiddenStore } from "@/lib/uiStore";
+import { useScrolledDown } from "@/hooks/useScrolledDown";
 
 /*
  * Built verbatim from the `Nav` instance in Dafod Reels (Figma 2623:939, an
@@ -72,6 +73,46 @@ import { navHiddenStore } from "@/lib/uiStore";
  *   critical. A transition and not an animation: the position changes in
  *   STEPS, which the header-morph note says is the one case a transition is
  *   for. The whole thing is one property on one element, so it composites.
+ *
+ * PRESS — the tapped tab answers the finger.
+ *
+ *   Scale 0.94 on pointer-down, 190ms: the app's own rule, from the
+ *   icon-motion skill, and what every other icon button here already does. A
+ *   control that does nothing until its action completes feels dead under the
+ *   thumb, and a route change is slow enough to notice.
+ *
+ *   iOS 26 goes the other way. Interactive Liquid Glass GROWS on press — the
+ *   material "responds to interaction by instantly flexing and energizing with
+ *   light" (WWDC25 "Meet Liquid Glass"), and `.glassEffect(.regular
+ *   .interactive())` is applied by default to tab bar items. Shrinking is a
+ *   deliberate divergence, chosen so the nav agrees with the rest of this app
+ *   rather than with a material this app does not render. Nobody has published
+ *   a measured number for the native grow, either.
+ *
+ *   React state, not :active. :active never reaches a child and is unreliable
+ *   on iOS Safari — the same reason usePress exists in VerseActionBar.
+ *
+ * SCROLL — the bar shrinks slightly and comes back.
+ *
+ *   Scale 0.90 while scrolling down, back to 1 on the way up. NOT the collapse
+ *   to a single circle that iOS does and that was built and reverted here:
+ *   this is the gentler read, the one Safari's toolbar shows, where "elements
+ *   shrink to a smaller minimized size, and bounce back when you scroll up".
+ *
+ *   0.90 is not a taste value. The reader's header morph already shrinks a
+ *   floating surface on scroll by exactly 0.1 of its size; this is the app's
+ *   second such surface and they should agree.
+ *
+ *   The timing is ASYMMETRIC on purpose, which is what "bounce back" means.
+ *   Going away is a plain 380ms on the app's curve — a thing getting out of
+ *   the way should not draw attention. Returning is 420ms on an overshoot
+ *   curve, so it passes 1 and settles. A CSS transition takes the timing
+ *   function of the state it is moving TO, so the two directions simply carry
+ *   different ones. An overshoot BEZIER rather than baked spring keyframes is
+ *   correct here: the icon-motion rule against springs-as-easing is about
+ *   MULTI-keyframe animations, where the curve is re-applied between every
+ *   pair. This is one journey between two values, which is the one shape an
+ *   easing function actually describes.
  */
 
 export type TabKey = "home" | "bible" | "library";
@@ -101,13 +142,20 @@ export default function BottomNav() {
     navHiddenStore.read,
     navHiddenStore.serverSnapshot,
   );
+  // Keyed on the path so a new page starts at rest, expanded.
+  const scrolledDown = useScrolledDown(pathname ?? "/");
+  // One key, not one flag per tab: only one finger is down at a time.
+  const [pressed, setPressed] = useState<TabKey | null>(null);
   if (hidden) return null;
+
+  const release = () => setPressed(null);
 
   return (
     <nav
       // Read by the Bible reader to find the floor its action bar must stay
       // above. DesktopNav renders a <nav> too, and earlier in the document.
       data-bottom-nav
+      data-scrolled={scrolledDown ? "" : undefined}
       aria-label="Main"
       className="fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999] flex h-[75px] w-fit
                  -translate-x-1/2 items-start justify-center gap-[47.619px] rounded-[47.619px]
@@ -132,7 +180,17 @@ export default function BottomNav() {
             key={tab.key}
             href={tab.href}
             aria-current={isActive ? "page" : undefined}
+            data-nav-tab
+            onPointerDown={() => setPressed(tab.key)}
+            onPointerUp={release}
+            onPointerCancel={release}
+            onPointerLeave={release}
+            onPointerOut={release}
+            onBlur={release}
             className="relative block h-[65.476px] w-[41.667px] flex-shrink-0 no-underline"
+            // The independent property, so it cannot collide with the
+            // centring translate on the bar or the pill's own travel.
+            style={{ scale: pressed === tab.key ? "0.94" : undefined }}
           >
             {/* Inline, not <img>. A failed request used to leave a
                 broken-image box sitting in the nav with the label still under

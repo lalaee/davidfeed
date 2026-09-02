@@ -1129,8 +1129,15 @@ button, [role="button"], a {
     transition: none;
   }
 
-  [data-bottom-nav] [data-nav-selected] {
+  [data-bottom-nav],
+  [data-bottom-nav] [data-nav-selected],
+  [data-bottom-nav] [data-nav-tab] {
     transition-duration: 1ms;
+  }
+  /* Apple's own reduced-motion rule for this material "disables any elastic
+     properties"; the scroll shrink is elastic, so it does not happen at all. */
+  [data-bottom-nav][data-scrolled] {
+    scale: 1;
   }
 
   /* Press feedback is direct manipulation, not decoration, so it stays — but
@@ -1274,12 +1281,44 @@ html, body {
   }
 }
 
-/* === Bottom nav: the gliding selector =======================================
+/* === Bottom nav: the gliding selector, the press, the scroll shrink =========
    One pill travels between tabs on `translate`. 420ms on the app's iOS curve
    with no overshoot; a transition because the position changes in steps.
-   See BottomNav.tsx for where the numbers come from. */
+   See BottomNav.tsx for where every number here comes from. */
 [data-bottom-nav] [data-nav-selected] {
   transition: translate 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Press: the app's own 0.94 at 190ms, driven by React state rather than
+   :active, which never reaches a child and is unreliable on iOS Safari. */
+[data-bottom-nav] [data-nav-tab] {
+  /* The `scale: 1` is load-bearing, not tidiness. Without it the resting
+     value computes to `none`, and `none` is not a number, so the browser has
+     nothing to interpolate from and the press JUMPS instead of easing.
+     Measured: the tab went straight to its pressed size with the 190ms
+     transition declared and ignored. */
+  scale: 1;
+  transition: scale 190ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Scroll: shrink out of the way, bounce on the way back.
+
+   This rule is the RETURN, because a transition takes the timing function of
+   the state it moves TO — so resting here carries the overshoot curve, and
+   scrolling away carries the plain one below. cubic-bezier(0.34, 1.56, 0.64,
+   1) passes its end value by ~10% of the change; over a 0.1 scale delta that
+   is about 1% past full size, which is a bounce you feel rather than watch. */
+[data-bottom-nav] {
+  /* Same reason as the tab above: an explicit 1 so the return has two numbers
+     to move between. With `none` at rest the bar snapped back from 0.9 with
+     no bounce at all — the overshoot curve below was being applied to a
+     transition that could never run. */
+  scale: 1;
+  transition: scale 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-bottom-nav][data-scrolled] {
+  scale: 0.9;
+  transition: scale 380ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* The desktop composition is drawn on a 1440 canvas and stops growing there.

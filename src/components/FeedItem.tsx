@@ -597,6 +597,56 @@ export default function FeedItem({
     }
   }, [postId]);
 
+  /*
+   * Share the VIDEO, not a link to it.
+   *
+   * Web Share Level 2 takes files, which is what puts the clip itself into an
+   * Instagram Story or a WhatsApp status instead of a URL and an OG image. The
+   * file is a static asset built by scripts/build-share-videos.py — artwork,
+   * narration and burned-in captions already composed — because a card on the
+   * page is three separate pieces and not a video at all.
+   *
+   * The await before navigator.share is the delicate part, and it is fine on
+   * purpose. Sharing requires user activation, and a naive read says any await
+   * spends it — but activation is TRANSIENT, ~5s in both WebKit and Chromium,
+   * so a fetch that lands inside that window still counts. These clips are
+   * 1-4MB and same-origin, so they land well inside it. Prefetching them on
+   * dwell instead was the alternative, and it would pull megabytes per card for
+   * a button most readers never press.
+   *
+   * Cancelling the sheet throws AbortError. That is the reader saying no, not a
+   * failure, so it must NOT fall through to sharing a link — which would open a
+   * second sheet the instant they dismissed the first.
+   */
+  const shareCard = useCallback(async () => {
+    const url = `${window.location.origin}/library/${postId}`;
+    const text = `${title} — dafod.app`;
+
+    try {
+      const res = await fetch(`/assets/share/${postId}.mp4`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const name = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-dafod.mp4`;
+        const file = new File([blob], name, { type: "video/mp4" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text });
+          return;
+        }
+      }
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+      // Anything else — no file built, offline, a target that refused it — is
+      // not worth surfacing. The link below is a working share either way.
+    }
+
+    if (!navigator.share) return;
+    try {
+      await navigator.share({ title, text, url });
+    } catch {
+      /* dismissed */
+    }
+  }, [postId, title]);
+
   const handleShare = useCallback(() => {
     // Restart cleanly if it is tapped again mid-flight; re-applying the same
     // class without clearing it first would not replay the animation.
@@ -610,14 +660,8 @@ export default function FeedItem({
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
-    if (navigator.share) {
-      navigator.share({
-        title: title,
-        text: `Check out ${title} on DavidFeed`,
-        url: window.location.href,
-      });
-    }
-  }, [title]);
+    void shareCard();
+  }, [shareCard]);
 
   return (
     <div className="relative w-full h-[calc(100dvh-138px)] min-h-[calc(100svh-138px)] snap-start snap-always flex-shrink-0 mb-[12px]

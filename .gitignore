@@ -50,3 +50,6 @@ __pycache__/
 
 # whisper.cpp working files for scripts/align-*.py (wavs + raw transcripts)
 .align-web/
+
+# ffmpeg/Pillow scratch for scripts/build-share-videos.py
+.share-build/

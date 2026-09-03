@@ -1406,3 +1406,46 @@ html, body {
     right: calc(var(--desk-gutter) + 729px);
   }
 }
+
+/* THE GLIDING PILL'S SQUASH.
+ *
+ * iOS 26's tab capsule does not travel rigid — it stretches along the way it is
+ * going and thins across it, then settles. Ours only translated, which reads as
+ * a rectangle being moved rather than something liquid arriving.
+ *
+ * Area-preserving, and that is the whole trick: sy is exactly 1/sx, so the pill
+ * gets longer by precisely as much as it gets thinner. Scale both axes freely
+ * and it reads as a zoom; hold the area and it reads as a body under load. Both
+ * are set per move from the distance travelled, because the nav crosses one tab
+ * or two in the same 420ms — two tabs is twice the speed, and a stretch that
+ * ignored that would under-serve the longer throw.
+ *
+ * The peak sits at 32%, not the middle. The travel runs on the app's own
+ * cubic-bezier(0.32, 0.72, 0, 1), which spends its speed early and then settles
+ * for a long time; the stretch belongs where the velocity is, not where the
+ * clock is.
+ *
+ * TWO IDENTICAL KEYFRAMES, alternated per move. Re-applying one animation name
+ * does not replay it, and the usual fixes — remounting, or clearing the name
+ * and forcing a reflow — would either kill the translate transition the pill
+ * rides on or fight React for the same property. Swapping between -a and -b
+ * guarantees a fresh run every time and costs one boolean.
+ */
+@keyframes nav-pill-travel-a {
+  0%   { scale: 1 1; }
+  32%  { scale: var(--pill-sx) var(--pill-sy); }
+  100% { scale: 1 1; }
+}
+@keyframes nav-pill-travel-b {
+  0%   { scale: 1 1; }
+  32%  { scale: var(--pill-sx) var(--pill-sy); }
+  100% { scale: 1 1; }
+}
+.nav-pill {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  animation-fill-mode: both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-pill { animation: none; }
+}

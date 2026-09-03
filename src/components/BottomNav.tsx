@@ -146,6 +146,24 @@ export default function BottomNav() {
   const scrolledDown = useScrolledDown(pathname ?? "/");
   // One key, not one flag per tab: only one finger is down at a time.
   const [pressed, setPressed] = useState<TabKey | null>(null);
+
+  /*
+   * How far the pill is about to travel, and a counter to replay the squash by.
+   *
+   * Adjusted at render time — the "react to a prop change" shape this codebase
+   * uses everywhere — because an effect here would be a cascading render, and
+   * because the animation has to be on the element in the SAME commit that
+   * moves it. A frame later and the stretch would start after the travel had.
+   */
+  const [seenIndex, setSeenIndex] = useState(activeIndex);
+  const [move, setMove] = useState({ distance: 0, run: 0 });
+  if (seenIndex !== activeIndex) {
+    setSeenIndex(activeIndex);
+    setMove({ distance: Math.abs(activeIndex - seenIndex), run: move.run + 1 });
+  }
+  // 10% per tab crossed. The app already shrinks this bar by 10% on scroll and
+  // its buttons by 6% on press, so a tenth is the unit this nav deforms in.
+  const stretch = 1 + 0.1 * move.distance;
   if (hidden) return null;
 
   const release = () => setPressed(null);
@@ -167,11 +185,20 @@ export default function BottomNav() {
       <span
         aria-hidden
         data-nav-selected
-        className="pointer-events-none absolute left-[5.131px] top-[5.024px] h-[64.286px] w-[91.31px] rounded-[57.143px]"
+        className="nav-pill pointer-events-none absolute left-[5.131px] top-[5.024px] h-[64.286px] w-[91.31px] rounded-[57.143px]"
         style={{
           backgroundColor: "#212121",
           translate: `${activeIndex * PITCH}px 0`,
-        }}
+          // Nothing until the pill has actually been sent somewhere, so it does
+          // not squash on the first paint of a page.
+          ...(move.distance
+            ? {
+                animationName: move.run % 2 ? "nav-pill-travel-a" : "nav-pill-travel-b",
+                "--pill-sx": stretch,
+                "--pill-sy": 1 / stretch,
+              }
+            : null),
+        } as React.CSSProperties}
       />
       {TABS.map((tab) => {
         const isActive = activeTab === tab.key;

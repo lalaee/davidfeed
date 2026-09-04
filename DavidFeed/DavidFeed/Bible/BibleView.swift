@@ -21,6 +21,8 @@ struct BibleView: View {
 
     private static let column = "reader-column"
     private static let barHeight: CGFloat = 78
+    /// Room the floating tab bar occupies at the bottom, including its inset.
+    private static let navFloor: CGFloat = 112
     @State private var showBooks = false
     @State private var comparing: Int?
 
@@ -72,9 +74,6 @@ struct BibleView: View {
         // by oversight. Its scroll-edge effect still applies.
         .toolbarTitleDisplayMode(.inline)
         }
-        // "The nav is absent while a verse is selected, as in every
-        // selected-verse frame."
-        .toolbar(selected == nil ? .visible : .hidden, for: .tabBar)
         .onChange(of: store.chapter) { selected = nil }
         .onChange(of: store.book) { selected = nil }
         .sheet(isPresented: $showBooks) {
@@ -192,7 +191,12 @@ struct BibleView: View {
         if let n = selected, let frame = barAnchor {
             let k = key(n)
             let below = frame.maxY + 17
-            let fitsBelow = below + Self.barHeight < size.height - 40
+            // The floor is the NAV's top edge, not the viewport's, now that the
+            // nav stays through a selection — the same correction davidfeed
+            // records for its own bar. Without it the action bar can come to
+            // rest under the tab bar, where it is half-hidden and partly
+            // untappable.
+            let fitsBelow = below + Self.barHeight < size.height - Self.navFloor
             VerseActionBar(
                 highlight: app.highlight(k),
                 isSaved: app.isVerseSaved(k),

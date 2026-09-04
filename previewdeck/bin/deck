@@ -1,0 +1,473 @@
+#!/usr/bin/env python3
+"""
+deck — build, launch and screenshot any of the cloned SwiftUI demos on the iOS 26 simulator.
+
+  deck ls [pattern]        list demos (pattern matches id, repo or scheme)
+  deck run <id>            build + install + launch on the simulator, then open Simulator.app
+  deck shot <id>           build + install + launch + screenshot
+  deck record <id> [secs]  same, but film it (default 12s) — motion, not a still
+  deck record --live <name> [secs]   film whatever is already on screen
+  deck batch <file>        run `shot` for every id in a file (one per line, # comments ok)
+  deck retry               re-run every demo that failed, with current fixes
+  deck open <id>           open the project in Xcode
+  deck gallery             rebuild gallery.html from whatever screenshots exist
+  deck status              results so far
+  deck clean               delete DerivedData
+"""
+import json, os, re, subprocess, sys, time, shutil, plistlib, base64
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPOS = os.path.join(ROOT, "repos")
+DD = os.path.join(ROOT, ".dd")
+SHOTS = os.path.join(ROOT, "shots")
+LOGS = os.path.join(ROOT, "logs")
+CATALOG = os.path.join(ROOT, "catalog.json")
+RESULTS = os.path.join(ROOT, "results.json")
+PRODUCTS = os.path.join(DD, "Build", "Products", "Debug-iphonesimulator")
+
+DEVICE_NAME = "iPhone 17 Pro"
+BUILD_TIMEOUT = int(os.environ.get("DECK_BUILD_TIMEOUT", 420))   # seconds per build
+SETTLE = float(os.environ.get("DECK_SETTLE", 6))                # launch → screenshot delay
+
+BAD_SCHEME = re.compile(r"(Tests?$|UITests?$|Clip$|Widget|Extension|Watch|Snapshot|Benchmark)", re.I)
+
+
+def sh(cmd, timeout=None, cwd=None):
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd)
+
+
+def load(path, default):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def catalog():
+    return load(CATALOG, [])
+
+
+def results():
+    return load(RESULTS, {})
+
+
+def save_results(r):
+    with open(RESULTS, "w") as f:
+        json.dump(r, f, indent=1)
+
+
+def find(entry_id):
+    cat = catalog()
+    for e in cat:
+        if e["id"] == entry_id:
+            return e
+    hits = [e for e in cat if entry_id.lower() in e["id"].lower()]
+    if len(hits) == 1:
+        return hits[0]
+    if not hits:
+        sys.exit(f"no demo matching {entry_id!r} — try: deck ls {entry_id}")
+    sys.exit("ambiguous, matches:\n  " + "\n  ".join(h["id"] for h in hits[:20]))
+
+
+# ---------------------------------------------------------------- simulator
+
+_udid = None
+
+def udid():
+    global _udid
+    if _udid:
+        return _udid
+    out = sh(["xcrun", "simctl", "list", "devices", "available", "-j"]).stdout
+    devs = json.loads(out)["devices"]
+    for rt, lst in devs.items():
+        if "iOS-26" not in rt:
+            continue
+        for d in lst:
+            if d["name"] == DEVICE_NAME:
+                _udid = d["udid"]
+                return _udid
+    sys.exit(f"no iOS 26 simulator named {DEVICE_NAME!r}")
+
+
+def boot():
+    u = udid()
+    st = sh(["xcrun", "simctl", "list", "devices", "-j"]).stdout
+    for lst in json.loads(st)["devices"].values():
+        for d in lst:
+            if d["udid"] == u and d["state"] == "Booted":
+                return u
+    sh(["xcrun", "simctl", "boot", u], timeout=180)
+    sh(["xcrun", "simctl", "bootstatus", u, "-b"], timeout=300)
+    return u
+
+
+# ---------------------------------------------------------------- build
+
+def container_args(e):
+    path = os.path.join(REPOS, e["path"])
+    flag = "-workspace" if e["container_kind"] == "workspace" else "-project"
+    return [flag, path]
+
+
+def list_schemes(e):
+    r = sh(["xcodebuild", "-list", "-json"] + container_args(e), timeout=180)
+    try:
+        data = json.loads(r.stdout[r.stdout.index("{"):])
+    except (ValueError, KeyError):
+        return []
+    node = data.get("workspace") or data.get("project") or {}
+    return node.get("schemes", [])
+
+
+def pick_scheme(e):
+    """Best runnable scheme for this container, resolved against the real scheme list."""
+    schemes = list_schemes(e)
+    if not schemes:
+        return e["scheme"]
+    base = os.path.basename(e["path"]).rsplit(".", 1)[0]
+    good = [s for s in schemes if not BAD_SCHEME.search(s)] or schemes
+    for s in good:
+        if s == base:
+            return s
+    for s in good:
+        if base.lower() in s.lower() or s.lower() in base.lower():
+            return s
+    return sorted(good, key=len)[0]
+
+
+def locate_app(e, scheme, after):
+    """Find the .app this build produced. Incremental no-op builds leave an old
+    mtime, so name-matching comes before the newest-file fallback."""
+    if not os.path.isdir(PRODUCTS):
+        return None
+    apps = [os.path.join(PRODUCTS, n) for n in os.listdir(PRODUCTS) if n.endswith(".app")]
+    if not apps:
+        return None
+    norm = lambda s: re.sub(r"[^a-z0-9]", "", s.lower())
+    want = norm(scheme)
+    for a in apps:
+        if norm(os.path.basename(a)[:-4]) == want:
+            return a
+    # ask xcodebuild what it actually built
+    r = sh(["xcodebuild", "-showBuildSettings", "-json"] + container_args(e) +
+           ["-scheme", scheme, "-sdk", "iphonesimulator", "-configuration", "Debug"],
+          timeout=180)
+    try:
+        for cfg in json.loads(r.stdout[r.stdout.index("["):]):
+            bs = cfg.get("buildSettings", {})
+            name = bs.get("FULL_PRODUCT_NAME")
+            if name:
+                p = os.path.join(PRODUCTS, name)
+                if os.path.isdir(p):
+                    return p
+    except (ValueError, KeyError):
+        pass
+    fresh = [a for a in apps if os.path.getmtime(a) >= after - 2]
+    return max(fresh or apps, key=os.path.getmtime)
+
+
+def build(e, scheme, extra=()):
+    t0 = time.time()
+    cmd = ["xcodebuild"] + container_args(e) + [
+        "-scheme", scheme,
+        "-sdk", "iphonesimulator",
+        "-configuration", "Debug",
+        "-destination", "generic/platform=iOS Simulator",
+        "-derivedDataPath", DD,
+        "-quiet",
+        "CODE_SIGNING_ALLOWED=NO", "CODE_SIGNING_REQUIRED=NO", "CODE_SIGN_IDENTITY=",
+        "ONLY_ACTIVE_ARCH=YES",
+    ] + list(extra) + [
+        "build",
+    ]
+    log = os.path.join(LOGS, "build-" + re.sub(r"[^\w.-]", "_", e["id"]) + ".log")
+    try:
+        r = sh(cmd, timeout=BUILD_TIMEOUT, cwd=os.path.dirname(os.path.join(REPOS, e["path"])))
+    except subprocess.TimeoutExpired:
+        with open(log, "w") as f:
+            f.write("TIMEOUT after %ss\n" % BUILD_TIMEOUT)
+        return None, "timeout", time.time() - t0
+    with open(log, "w") as f:
+        f.write(r.stdout + "\n---stderr---\n" + r.stderr)
+    if r.returncode != 0:
+        errs = [l.strip() for l in (r.stdout + r.stderr).splitlines()
+                if re.search(r"\berror:", l)]
+        why = errs[0][:300] if errs else (r.stderr.strip().splitlines() or ["build failed"])[-1][:300]
+        return None, why, time.time() - t0
+    app = locate_app(e, scheme, t0)
+    if not app:
+        return None, "built, but produced no .app (library-only scheme?)", time.time() - t0
+    return app, None, time.time() - t0
+
+
+def bundle_id(app):
+    try:
+        with open(os.path.join(app, "Info.plist"), "rb") as f:
+            return plistlib.load(f).get("CFBundleIdentifier")
+    except Exception:
+        return None
+
+
+def install_launch(app):
+    u = boot()
+    bid = bundle_id(app)
+    if not bid:
+        return None, "no CFBundleIdentifier"
+    r = sh(["xcrun", "simctl", "install", u, app], timeout=180)
+    if r.returncode != 0:
+        return None, "install failed: " + r.stderr.strip()[:200]
+    sh(["xcrun", "simctl", "terminate", u, bid], timeout=60)
+    r = sh(["xcrun", "simctl", "launch", u, bid], timeout=120)
+    if r.returncode != 0:
+        return None, "launch failed: " + r.stderr.strip()[:200]
+    return bid, None
+
+
+def screenshot(entry_id):
+    u = udid()
+    name = re.sub(r"[^\w.-]", "_", entry_id)
+    png = os.path.join(SHOTS, name + ".png")
+    jpg = os.path.join(SHOTS, name + ".jpg")
+    r = sh(["xcrun", "simctl", "io", u, "screenshot", png], timeout=120)
+    if r.returncode != 0 or not os.path.exists(png):
+        return None, "screenshot failed"
+    sh(["sips", "-Z", "1000", "-s", "format", "jpeg", "-s", "formatOptions", "72",
+        png, "--out", jpg], timeout=120)
+    os.remove(png)
+    return (jpg if os.path.exists(jpg) else None), None
+
+
+# ---------------------------------------------------------------- commands
+
+def cmd_ls(args):
+    pat = (args[0].lower() if args else "")
+    res = results()
+    rows = []
+    for e in catalog():
+        if not (e["is_app"] and e["ios"]):
+            continue
+        hay = (e["id"] + " " + e["repo"] + " " + e["scheme"]).lower()
+        if pat and pat not in hay:
+            continue
+        st = res.get(e["id"], {}).get("status", "")
+        rows.append((e["id"], e["min_ios"] or "-", st))
+    for i, m, s in rows:
+        mark = {"ok": "✓", "failed": "✗", "": " "}.get(s, "?")
+        print(f"{mark} {i:58s} iOS {m}")
+    print(f"\n{len(rows)} demos")
+
+
+# Known-fixable failures, each with the build settings that work around them.
+ISOLATION = ("SWIFT_DEFAULT_ACTOR_ISOLATION=nonisolated",)
+DEPLOY_26 = ("IPHONEOS_DEPLOYMENT_TARGET=26.0",)
+SWIFT5 = ("SWIFT_VERSION=5",)
+
+def retry_flags(msg):
+    """Extra build settings worth a second attempt for this error, in order."""
+    m = (msg or "").lower()
+    out = []
+    if "actor-isolated" in m or "main actor" in m or "nonisolated" in m:
+        out.append(ISOLATION)
+    if "requires a newer version of ios" in m or "deployment target" in m:
+        out.append(DEPLOY_26)
+        out.append(DEPLOY_26 + ISOLATION)
+    if "swift 6" in m or "concurrency" in m or "sending" in m:
+        out.append(SWIFT5)
+    return out
+
+
+def attempt(e, scheme, extra=()):
+    """One build + install + launch cycle. Returns (app, bundle_id, error, secs)."""
+    app, err, secs = build(e, scheme, extra)
+    if err:
+        return None, None, err, secs
+    bid, lerr = install_launch(app)
+    return app, bid, lerr, secs
+
+
+def one(entry_id, shot=True, quiet=False):
+    e = find(entry_id)
+    scheme = pick_scheme(e)
+    if not quiet:
+        print(f"→ {e['id']}  (scheme: {scheme})", flush=True)
+    app, bid, err, secs = attempt(e, scheme)
+    used = ()
+    if err:
+        tried = set()
+        for extra in retry_flags(err):
+            if extra in tried:
+                continue
+            tried.add(extra)
+            print(f"  ↻ retry with {' '.join(extra)}", flush=True)
+            app2, bid2, err2, secs2 = attempt(e, scheme, extra)
+            secs += secs2
+            if not err2:
+                app, bid, err, used = app2, bid2, None, extra
+                break
+    rec = {"id": e["id"], "repo": e["repo"], "slug": e["slug"], "scheme": scheme,
+           "path": e["path"], "min_ios": e["min_ios"], "build_secs": round(secs, 1),
+           "flags": " ".join(used)}
+    rec["bundle_id"] = bid
+    if err:
+        rec.update(status="failed", error=err, shot=None)
+        print(f"  ✗ {err}", flush=True)
+    else:
+        rec.update(status="ok", app=os.path.basename(app))
+        if shot:
+            time.sleep(SETTLE)
+            jpg, _ = screenshot(e["id"])
+            rec["shot"] = os.path.relpath(jpg, ROOT) if jpg else None
+        note = f"  [{rec['flags']}]" if rec["flags"] else ""
+        print(f"  \u2713 launched {bid}  ({secs:.0f}s build){note}", flush=True)
+    r = results()
+    r[e["id"]] = rec
+    save_results(r)
+    return rec
+
+
+def cmd_run(args):
+    if not args:
+        sys.exit("usage: deck run <id>")
+    rec = one(args[0], shot=False)
+    if rec["status"] == "ok":
+        subprocess.run(["open", "-a", "Simulator"])
+
+
+def cmd_shot(args):
+    if not args:
+        sys.exit("usage: deck shot <id>")
+    one(args[0], shot=True)
+
+
+def cmd_batch(args):
+    if not args:
+        sys.exit("usage: deck batch <file-of-ids>")
+    ids = []
+    with open(args[0]) as f:
+        for line in f:
+            line = line.split("#")[0].strip()
+            if line:
+                ids.append(line)
+    ok = 0
+    t0 = time.time()
+    for n, i in enumerate(ids, 1):
+        print(f"[{n}/{len(ids)}] ", end="")
+        try:
+            if one(i)["status"] == "ok":
+                ok += 1
+        except SystemExit as ex:
+            print(f"  ✗ {ex}")
+        except Exception as ex:
+            print(f"  ✗ {type(ex).__name__}: {ex}")
+    print(f"\n{ok}/{len(ids)} launched in {(time.time()-t0)/60:.1f} min")
+
+
+def record(seconds, out):
+    """Record the booted device's screen. Uses CoreSimulator's own video stream, so it
+    needs no macOS Screen Recording permission."""
+    u = boot()
+    if os.path.exists(out):
+        os.remove(out)
+    p = subprocess.Popen(["xcrun", "simctl", "io", u, "recordVideo", "--codec=h264",
+                          "--force", out],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        time.sleep(seconds)
+    finally:
+        p.send_signal(2)          # SIGINT — recordVideo finalises the file on interrupt
+        try:
+            p.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            p.kill()
+    return out if os.path.exists(out) and os.path.getsize(out) > 0 else None
+
+
+def cmd_record(args):
+    """deck record <id> [seconds] — build, launch and film it.
+       deck record --live <name> [seconds] — just film whatever is on screen now."""
+    if not args:
+        sys.exit('usage: deck record <id> [seconds]   |   deck record --live <name> [seconds]')
+    live = args[0] == "--live"
+    if live:
+        args = args[1:]
+        if not args:
+            sys.exit("usage: deck record --live <name> [seconds]")
+    name = args[0]
+    seconds = float(args[1]) if len(args) > 1 else 12.0
+    out = os.path.join(SHOTS, re.sub(r"[^\w.-]", "_", name) + ".mp4")
+
+    if not live:
+        rec = one(name, shot=False)
+        if rec["status"] != "ok":
+            sys.exit(f"  not recording: {rec.get('error')}")
+        name = rec["id"]
+        out = os.path.join(SHOTS, re.sub(r"[^\w.-]", "_", name) + ".mp4")
+        time.sleep(2)
+
+    print(f"recording {seconds:.0f}s -> {os.path.relpath(out, ROOT)}", flush=True)
+    print("  interact with the simulator now", flush=True)
+    got = record(seconds, out)
+    if got:
+        print(f"  wrote {os.path.getsize(got)/1e6:.1f} MB")
+    else:
+        print("  recording produced nothing")
+
+
+def cmd_retry(args):
+    """Re-run every demo that previously failed, with the current fixes in place."""
+    failed = [v["id"] for v in results().values() if v["status"] != "ok"]
+    if not failed:
+        print("nothing to retry")
+        return
+    print(f"retrying {len(failed)} failed demos\n")
+    ok = 0
+    t0 = time.time()
+    for n, i in enumerate(sorted(failed), 1):
+        print(f"[{n}/{len(failed)}] ", end="")
+        try:
+            if one(i)["status"] == "ok":
+                ok += 1
+        except SystemExit as ex:
+            print(f"  ✗ {ex}")
+        except Exception as ex:
+            print(f"  ✗ {type(ex).__name__}: {ex}")
+    print(f"\n{ok}/{len(failed)} recovered in {(time.time()-t0)/60:.1f} min")
+
+
+def cmd_open(args):
+    e = find(args[0])
+    subprocess.run(["open", os.path.join(REPOS, e["path"])])
+
+
+def cmd_status(args):
+    r = results()
+    ok = [v for v in r.values() if v["status"] == "ok"]
+    bad = [v for v in r.values() if v["status"] != "ok"]
+    print(f"{len(ok)} ok, {len(bad)} failed, {len(r)} attempted")
+    for v in bad:
+        print(f"  ✗ {v['id']:52s} {v.get('error','')[:90]}")
+
+
+def cmd_clean(args):
+    shutil.rmtree(DD, ignore_errors=True)
+    print("removed", DD)
+
+
+def cmd_gallery(args):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import gallery
+    gallery.build()
+
+
+CMDS = {"ls": cmd_ls, "run": cmd_run, "shot": cmd_shot, "record": cmd_record,
+        "batch": cmd_batch, "retry": cmd_retry, "open": cmd_open,
+        "status": cmd_status, "clean": cmd_clean, "gallery": cmd_gallery}
+
+if __name__ == "__main__":
+    for d in (SHOTS, LOGS):
+        os.makedirs(d, exist_ok=True)
+    if len(sys.argv) < 2 or sys.argv[1] not in CMDS:
+        print(__doc__)
+        sys.exit(0 if len(sys.argv) < 2 else 1)
+    CMDS[sys.argv[1]](sys.argv[2:])

@@ -25,6 +25,12 @@ struct FeedView: View {
     /// the topic's first id rather than the first row of shorts.json.
     private var posts: [Post] { fixedSet ? allPosts : topic.posts(from: allPosts) }
 
+    /// The card peeking below the current one.
+    private var nextID: Int? {
+        guard let activeID, let i = posts.firstIndex(where: { $0.id == activeID }) else { return nil }
+        return posts.indices.contains(i + 1) ? posts[i + 1].id : nil
+    }
+
     var body: some View {
         GeometryReader { geo in
             // Captured before the scroll view ignores the safe area, so the
@@ -36,7 +42,18 @@ struct FeedView: View {
             ScrollView(.vertical) {
                 LazyVStack(spacing: DF.cardGap) {
                     ForEach(posts) { post in
-                        FeedCardView(post: post, isActive: activeID == post.id)
+                        FeedCardView(
+                            post: post,
+                            isActive: activeID == post.id,
+                            // The card jutting out below is on screen, so it
+                            // plays too. Deliberately just ONE ahead: the
+                            // parallax failures came from every realized card
+                            // holding a looper, and a looper enqueues several
+                            // items each. Two cards is ~6 video items; five was
+                            // ~15, which is where iOS starts dropping them
+                            // silently.
+                            playsLoop: activeID == post.id || post.id == nextID
+                        )
                             .frame(height: cardHeight)
                             .id(post.id)
                     }

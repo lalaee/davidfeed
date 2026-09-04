@@ -4,8 +4,13 @@ import SwiftUI
 /// as it is spoken, the verse reference, and the save/share rail.
 struct FeedCardView: View {
     let post: Post
-    /// Only the card in view plays. The feed drives this.
+    /// The focused card: it owns the narration, the caption and the badge.
     let isActive: Bool
+    /// Whether this card's parallax runs. Wider than `isActive` — the card
+    /// peeking below is visible, so it animates too — but deliberately narrow,
+    /// because every extra looper is several more video items competing for a
+    /// limited number of decoders.
+    let playsLoop: Bool
 
     @Environment(AppState.self) private var app
     /// Not @State: a player owned by a view dies with the view, which is what
@@ -84,7 +89,7 @@ struct FeedCardView: View {
             // silently rather than erroring: that is the parallax that "sometimes
             // doesn't play". The still underneath means nothing flashes black
             // while the loop for a newly-focused card spins up.
-            if isActive, let loop = post.loopURL {
+            if playsLoop, let loop = post.loopURL {
                 LoopPlayerView(url: loop, isPlaying: true)
             }
         }

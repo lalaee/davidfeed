@@ -36,6 +36,12 @@ final class BibleStore {
         .init(id: "web", label: "WEB", note: "World English Bible"),
     ]
 
+    /// Where the reader is. Held here rather than in BibleView so another tab
+    /// can move it — opening the Bible from a feed card has to land on that
+    /// card's chapter, and a view's @State is not reachable from outside it.
+    var book: String = "psalms"
+    var chapter: Int = 46
+
     private(set) var books: [BookMeta] = []
     private var cache: [String: BookText] = [:]
 
@@ -72,6 +78,42 @@ final class BibleStore {
     }
 
     func meta(_ slug: String) -> BookMeta? { books.first { $0.slug == slug } }
+
+    /// Resolve a card's title — "Psalm 27:1", "2 Samuel 22:29", "Psalm 23:1-3" —
+    /// to a book and chapter.
+    ///
+    /// The trailing number before the colon is the chapter, whatever precedes it
+    /// is the book. Two wrinkles: the feed writes "Psalm" where the canon says
+    /// "Psalms", and numbered books ("2 Samuel") slug with a hyphen.
+    func locate(title: String) -> (book: String, chapter: Int)? {
+        let head = title.split(separator: ":").first.map(String.init) ?? title
+        let parts = head.split(separator: " ")
+        guard let chapter = Int(parts.last ?? "") , parts.count >= 2 else { return nil }
+        let name = parts.dropLast().joined(separator: " ")
+        let slug = name.lowercased().replacingOccurrences(of: " ", with: "-")
+
+        // Exact, then the singular/plural the feed's titles use.
+        for candidate in [slug, slug + "s", String(slug.dropLast())] where !candidate.isEmpty {
+            if books.contains(where: { $0.slug == candidate }) {
+                return (candidate, chapter)
+            }
+        }
+        // Last resort: match on the display name the translation itself carries.
+        if let hit = books.first(where: { $0.name.lowercased().hasPrefix(name.lowercased()) }) {
+            return (hit.slug, chapter)
+        }
+        return nil
+    }
+
+    /// Open the reader at a card's verse, if the title resolves. Chapter is
+    /// clamped, since a card could name one the translation does not have.
+    @discardableResult
+    func open(title: String) -> Bool {
+        guard let (slug, ch) = locate(title: title) else { return false }
+        book = slug
+        chapter = min(max(1, ch), max(1, chapterCount(slug)))
+        return true
+    }
 
     func displayName(_ slug: String) -> String { book(slug)?.name ?? slug }
 

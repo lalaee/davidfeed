@@ -44,6 +44,16 @@ struct RootView: View {
         // has no native counterpart short of replacing the bar entirely (which
         // would cost the Liquid Glass and the gliding selector). Collapsing is
         // off; the bar now stays put.
+        // Opening the Bible FROM the feed lands on the chapter the card is
+        // quoting, so "Psalm 27:1" on screen becomes Psalms 27 in the reader.
+        // Only from the feed: arriving from the Library, or back from a sheet,
+        // should leave the reader where it was.
+        .onChange(of: screen) { previous, current in
+            guard current == .bible, previous == .home,
+                  let post = Playback.shared.currentPost
+            else { return }
+            BibleStore.shared.open(title: post.title)
+        }
         .tabBarMinimizeBehavior(.never)
         .tint(DF.ink)
         .background(DF.ground)

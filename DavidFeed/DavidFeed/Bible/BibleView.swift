@@ -21,12 +21,10 @@ struct BibleView: View {
 
     private static let column = "reader-column"
     private static let barHeight: CGFloat = 78
-    @State private var book = "psalms"
-    @State private var chapter = 46
     @State private var showBooks = false
     @State private var comparing: Int?
 
-    private var verses: [String] { store.verses(book: book, chapter: chapter) }
+    private var verses: [String] { store.verses(book: store.book, chapter: store.chapter) }
 
     var body: some View {
         NavigationStack {
@@ -53,8 +51,8 @@ struct BibleView: View {
                 .scrollIndicators(.hidden)
                 // iOS 26's own treatment for content passing under the bar.
                 .scrollEdgeEffectStyle(.soft, for: .top)
-                .onChange(of: chapter) { proxy.scrollTo("top", anchor: .top) }
-                .onChange(of: book) { proxy.scrollTo("top", anchor: .top) }
+                .onChange(of: store.chapter) { proxy.scrollTo("top", anchor: .top) }
+                .onChange(of: store.book) { proxy.scrollTo("top", anchor: .top) }
             }
 
             if selected == nil { pager }
@@ -70,14 +68,14 @@ struct BibleView: View {
         // "The nav is absent while a verse is selected, as in every
         // selected-verse frame."
         .toolbar(selected == nil ? .visible : .hidden, for: .tabBar)
-        .onChange(of: chapter) { selected = nil }
-        .onChange(of: book) { selected = nil }
+        .onChange(of: store.chapter) { selected = nil }
+        .onChange(of: store.book) { selected = nil }
         .sheet(isPresented: $showBooks) {
-            BooksSheet(store: store, book: $book, chapter: $chapter)
+            BooksSheet(store: store, book: $store.book, chapter: $store.chapter)
                 .navigationTransition(.zoom(sourceID: "books", in: zoom))
         }
         .sheet(item: $comparing) { n in
-            CompareSheet(reference: reference(n), book: book, chapter: chapter, verse: n)
+            CompareSheet(reference: reference(n), book: store.book, chapter: store.chapter, verse: n)
                 .navigationTransition(.zoom(sourceID: "compare", in: zoom))
         }
     }
@@ -85,11 +83,11 @@ struct BibleView: View {
     // MARK: verses
 
     private func key(_ n: Int) -> String {
-        AppState.verseKey(book: book, chapter: chapter, verse: n)
+        AppState.verseKey(book: store.book, chapter: store.chapter, verse: n)
     }
 
     private func reference(_ n: Int) -> String {
-        "\(store.displayName(book)) \(chapter):\(n)"
+        "\(store.displayName(store.book)) \(store.chapter):\(n)"
     }
 
     /// What Share hands to the system sheet. davidfeed's own ShareSheet says it
@@ -97,7 +95,7 @@ struct BibleView: View {
     /// straight to the system sheet — so the phone port is ShareLink, and the
     /// web component's two desktop-only rows have no counterpart here.
     private func shareText(_ n: Int) -> String {
-        let verses = store.verses(book: book, chapter: chapter)
+        let verses = store.verses(book: store.book, chapter: store.chapter)
         let text = n >= 1 && n <= verses.count ? verses[n - 1] : ""
         return "\(text)\n\n\(reference(n)) (\(store.translation.uppercased()))"
     }
@@ -202,7 +200,7 @@ struct BibleView: View {
     private var chrome: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button { showBooks = true } label: {
-                Text("\(store.displayName(book)) \(chapter)")
+                Text("\(store.displayName(store.book)) \(store.chapter)")
                     .font(.system(size: 19, weight: .semibold))
             }
             .matchedTransitionSource(id: "books", in: zoom)
@@ -251,9 +249,9 @@ struct BibleView: View {
     }
 
     private func step(_ delta: Int) {
-        guard let (b, c) = store.step(book: book, chapter: chapter, by: delta) else { return }
-        book = b
-        chapter = c
+        guard let (b, c) = store.step(book: store.book, chapter: store.chapter, by: delta) else { return }
+        store.book = b
+        store.chapter = c
     }
 }
 

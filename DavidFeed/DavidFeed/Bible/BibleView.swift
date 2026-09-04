@@ -38,6 +38,9 @@ struct BibleView: View {
 
                         ForEach(Array(verses.enumerated()), id: \.offset) { i, text in
                             verseRow(number: i + 1, text: text)
+                                // Addressable, so arriving from a feed card can
+                                // scroll straight to the verse it quotes.
+                                .id(verseAnchor(i + 1))
                         }
                         Color.clear.frame(height: 150)
                     }
@@ -53,6 +56,10 @@ struct BibleView: View {
                 .scrollEdgeEffectStyle(.soft, for: .top)
                 .onChange(of: store.chapter) { proxy.scrollTo("top", anchor: .top) }
                 .onChange(of: store.book) { proxy.scrollTo("top", anchor: .top) }
+                // Set when the Bible is opened from a card. Handled here rather
+                // than in RootView because only this view has the scroll proxy.
+                .onChange(of: store.pendingVerse) { _, v in reveal(v, proxy) }
+                .task { reveal(store.pendingVerse, proxy) }
             }
 
             if selected == nil { pager }
@@ -81,6 +88,25 @@ struct BibleView: View {
     }
 
     // MARK: verses
+
+    private func verseAnchor(_ n: Int) -> String { "verse-\(n)" }
+
+    /// Scroll to the verse a card quotes and select it, so the action bar is
+    /// already open on the line the reader arrived for.
+    private func reveal(_ verse: Int?, _ proxy: ScrollViewProxy) {
+        guard let verse, verse >= 1 else { return }
+        store.pendingVerse = nil
+        Task {
+            // One hop: the rows are lazy, so the target may not exist yet on the
+            // frame the tab switches in.
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(80))
+            withAnimation {
+                proxy.scrollTo(verseAnchor(verse), anchor: .center)
+                selected = verse
+            }
+        }
+    }
 
     private func key(_ n: Int) -> String {
         AppState.verseKey(book: store.book, chapter: store.chapter, verse: n)

@@ -41,6 +41,9 @@ final class BibleStore {
     /// card's chapter, and a view's @State is not reachable from outside it.
     var book: String = "psalms"
     var chapter: Int = 46
+    /// A verse the reader should scroll to and select once it appears. Consumed
+    /// by BibleView and cleared, so it fires once rather than on every redraw.
+    var pendingVerse: Int?
 
     private(set) var books: [BookMeta] = []
     private var cache: [String: BookText] = [:]
@@ -112,7 +115,17 @@ final class BibleStore {
         guard let (slug, ch) = locate(title: title) else { return false }
         book = slug
         chapter = min(max(1, ch), max(1, chapterCount(slug)))
+        pendingVerse = Self.firstVerse(in: title)
         return true
+    }
+
+    /// The opening verse a card quotes: "Psalm 23:1-3" -> 1, "Psalm 27:1" -> 1.
+    /// A card can speak a span; this selects where that span starts, which is
+    /// also where the reader wants to be looking.
+    static func firstVerse(in title: String) -> Int? {
+        guard let tail = title.split(separator: ":").dropFirst().first else { return nil }
+        let digits = tail.prefix { $0.isNumber }
+        return Int(digits)
     }
 
     func displayName(_ slug: String) -> String { book(slug)?.name ?? slug }

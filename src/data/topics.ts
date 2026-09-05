@@ -66,6 +66,30 @@ export const TOPICS: Topic[] = [
 
 export const DEFAULT_TOPIC = TOPICS[0].id;
 
+/**
+ * Which topic a visit opens on.
+ *
+ * The feed used to open on Pressure every time — TOPICS[0], because
+ * DEFAULT_TOPIC was the initial state and nothing ever varied it. The reader
+ * asked for the filters to be randomised, and the right vehicle already
+ * exists: Feed already draws one random seed per page load to deal the card
+ * order (see the note above `readFeedSeed` there). This picks the opening
+ * topic from that same seed, so one load makes one consistent deal.
+ *
+ * Seed 0 is the server's value — the static prerender has no randomness to
+ * offer — and it yields DEFAULT_TOPIC so the prerendered markup is stable and
+ * hydration has nothing to disagree with. The client re-reads the seed after
+ * hydration and lands on the real pick, by the same mechanism that already
+ * reveals the shuffled order.
+ *
+ * "Anything" is in the pool on purpose: it is one of the six filters, and the
+ * complaint was landing on the same one every time, not on that one.
+ */
+export function topicForSeed(seed: number): string {
+  if (!seed) return DEFAULT_TOPIC;
+  return TOPICS[seed % TOPICS.length].id;
+}
+
 const MIN_PER_TOPIC = 3;
 for (const t of TOPICS) {
   if (t.ids && t.ids.length < MIN_PER_TOPIC) {

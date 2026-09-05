@@ -42,10 +42,18 @@ if [ -z "${BUILD_ID:-}" ] || [ -z "${INSTALL_ID:-}" ]; then
   exit 1
 fi
 
-echo "== building for $BUILD_ID =="
+# Leave the machine usable while it compiles. xcodebuild fans out across every
+# core it can find, and a Swift build is heavy enough that all 16 makes the Mac
+# unresponsive for the duration. Half the cores costs a few seconds and gives
+# the rest of the machine back. Override with JOBS=16 for a flat-out build.
+JOBS="${JOBS:-$(( $(sysctl -n hw.ncpu) / 2 ))}"
+[ "$JOBS" -lt 4 ] && JOBS=4
+
+echo "== building for $BUILD_ID (on $JOBS cores) =="
 xcodebuild -project DavidFeed.xcodeproj -scheme DavidFeed \
   -destination "id=$BUILD_ID" -configuration Debug \
   -derivedDataPath ../previewdeck/.dd-device \
+  -jobs "$JOBS" \
   -allowProvisioningUpdates build || exit 1
 
 APP=../previewdeck/.dd-device/Build/Products/Debug-iphoneos/DavidFeed.app

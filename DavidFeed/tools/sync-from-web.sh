@@ -17,6 +17,13 @@ TOOLS="$APP/tools"
 [ -d "$WEB/src/data" ] || { echo "No davidfeed source at $WEB"; exit 1; }
 
 echo "== 1/4  exporting data from the web app's own TypeScript =="
+# export.mjs registers its module resolver from /tmp/dfexport and writes its
+# output there, so that directory has to exist and hold alias.mjs before it
+# runs. Staging it was a manual step the first time and was never written down,
+# which meant this script only worked until /tmp was next cleaned. Doing it here
+# is what makes "safe to re-run" actually true.
+mkdir -p /tmp/dfexport
+cp "$TOOLS/alias.mjs" /tmp/dfexport/alias.mjs
 ( cd "$WEB" && node --experimental-strip-types --no-warnings "$TOOLS/export.mjs" )
 cp /tmp/dfexport/shorts.json "$RES/data/shorts.json"
 [ -f /tmp/dfexport/topics.json ] && cp /tmp/dfexport/topics.json "$RES/data/topics.json"
@@ -33,8 +40,40 @@ wanted = {p[k].lstrip("/") for p in posts for k in keys if p.get(k)}
 # would never appear in this sweep. It has been missed once already.
 wanted.add("assets/ambient-bed.m4a")
 
+# The share clips are not referenced by any post field either: the web builds
+# them per id into assets/share/<id>.mp4 (build-share-videos.py) and fetches
+# them by id at share time. They are what a shared card actually IS -- 1080x1920
+# with the branding, reference and captions burned in and the narration muxed
+# under it -- as opposed to the silent 3:4 parallax loop the card shows.
+#
+# They are copied under the name the web hands to the share sheet,
+# shareFileName() in shareVideo.ts: title lowercased with every run of
+# non-alphanumerics collapsed to a dash, plus "-dafod.mp4". Naming them that way
+# here means ShareLink can hand the file over directly and the recipient sees
+# "psalm-23-1-3-dafod.mp4" rather than "23.mp4".
+import re
+share_pairs = []
+for post in posts:
+    pid, title = post.get("id"), post.get("title") or ""
+    if pid is None:
+        continue
+    src_rel = f"assets/share/{pid}.mp4"
+    if os.path.exists(os.path.join(web, src_rel)):
+        slug = re.sub(r"[^a-z0-9]+", "-", title.lower())
+        share_pairs.append((src_rel, f"{slug}-dafod.mp4"))
+
 copied = missing = 0
 keep = set()
+
+shared = 0
+for src_rel, out_name in share_pairs:
+    keep.add(out_name)
+    src = os.path.join(web, src_rel)
+    out = os.path.join(dest, out_name)
+    if not os.path.exists(out) or os.path.getmtime(src) > os.path.getmtime(out):
+        shutil.copy2(src, out); shared += 1
+print(f"   share clips: {len(share_pairs)} referenced, {shared} copied/updated")
+
 for rel in sorted(wanted):
     src, name = os.path.join(web, rel), os.path.basename(rel)
     keep.add(name)

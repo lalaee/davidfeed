@@ -110,9 +110,14 @@ struct FeedCardView: View {
                 VStack(spacing: 32) {
                     // davidfeed shares the card's VIDEO FILE and nothing else —
                     // shareVideo.ts: "The file goes ALONE, with no text or url
-                    // beside it." So this hands the bundled mp4 to the system
-                    // sheet rather than a caption or a link.
-                    if let clip = post.loopURL {
+                    // beside it" — several iOS share extensions refuse or
+                    // flatten a share that mixes media with a string. Nothing
+                    // travels beside the file, which is exactly why the file
+                    // has to be the built share clip and not the card's silent
+                    // loop: everything the reader expects to send with it is
+                    // burned into that clip. Falls back to the loop only if a
+                    // card has no share render yet.
+                    if let clip = post.shareURL ?? post.loopURL {
                         ShareLink(item: clip) {
                             RailIcon(asset: "Send", tint: DF.ink)
                         }

@@ -45,6 +45,26 @@ struct Post: Codable, Identifiable, Hashable {
     }
     var narrationURL: URL? { bundled(audioSrc, ext: "mp3") }
 
+    /// The clip a share hands over — NOT the card's parallax loop.
+    ///
+    /// A card is not a video: it is a silent loop, a separate recording, and
+    /// captions drawn on top, three things assembled live. So the web renders
+    /// one self-contained file per card ahead of time (build-share-videos.py):
+    /// 1080x1920, the Dafod.app mark and tagline at the top, the reference at
+    /// the bottom, the captions burned in and the narration muxed under it.
+    /// That is what lands in an Instagram Story or a WhatsApp status, and
+    /// sharing the 2.5s silent 3:4 loop instead sent none of it.
+    ///
+    /// Bundled under the name shareVideo.ts hands the sheet — the title
+    /// lowercased with runs of non-alphanumerics collapsed to a dash, plus
+    /// "-dafod" — so the recipient sees "psalm-23-1-3-dafod.mp4", not an id.
+    var shareURL: URL? {
+        let slug = title.lowercased()
+            .replacingOccurrences(of: "[^a-z0-9]+", with: "-",
+                                  options: .regularExpression)
+        return Bundle.main.url(forResource: "\(slug)-dafod", withExtension: "mp4")
+    }
+
     /// The lock screen's animated artwork: the card's own parallax loop,
     /// centre-cropped to 3:4 and rendered alongside a matching first frame.
     /// MPMediaItemAnimatedArtwork may reject assets whose aspect ratio diverges

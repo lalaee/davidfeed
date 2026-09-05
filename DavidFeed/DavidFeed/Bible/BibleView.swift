@@ -21,8 +21,13 @@ struct BibleView: View {
 
     private static let column = "reader-column"
     private static let barHeight: CGFloat = 78
-    /// Room the floating tab bar occupies at the bottom, including its inset.
-    private static let navFloor: CGFloat = 112
+    /// Room reserved at the bottom of the viewport: the chapter pager (52pt
+    /// tall, 28 clear of the bottom) and the floating tab bar under it. The
+    /// action bar has to come to rest above this or it is half-hidden and
+    /// partly untappable.
+    private static let navFloor: CGFloat = 96
+    /// Room reserved at the top, for when the bar has to go above the verse.
+    private static let navCeiling: CGFloat = 8
     @State private var showBooks = false
     @State private var comparing: Int?
 
@@ -33,6 +38,7 @@ struct BibleView: View {
         ZStack {
             DF.ground.ignoresSafeArea()
 
+            GeometryReader { screen in
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 26) {
@@ -47,13 +53,6 @@ struct BibleView: View {
                         Color.clear.frame(height: 150)
                     }
                     .padding(.horizontal, 22)
-                    .coordinateSpace(name: Self.column)
-                    .overlay(alignment: .topLeading) {
-                        GeometryReader { g in actionBar(in: g.size) }
-                            // Scoped here so the bar keeps its spring while the
-                            // verse text is re-rendered without one.
-                            .animation(.snappy(duration: 0.22), value: selected)
-                    }
                     .onPreferenceChange(SelectedVerseFrame.self) { barAnchor = $0 }
                 }
                 .scrollIndicators(.hidden)
@@ -66,8 +65,26 @@ struct BibleView: View {
                 .onChange(of: store.pendingVerse) { _, v in reveal(v, proxy) }
                 .task { reveal(store.pendingVerse, proxy) }
             }
+            // The bar belongs to the VIEWPORT, not the column. Anchored to the
+            // column it was positioned against the whole chapter's height, so
+            // the "is there room below?" test compared against the bottom of
+            // Psalm 27 rather than the bottom of the screen and was therefore
+            // always true — which is how the bar kept ending up under the tab
+            // bar despite the guard that was supposed to prevent it.
+            .overlay(alignment: .topLeading) {
+                actionBar(in: screen.size)
+                    // Scoped here so the bar keeps its spring while the verse
+                    // text is re-rendered without one.
+                    .animation(.snappy(duration: 0.22), value: selected)
+            }
+            }
+            .coordinateSpace(name: Self.column)
 
-            if selected == nil { pager }
+            // The pager stays through a selection, the same call as keeping
+            // the tab bar up: moving chapter is still a thing you might want to
+            // do with a verse selected, and having the controls vanish on tap
+            // made the reader feel like it had changed mode.
+            pager
         }
         .toolbar { chrome }
         // Reverted to the pill by preference. Worth recording what that costs:
@@ -202,13 +219,15 @@ struct BibleView: View {
     private func actionBar(in size: CGSize) -> some View {
         if let n = selected, let frame = barAnchor {
             let k = key(n)
+            // `size` is the VIEWPORT and `frame` is the verse's position in
+            // it, so this compares against the bottom of the screen — which is
+            // what the test was always meant to do.
             let below = frame.maxY + 17
-            // The floor is the NAV's top edge, not the viewport's, now that the
-            // nav stays through a selection — the same correction davidfeed
-            // records for its own bar. Without it the action bar can come to
-            // rest under the tab bar, where it is half-hidden and partly
-            // untappable.
+            let above = frame.minY - 17 - Self.barHeight
             let fitsBelow = below + Self.barHeight < size.height - Self.navFloor
+            // Clamped, so a verse near the top cannot push the bar up under the
+            // toolbar in the course of avoiding the pager at the bottom.
+            let y = fitsBelow ? below : max(Self.navCeiling, above)
             VerseActionBar(
                 highlight: app.highlight(k),
                 isSaved: app.isVerseSaved(k),
@@ -219,7 +238,7 @@ struct BibleView: View {
                 onSave: { app.toggleVerseSaved(k) }
             )
             .padding(.horizontal, 16)
-            .offset(y: fitsBelow ? below : frame.minY - 17 - Self.barHeight)
+            .offset(y: y)
             .transition(.opacity)
         }
     }

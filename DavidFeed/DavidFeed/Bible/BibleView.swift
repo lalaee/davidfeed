@@ -50,6 +50,9 @@ struct BibleView: View {
                     .coordinateSpace(name: Self.column)
                     .overlay(alignment: .topLeading) {
                         GeometryReader { g in actionBar(in: g.size) }
+                            // Scoped here so the bar keeps its spring while the
+                            // verse text is re-rendered without one.
+                            .animation(.snappy(duration: 0.22), value: selected)
                     }
                     .onPreferenceChange(SelectedVerseFrame.self) { barAnchor = $0 }
                 }
@@ -100,10 +103,12 @@ struct BibleView: View {
             // frame the tab switches in.
             await Task.yield()
             try? await Task.sleep(for: .milliseconds(80))
+            // The scroll animates; the selection must not, for the reason
+            // given on the tap handler above.
             withAnimation {
                 proxy.scrollTo(verseAnchor(verse), anchor: .center)
-                selected = verse
             }
+            selected = verse
         }
     }
 
@@ -161,9 +166,16 @@ struct BibleView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.snappy(duration: 0.22)) {
-                selected = (selected == n) ? nil : n
-            }
+            // Deliberately NOT inside withAnimation. `.underline()` is part of
+            // Text's CONTENT, not a modifier on it, so changing it makes
+            // SwiftUI cross-dissolve two rasterisations of the same glyphs.
+            // Under a spring (.snappy overshoots) both snapshots sit near full
+            // opacity partway through, which reads as the rule and the text
+            // thickening and then settling — the "thick at first, then thin"
+            // flicker. The web toggles a class ("underline decoration-dotted"),
+            // which is instant, so instant is also what the spec asks for.
+            // The action bar still springs; that animation is scoped to it.
+            selected = (selected == n) ? nil : n
         }
         // Report this row's frame while it is the selected one, so the bar can
         // be drawn once, over the whole column, at the right height.

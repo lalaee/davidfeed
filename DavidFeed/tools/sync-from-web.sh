@@ -82,7 +82,14 @@ THREADS = max(2, (os.cpu_count() or 4) // 2)
 def mix_bed(src, out):
     subprocess.run(
         ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-threads", str(THREADS),
-         "-i", src, "-stream_loop", "-1", "-i", BED,
+         # -stream_loop 1 = play the clip through TWICE. A single pass of an
+         # 8-11s verse is over before someone swiping a Story has settled into
+         # it; a second pass gives them the whole verse without having to tap
+         # back. Looping the finished clip rather than the source loops video,
+         # burned-in captions and narration together, so nothing can drift out
+         # of sync. The bed keeps looping under both passes.
+         "-stream_loop", "1", "-i", src,
+         "-stream_loop", "-1", "-i", BED,
          "-filter_complex",
          "[1:a]volume=0.25[b];"                                  # web's BED_VOLUME
          "[0:a][b]amix=inputs=2:duration=first:normalize=0[m];"  # narration stays full

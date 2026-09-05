@@ -144,10 +144,21 @@ export default function FeedHeader({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Topic: ${label}. Change topic`}
-        className="fixed left-1/2 z-[600] flex w-max -translate-x-1/2 items-center gap-[4px] desk:hidden
+        className="fixed left-1/2 z-[600] flex w-max -translate-x-1/2 items-center gap-[8px] desk:hidden
                    whitespace-nowrap border-none bg-transparent p-0 text-white"
         style={{ top: TOP }}
       >
+        {/* "Deal with <topic>", the same sentence the desktop header makes, in
+            the same muted grey. Regular rather than semibold and #999999 rather
+            than white, so the topic stays the thing being read and the prefix
+            reads as the question around it. No guard needed for the collection
+            case — that returns above, before this button exists. */}
+        <span
+          className="text-[24px] font-normal leading-[29px]"
+          style={{ letterSpacing: "-0.02em", color: "#999999" }}
+        >
+          Deal with
+        </span>
         <span
           className="text-[24px] font-semibold leading-[29px]"
           style={{ letterSpacing: "-0.02em" }}

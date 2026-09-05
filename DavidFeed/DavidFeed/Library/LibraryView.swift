@@ -33,7 +33,6 @@ struct LibraryView: View {
     @State private var openedFeedAt: Post?
     /// The highlight whose action bar is open, so it can be recoloured or cleared.
     @State private var editing: HighlightRun?
-    @Namespace private var zoom
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -46,8 +45,14 @@ struct LibraryView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DF.ground)
         .fullScreenCover(item: $openedFeedAt) { post in
+            // No .navigationTransition(.zoom) here. LibraryView has no
+            // NavigationStack — the design has no title bar to put one under —
+            // and a zoom transition outside a navigation context is unsupported:
+            // it degraded harmlessly in the simulator but left the cover on
+            // device in a state where the close button did not dismiss it.
+            // A full-screen cover has no interactive dismiss of its own, so that
+            // button was the only way out and the screen became a dead end.
             SavedFeedScreen(posts: app.savedPosts, startAt: post.id)
-                .navigationTransition(.zoom(sourceID: post.id, in: zoom))
         }
     }
 
@@ -143,10 +148,6 @@ struct LibraryView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    // The tile grows into the feed it opens.
-                    .matchedTransitionSource(id: post.id, in: zoom) { config in
-                        config.clipShape(.rect(cornerRadius: 12))
-                    }
                 }
             }
             .padding(.horizontal, 24)
@@ -279,6 +280,11 @@ private struct SavedFeedScreen: View {
     let startAt: Int
     @Environment(\.dismiss) private var dismiss
 
+    // No swipe-to-dismiss: a DragGesture here loses to the feed's own vertical
+    // scroll view, so it would be a control that appears to exist and does not
+    // work — and it risks interfering with the scrolling that does. The button
+    // is the way out, so it is sized and layered to be reliable.
+
     var body: some View {
         FeedView(allPosts: posts, fixedSet: true, startAt: startAt)
             .background(DF.ground)
@@ -287,14 +293,19 @@ private struct SavedFeedScreen: View {
                     Image("Close")
                         .renderingMode(.template)
                         .resizable().scaledToFit()
-                        .frame(width: 18, height: 18)
+                        .frame(width: 20, height: 20)
                         .foregroundStyle(DF.ink)
-                        .frame(width: 44, height: 44)
+                        // 48pt, comfortably over the 44pt minimum: this is the
+                        // primary way out of a screen that has no other chrome.
+                        .frame(width: 48, height: 48)
                         .glassEffect(.regular.interactive(), in: .circle)
+                        .contentShape(.circle)
                 }
                 .buttonStyle(.plain)
                 .padding(.leading, 16)
                 .padding(.top, 8)
+                // Above the feed's own tap targets, which cover the full screen.
+                .zIndex(1)
             }
     }
 }

@@ -55,7 +55,7 @@ export const chapterPosts: Post[] = [
     startAt: 0.28,
     subtitles: chapterSubtitles.psalm23,
   },
-  { id: 27, title: "Psalm 27", backgroundImage: "/assets/verses/crowd-in-one-beam.jpg", posterVideoSrc: "/assets/verses/crowd-in-one-beam-loop.mp4", audioSrc: "/assets/chapters/psalm27.mp3", subtitles: chapterSubtitles.psalm27 },
+  { id: 27, title: "Psalm 27", backgroundImage: "/assets/verses/reaching-back-on-the-steps.jpg", posterVideoSrc: "/assets/verses/reaching-back-on-the-steps-loop.mp4", audioSrc: "/assets/chapters/psalm27.mp3", subtitles: chapterSubtitles.psalm27 },
   { id: 91, title: "Psalm 91", backgroundImage: "/assets/verses/winged-guard.jpg", posterVideoSrc: "/assets/verses/winged-guard-loop.mp4", audioSrc: "/assets/psalm91.mp3", subtitles: psalm91Subtitles },
   { id: 5,  title: "Psalm 5",  backgroundImage: "/assets/chapters/figure-looking-up.jpg",  posterVideoSrc: "/assets/chapters/figure-looking-up-loop.mp4",  audioSrc: "/assets/chapters/psalm5.mp3", subtitles: chapterSubtitles.psalm5  },
   { id: 7,  title: "Psalm 7",  backgroundImage: "/assets/verses/lioness-on-the-path.jpg",  posterVideoSrc: "/assets/verses/lioness-on-the-path-loop.mp4",  audioSrc: "/assets/chapters/psalm7.mp3", startAt: 0.27, subtitles: chapterSubtitles.psalm7  },

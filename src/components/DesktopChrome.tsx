@@ -24,12 +24,12 @@ import { TOPICS } from "@/data/topics";
  *              Only the ACTIVE pill is filled, in #212121; the others are
  *              transparent. Every pill is named "Navicon/active" in the file,
  *              so the fill is what marks the current tab, not the name.
- *   copy       366 wide at x=48, y=250, 72 between the text block and button.
- *              "Stop Doomscrolling" Inter Light 48 over "Start Faithscrolling"
- *              Inter Extra Bold 48, then a description in Inter Medium 24/150%
- *              #999999.
- *   button     366x59, radius 100, #0096E5 — the first colour in the app that
- *              is not greyscale.
+ *   copy       523 wide at x=48, on the paging buttons' own horizontal axis.
+ *              "Stop Doomscrolling" #999999 over "Start Hopescrolling" white,
+ *              both Inter REGULAR 56, then a description in Inter Medium
+ *              24/150% #999999. Re-cut from "Container" 2662:10867, which
+ *              supersedes this frame's own copy block — see the note on it
+ *              below. No button: that frame's is laid out past its bounds.
  *   topic      above the feed at y=156: "Deal with" #999999 beside the
  *              topic in bold white, both Inter 27, then a chevron.
  *   paging     two 72x72 #212121 circles, 16 apart, to the LEFT of the card.
@@ -77,29 +77,38 @@ export default function DesktopChrome({
     <>
       <DesktopNav activeTab={activeTab} />
 
-      {/* Left column */}
-      <section className="pointer-events-none desk-copy fixed top-[250px] z-[500] hidden w-[366px] flex-col gap-[72px] desk:flex">
-        <div className="flex flex-col gap-[32px]">
-          <h1 className="flex flex-col gap-[18px] text-[48px] leading-[1.15] text-white">
-            <span className="font-light">Stop Doomscrolling</span>
-            <span className="font-extrabold">Start Faithscrolling</span>
-          </h1>
-          {/* Placeholder copy — the frame just reads "Description". */}
-          <p className="text-[24px] font-medium leading-[150%]" style={{ color: "#999999" }}>
-            Psalms, one verse at a time. Short enough to finish, still enough to
-            sit with.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="pointer-events-auto flex h-[59px] w-[366px] items-center justify-center rounded-[100px]
-                     border-none text-[20px] font-medium leading-[16px] text-white
-                     transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                     active:scale-[0.97]"
-          style={{ backgroundColor: "#0096E5" }}
+      {/* Left column — Figma "Container" 2662:10867, transcribed.
+       *
+       * The frame is drawn at 0.8483095, proven by five values that unscale to
+       * numbers already shipping elsewhere here (24, 20, 100, 72, 32). Every
+       * number below is its scaled value divided by that:
+       *
+       *   container  443.67 -> 523      headline    47.457 -> 56
+       *   line-height 42.712 -> 50.35   tracking    -2.034 -> -2.398
+       *   line gap    13.559 -> 16      block gap   27.146 -> 32
+       *   subtitle    20.359 -> 24
+       *
+       * Both headline lines are Inter REGULAR. The contrast between them is
+       * carried entirely by colour — #999999 against #FFFFFF — not by weight,
+       * which is why the light/extrabold pair that used to sit here was wrong.
+       *
+       * There is no button. The frame does contain a "Download app" child, but
+       * it is laid out at y=250 inside a container only 189 tall, so it falls
+       * outside the bounds and does not render — the frame's own PNG shows two
+       * headline lines and the subtitle, and nothing else. It is scaffolding
+       * left in the file, not part of the design. */}
+      <section className="pointer-events-none desk-copy fixed top-1/2 z-[500] hidden -translate-y-1/2 flex-col gap-[32px] desk:flex">
+        <h1
+          className="flex flex-col gap-[16px] text-[56px] font-normal"
+          style={{ lineHeight: "50.35px", letterSpacing: "-2.398px" }}
         >
-          Download app
-        </button>
+          <span style={{ color: "#999999" }}>Stop Doomscrolling</span>
+          <span className="text-white">Start Hopescrolling</span>
+        </h1>
+        <p className="text-[24px] font-medium leading-[150%]" style={{ color: "#999999" }}>
+          Experience a collection of short verses that brings hope centered
+          around a theme
+        </p>
       </section>
 
       {collectionLabel ? (

@@ -1348,13 +1348,24 @@ html, body {
  * edge missed by 10px. A desktop window is routinely shorter than a design
  * canvas, and this one never adapted.
  *
- * So 845 becomes a CEILING rather than a constant. The reserve below it is
- * 371 = 221 top + 24 gap + 126 of the next card, and 126 is not a new number:
- * it is exactly what the phone shows, where the card is 100dvh-138 against a
- * 12px gap. Both breakpoints now guarantee the same thing — the whole card,
- * plus a readable edge of the one after it, inside the viewport. It has to
- * clear the 53px corner radius to read as a card rather than a stray curve,
- * and 126 does that twice over.
+ * So 845 becomes a CEILING rather than a constant, and the reserve below it is
+ * 263 — which the frame states outright rather than leaving to be chosen:
+ *
+ *     221 top + 845 card + 24 gap = 1090, on a canvas 1108 tall
+ *
+ * so the design shows 18px of the next card, and 1108 - 845 = 263 is the reserve
+ * that produces it. The check on that is that it round-trips: at exactly the
+ * canvas height, min(845, 1108 - 263) is 845, the drawn height, with no clamp
+ * doing anything. A reserve read off the frame can do that; an invented one
+ * cannot.
+ *
+ * The 371 this said before was 221 + 24 + 126, and the 126 was borrowed from the
+ * PHONE — where the card is 100dvh-138 against a 12px gap — on the reasoning
+ * that a peek should clear the 53px corner radius to read as a card rather than
+ * a stray curve. That reasoning was about the phone's composition, not this one.
+ * Desktop scrolls a card at a time with buttons beside it, so the next card is
+ * an edge saying "there is more", not a thing being read; and 371 cost the
+ * ACTIVE card 108px at 1440x900, which is the card that is actually being read.
  *
  * Everything anchored to the card's geometry has to derive from this, not
  * restate it — the sound badge sits at its centre and was written as a flat
@@ -1362,7 +1373,7 @@ html, body {
 @media (min-width: 1028px) {
   :root {
     --desk-gutter: calc((100vw - min(100vw, 1440px)) / 2);
-    --desk-card-h: min(845px, calc(100dvh - 371px));
+    --desk-card-h: min(845px, calc(100dvh - 263px));
   }
   .desk-bar {
     padding-left: calc(var(--desk-gutter) + 48px);
@@ -1373,6 +1384,33 @@ html, body {
   }
   .desk-copy {
     left: calc(var(--desk-gutter) + 48px);
+    /* Vertical centring is on the element itself, as top-1/2 with
+     * -translate-y-1/2 — the same pair .desk-paging uses, so the two share an
+     * axis by construction rather than by two numbers agreeing. Not repeated
+     * here: one property, one rule. */
+
+    /* 523 is the design's own width — the Figma frame is drawn at a 0.8483095
+     * scale, proven by five values that unscale to what already ships (subtitle
+     * 24, button 20, radius 100, gaps 72 and 32), so its 443.67 means 523 here.
+     *
+     * The neighbour to clear is the PAGING BUTTONS, not the card. They are the
+     * leftmost thing on this row — anchored at gutter + 729 and 72 wide, so
+     * their left edge is gutter + 801 from the right — and the card sits 128
+     * further right again, behind them. Clamping against the card (gutter + 705,
+     * what this said before) therefore permitted a 96px overlap at 1028.
+     *
+     * That overlap is not new: at the old 366 the copy already ran under the
+     * card at 1028, the desk breakpoint itself. What is new is that the copy now
+     * shares the buttons' horizontal axis, so the two can no longer miss each
+     * other vertically the way they did when it sat at y=250.
+     *
+     * left and right both set, so the box's own width is whatever is between
+     * them, and max-width caps it at 523. No multiplication of a var inside
+     * calc — the first attempt at this used
+     * calc(100vw - 2 * var(--desk-gutter) - 753px) and computed to ZERO width at
+     * every size. */
+    right: calc(var(--desk-gutter) + 833px);
+    max-width: 523px;
   }
   /* The topic label is CENTRED on the card, and centring is why it cannot be
    * anchored by an edge at all.
@@ -1404,6 +1442,28 @@ html, body {
   }
   .desk-paging {
     right: calc(var(--desk-gutter) + 729px);
+  }
+}
+
+/* Below 1230 the copy stands down entirely.
+ *
+ * The headline has a hard floor and it is one word: "Doomscrolling" measures
+ * 349px at Inter Regular 56, which is the h1's min-content width. Give the box
+ * less than that and the word does not wrap, it OVERFLOWS — at 1028 it ran 202px
+ * past its own right edge, under the paging buttons and up into the top bar.
+ * 349 + 48 (left inset) + 833 (the buttons, cleared) = 1230, the narrowest
+ * viewport that can hold it.
+ *
+ * Shrinking the type instead would mean inventing a size the design does not
+ * have, so between 1028 and 1230 there is simply no copy column. Above it the
+ * headline wraps to four lines until 1404, where 523 fits and it is the frame.
+ *
+ * Plain CSS, not a utility: `desk:flex` also claims `display`, and which of two
+ * rules for one property wins would come down to emit order — a bet this file
+ * has already lost twice. Unlayered beats @layer utilities outright. */
+@media (max-width: 1229.98px) {
+  .desk-copy {
+    display: none;
   }
 }
 

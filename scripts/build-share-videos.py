@@ -32,6 +32,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -54,38 +55,49 @@ WORDMARK_TOP = round(45.55 * K)         # y=45.55 in the frame, and CENTRED
 WORDMARK_PX = round(20 * K)
 WORDMARK_TRACK = -0.01                  # -1%, and NOT the -2% the reference uses
 
-# THE TAGLINE, and why it is not one string.
+# THE TAGLINE, and why the icons are placed rather than flowed.
 #
 # The frame draws "Stop D<sad><weary>mscrolling, Start H<heart>pescrolling" —
-# the o's are replaced by icons. In Figma that is one text layer whose o's are
-# runs of spaces, with three icon frames absolutely positioned on top of the
-# gaps. Reproducing it that way here would mean betting that PIL's advance
-# widths for Inter match Figma's to the pixel, because a 1px drift puts an icon
-# half off its own hole.
+# the o's replaced by icons. In Figma that is ONE text layer whose o's are runs
+# of spaces, with three icon frames positioned over the gaps. That is
+# reproduced here as-is, because it is measurably safe to: PIL's advances for
+# this Inter agree with Figma's to 1.08 units over the whole 324-unit line
+# (322.92 vs 324.00, 0.3%), and an icon is 16 units wide, so the worst drift is
+# a few percent of one icon.
 #
-# So it is composed as a SEQUENCE instead: text runs and icons laid end to end,
-# measured, then centred as a block. Self-consistent by construction, and the
-# icons cannot drift from the words they stand in for.
+# Flowing the icons inline instead — runs and icons laid end to end — was tried
+# and is WRONG, because it cannot express what the frame actually does: the two
+# face frames OVERLAP by 1.53 units (76.8 and 91.27, both 16 wide). Laid end to
+# end they sit 3.47 units apart where the letters around them sit 2.1-2.8
+# apart, and the pair reads as a hole in the word.
+#
+# Icon x is measured from the TEXT's own left edge, not from the frame, so any
+# residual metric drift moves icons and letters together.
 #
 # The layer is still called "Incoming Verse" in the file, which remains a trap:
 # it is marketing copy, not the psalm. The frame has no caption in it at all, so
 # the verse keeps the place the card gives it — the middle.
 TAGLINE_TOP = round(79.19 * K)
 TAGLINE_PX = round(16 * K)
-TAGLINE_LINE = round(16 * 1.11 * K)     # line-height 111%
-TAGLINE_ICON = round(16 * K)            # the two faces are 16x16 in the frame
-TAGLINE_HEART = round(16.63 * K)        # the heart is 16.63, very slightly bigger
-TAGLINE_ICON_DY = round(0.9 * K)        # icons sit ~0.9 below the text box top
+TAGLINE_LINE = 16 * 1.11 * K            # line-height 111%, kept unrounded
+TAGLINE_ICON_TOP = 80.19 * K            # the icon frames' y in the frame
+TAGLINE_TEXT = "Stop D       mscrolling, Start H    pescrolling"
 
-# ("text", str) draws a run; ("icon", name, px) drops one of the masks in
-# scripts/assets/tagline. Order is the reading order.
-TAGLINE = [
-    ("text", "Stop D"),
-    ("icon", "sad-tear", TAGLINE_ICON),
-    ("icon", "distressed", TAGLINE_ICON),
-    ("text", "mscrolling, Start H"),
-    ("icon", "heart", TAGLINE_HEART),
-    ("text", "pescrolling"),
+# Each slot is a run of spaces in TAGLINE_TEXT that icons stand in. The icons
+# are CENTRED in the slot, which is what the frame does — measured off Figma's
+# own render of this row, the face pair has 2.08 units either side of it and the
+# heart 3.12 either side, both symmetric.
+#
+# Centring on the slot rather than placing at the frame's absolute x is what
+# makes it hold: PIL's advances run 1.08 units short of the frame's 324 over the
+# line, so absolute placement drifts progressively right of the letters, and by
+# the heart that was 4.86 units of air on one side against 2.08 on the other.
+# Anchored to its own slot, each icon group moves with the words around it.
+#
+# (prefix_before_slot, slot_text, [(mask, size)], gap_between_icons) in frame units.
+TAGLINE_SLOTS = [
+    ("Stop D", "       ", [("sad-tear", 16.0), ("distressed", 16.0)], 1.74),
+    ("Stop D       mscrolling, Start H", "    ", [("heart", 16.63)], 0.0),
 ]
 ICON_DIR = ROOT / "scripts/assets/tagline"
 
@@ -150,6 +162,22 @@ def wrap(text, f, max_w, track=0.0):
     return lines
 
 
+def ink_span(mask):
+    """(left inset, ink width) of a mask, in its own pixels.
+
+    Icons are centred by their INK, not by their frame: the frames carry
+    different amounts of padding (the faces 1.5 units a side, the heart 1.66),
+    so centring frames would leave the heart visibly off in its gap.
+    Ink is taken at 50% alpha, the same place every other measurement in this
+    file draws the line. Using a near-zero threshold instead counts the
+    anti-aliased skirt as ink, which reads the icons ~0.5 units wider than they
+    are and pushes their neighbours apart by that much.
+    """
+    a = np.array(mask)
+    cols = np.nonzero((a >= 128).any(axis=0))[0]
+    return float(cols.min()), float(cols.max() - cols.min() + 1)
+
+
 def icon_mask(name, px):
     """One tagline icon, as an L-mode alpha mask at the requested size.
 
@@ -161,38 +189,53 @@ def icon_mask(name, px):
         (px, px), Image.LANCZOS)
 
 
-def tagline_layer(items, f, top, track=0.0, shadow=(3, 8, 140)):
-    """The tagline: text runs and inline icons, laid end to end and centred.
+def tagline_layer(f, top, shadow=(3, 8, 140)):
+    """The tagline, with icons standing in for the o's.
 
-    Measured first, then drawn, because the block has to be centred and an icon
-    is not a glyph the font can advance past. The icons are vertically nudged by
-    TAGLINE_ICON_DY, which is the frame's own offset between the text box top
-    and the icon frames — they sit fractionally low so their optical centre
-    lands on the x-height rather than on the line box.
+    THE BASELINE IS NOT THE ANCHOR TOP. PIL's default text anchor puts y at the
+    font's ASCENDER; Figma puts the box top at the LINE BOX and centres the
+    glyph box inside it. With an explicit line-height those differ by
+    (line_height - (ascent + descent)) / 2 — here 111% of 16 against Inter's
+    1.21em natural line, so -2.3px. Skip it and the whole line sits 2.3px low,
+    which reads as the icons floating high above the letters they replace. Any
+    element whose line-height is AUTO needs no such correction, which is why the
+    wordmark and reference do not carry one.
     """
     dy, blur, alpha = shadow
-    widths, total = [], 0
-    for it in items:
-        w = tracked_width(it[1], f, track) if it[0] == "text" else it[2]
-        widths.append(w)
-        total += w
+    asc, desc = f.getmetrics()
+    y_anchor = top + (TAGLINE_LINE - (asc + desc)) / 2
 
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     shade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d, ds = ImageDraw.Draw(layer), ImageDraw.Draw(shade)
-    x = (W - total) / 2
-    for it, w in zip(items, widths):
-        if it[0] == "text":
-            draw_tracked(ds, (x, top + dy), it[1], f, (0, 0, 0, alpha), track)
-            draw_tracked(d, (x, top), it[1], f, (255, 255, 255, 255), track)
-        else:
-            m = icon_mask(it[1], it[2])
-            pos = (round(x), round(top + TAGLINE_ICON_DY))
-            white = Image.new("RGBA", m.size, (255, 255, 255, 255))
-            black = Image.new("RGBA", m.size, (0, 0, 0, alpha))
-            shade.paste(black, (pos[0], pos[1] + dy), m)
-            layer.paste(white, pos, m)
-        x += w
+
+    # Drawn as ONE kerned string, not glyph by glyph.
+    #
+    # PIL's advances for this Inter run 322.92 units against the frame's 324.00.
+    # Spreading that 1.08 over the gaps was tried and is WRONG: draw_tracked
+    # places glyphs individually and so drops KERNING, which widens the line by
+    # more than the correction closes. Measured against Figma's own render of
+    # this row, kerned-and-uncorrected beats tracked-and-unkerned (mean |d|
+    # 0.0817 vs 0.0868), and the left half stays crisp instead of every word
+    # going soft. The residual is ~3px of accumulated drift by the last word —
+    # invisible at viewing size, and not worth trading kerning for.
+    x0 = (W - f.getlength(TAGLINE_TEXT)) / 2
+    ds.text((x0, y_anchor + dy), TAGLINE_TEXT, font=f, fill=(0, 0, 0, alpha))
+    d.text((x0, y_anchor), TAGLINE_TEXT, font=f, fill=(255, 255, 255, 255))
+
+    for prefix, slot, icons, gap in TAGLINE_SLOTS:
+        a = x0 + f.getlength(prefix)                 # slot starts where the text does
+        b = x0 + f.getlength(prefix + slot)
+        masks = [(icon_mask(n, round(sz * K)), round(sz * K)) for n, sz in icons]
+        spans = [ink_span(m) for m, _ in masks]      # (left inset, ink width)
+        total = sum(w for _, w in spans) + gap * K * (len(masks) - 1)
+        x = a + (b - a - total) / 2                  # centre the group in the slot
+        for (m, px), (inset, iw) in zip(masks, spans):
+            pos = (round(x - inset), round(TAGLINE_ICON_TOP))
+            shade.paste(Image.new("RGBA", m.size, (0, 0, 0, alpha)), (pos[0], pos[1] + dy), m)
+            layer.paste(Image.new("RGBA", m.size, (255, 255, 255, 255)), pos, m)
+            x += iw + gap * K
+
     shade = shade.filter(ImageFilter.GaussianBlur(blur))
     return Image.alpha_composite(shade, layer)
 
@@ -258,7 +301,7 @@ def chrome_layer(title):
     # The tagline sits under it, in the frame's 16/Medium, with the icons
     # standing in for the o's of Doomscrolling and Hopescrolling.
     tag_f = font(TAGLINE_PX, WEIGHT_MEDIUM)
-    layer = Image.alpha_composite(layer, tagline_layer(TAGLINE, tag_f, TAGLINE_TOP))
+    layer = Image.alpha_composite(layer, tagline_layer(tag_f, TAGLINE_TOP))
 
     # The reference, bottom left, measured up from the foot of the frame.
     t_track = TRACKING * TITLE_PX

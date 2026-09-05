@@ -7,6 +7,12 @@ import DesktopNav from "./DesktopNav";
 import { type TabKey } from "./BottomNav";
 import { ChevronIcon } from "./icons";
 import { TOPICS } from "@/data/topics";
+import {
+  SadTearGlyph,
+  WearyGlyph,
+  HeartGlyph,
+  GLYPH_PAIR_OVERLAP_EM,
+} from "./HeroGlyphs";
 
 /*
  * The furniture around the feed at desktop widths.
@@ -98,12 +104,28 @@ export default function DesktopChrome({
        * headline lines and the subtitle, and nothing else. It is scaffolding
        * left in the file, not part of the design. */}
       <section className="pointer-events-none desk-copy fixed top-1/2 z-[500] hidden -translate-y-1/2 flex-col gap-[32px] desk:flex">
+        {/* The o's are icons, per the frame — two traced emoji in Doomscrolling
+         *  and a heart in Hopescrolling. They are INLINE in the text flow, not
+         *  positioned over it: the frame does the latter, with runs of spaces
+         *  under absolutely-placed icon frames, and that only holds while the
+         *  renderer's advances match Figma's. The share clips learned this the
+         *  hard way — placed absolutely there, the heart drifted until it had
+         *  4.86 units of air on one side and 2.08 on the other. Inline, the
+         *  browser keeps each icon with the letters it stands between, at any
+         *  size and in any font fallback.
+         *
+         *  The heart is the frame's teal; the faces inherit the line's grey. */}
         <h1
           className="flex flex-col gap-[16px] text-[56px] font-normal"
           style={{ lineHeight: "50.35px", letterSpacing: "-2.398px" }}
         >
-          <span style={{ color: "#999999" }}>Stop Doomscrolling</span>
-          <span className="text-white">Start Hopescrolling</span>
+          <span style={{ color: "#999999" }}>
+            Stop D<SadTearGlyph />
+            <WearyGlyph style={{ marginLeft: `-${GLYPH_PAIR_OVERLAP_EM}em` }} />mscrolling
+          </span>
+          <span className="text-white">
+            Start H<HeartGlyph style={{ color: "#76EEE8" }} />pescrolling
+          </span>
         </h1>
         <p className="text-[24px] font-medium leading-[150%]" style={{ color: "#999999" }}>
           Experience a collection of short verses that brings hope centered

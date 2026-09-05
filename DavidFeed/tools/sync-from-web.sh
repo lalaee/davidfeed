@@ -30,7 +30,7 @@ cp /tmp/dfexport/shorts.json "$RES/data/shorts.json"
 
 echo "== 2/4  syncing referenced media =="
 python3 - "$WEB/public" "$RES/media" "$RES/data/shorts.json" <<'PY'
-import json, os, shutil, sys
+import json, os, shutil, subprocess, sys
 web, dest, data = sys.argv[1], sys.argv[2], sys.argv[3]
 posts = json.load(open(data))
 keys = ("backgroundImage", "videoSrc", "posterVideoSrc", "audioSrc")
@@ -65,14 +65,59 @@ for post in posts:
 copied = missing = 0
 keep = set()
 
+# The bed is mixed in HERE rather than taken from the web's render.
+# build-share-videos.py maps only "1:a" -- the narration mp3 -- so the clips it
+# produces carry no ambient bed at all, and a shared card arrived as a dry voice
+# over silence when the card itself plays the voice over the bed. The web has
+# the same gap; this is a deliberate divergence from it, not a port of it.
+#
+# normalize=0 is the point of the amix: left to itself amix halves every input,
+# which would drop the narration to 50% as the price of putting a bed under it.
+# Summing at full level can then clip -- the narrations already peak at -1.2dB --
+# so alimiter catches the overshoot. Video is stream-copied; only audio is
+# re-encoded, so this costs seconds per clip and does not touch the picture.
+BED = os.path.join(web, "assets/ambient-bed.m4a")
+THREADS = max(2, (os.cpu_count() or 4) // 2)
+
+def mix_bed(src, out):
+    subprocess.run(
+        ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-threads", str(THREADS),
+         "-i", src, "-stream_loop", "-1", "-i", BED,
+         "-filter_complex",
+         "[1:a]volume=0.25[b];"                                  # web's BED_VOLUME
+         "[0:a][b]amix=inputs=2:duration=first:normalize=0[m];"  # narration stays full
+         # Insurance, not correction: measured on the current 28 clips the
+         # mix peaks at -1.65dB and never reaches this threshold at all. It
+         # is here for a future narration mastered louder.
+         #
+         # level=0 matters if it ever does engage -- alimiter's auto-level
+         # defaults to TRUE and normalises the output back up, handing back
+         # the exact headroom `limit` was asked for.
+         #
+         # Note psalm-16-11 decodes to a single sample at +0.84dB while its
+         # PCM is -1.65dB. That is AAC reconstruction overshoot, which no
+         # pre-encode limiter can prevent and which is inaudible at one
+         # sample with a flat factor of 0. Every platform re-encodes anyway.
+         "[m]alimiter=limit=0.95:level=0[a]",
+         "-map", "0:v", "-c:v", "copy",
+         "-map", "[a]", "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+         "-movflags", "+faststart", out],
+        check=True)
+
 shared = 0
+have_bed = os.path.exists(BED)
 for src_rel, out_name in share_pairs:
     keep.add(out_name)
     src = os.path.join(web, src_rel)
     out = os.path.join(dest, out_name)
     if not os.path.exists(out) or os.path.getmtime(src) > os.path.getmtime(out):
-        shutil.copy2(src, out); shared += 1
-print(f"   share clips: {len(share_pairs)} referenced, {shared} copied/updated")
+        if have_bed:
+            mix_bed(src, out)
+        else:
+            shutil.copy2(src, out)
+        shared += 1
+print(f"   share clips: {len(share_pairs)} referenced, {shared} rebuilt"
+      f"{' with bed' if have_bed else ' WITHOUT BED (ambient-bed.m4a missing)'}")
 
 for rel in sorted(wanted):
     src, name = os.path.join(web, rel), os.path.basename(rel)

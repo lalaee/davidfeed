@@ -44,24 +44,50 @@ FONT = ROOT / "scripts/fonts/Inter.ttf"
 W, H = 1080, 1920
 K = W / 375  # 2.88 — every measurement below is the card's own, scaled by this.
 
-# All of it read off the Figma frame "New Feed UI" (2702:18159), a 375x610 card,
-# and scaled by K. The clip itself stays 1080x1920 because that is what Stories
-# and Status want; the frame is a card mock, not a delivery format. So the top
-# furniture is anchored to the TOP and the reference to the BOTTOM, and the
-# extra height that 9:16 adds falls in the middle, where the artwork is.
+# All of it read off the Figma frame "New Feed UI" (2711:1006), a 375x610 card
+# drawn 1:1, and scaled by K. The clip itself stays 1080x1920 because that is
+# what Stories and Status want; the frame is a card mock, not a delivery format.
+# So the top furniture is anchored to the TOP and the reference to the BOTTOM,
+# and the extra height that 9:16 adds falls in the middle, where the artwork is.
 WORDMARK = "Dafod.app"
-WORDMARK_TOP = round(55 * K)            # y=55 in the frame, and CENTRED
-WORDMARK_PX = round(24 * K)
+WORDMARK_TOP = round(45.55 * K)         # y=45.55 in the frame, and CENTRED
+WORDMARK_PX = round(20 * K)
+WORDMARK_TRACK = -0.01                  # -1%, and NOT the -2% the reference uses
 
-# The 21/Medium line under the wordmark is the TAGLINE, not the verse. Its layer
-# in the frame is called "Incoming Verse", which is a trap: the words in it are
-# "Stop Doomscrolling. Start Hopescrolling". The frame has no caption in it at
-# all, so the verse keeps the place the card gives it — the middle.
-TAGLINE = "Stop Doomscrolling. Start Faithscrolling"
-TAGLINE_TOP = round(90.23 * K)
-TAGLINE_PX = round(21 * K)
-TAGLINE_LINE = round(21 * 1.11 * K)
-TAGLINE_MAX = round(245.97 * K)
+# THE TAGLINE, and why it is not one string.
+#
+# The frame draws "Stop D<sad><weary>mscrolling, Start H<heart>pescrolling" —
+# the o's are replaced by icons. In Figma that is one text layer whose o's are
+# runs of spaces, with three icon frames absolutely positioned on top of the
+# gaps. Reproducing it that way here would mean betting that PIL's advance
+# widths for Inter match Figma's to the pixel, because a 1px drift puts an icon
+# half off its own hole.
+#
+# So it is composed as a SEQUENCE instead: text runs and icons laid end to end,
+# measured, then centred as a block. Self-consistent by construction, and the
+# icons cannot drift from the words they stand in for.
+#
+# The layer is still called "Incoming Verse" in the file, which remains a trap:
+# it is marketing copy, not the psalm. The frame has no caption in it at all, so
+# the verse keeps the place the card gives it — the middle.
+TAGLINE_TOP = round(79.19 * K)
+TAGLINE_PX = round(16 * K)
+TAGLINE_LINE = round(16 * 1.11 * K)     # line-height 111%
+TAGLINE_ICON = round(16 * K)            # the two faces are 16x16 in the frame
+TAGLINE_HEART = round(16.63 * K)        # the heart is 16.63, very slightly bigger
+TAGLINE_ICON_DY = round(0.9 * K)        # icons sit ~0.9 below the text box top
+
+# ("text", str) draws a run; ("icon", name, px) drops one of the masks in
+# scripts/assets/tagline. Order is the reading order.
+TAGLINE = [
+    ("text", "Stop D"),
+    ("icon", "sad-tear", TAGLINE_ICON),
+    ("icon", "distressed", TAGLINE_ICON),
+    ("text", "mscrolling, Start H"),
+    ("icon", "heart", TAGLINE_HEART),
+    ("text", "pescrolling"),
+]
+ICON_DIR = ROOT / "scripts/assets/tagline"
 
 # The verse, exactly as the card draws it: centred in the frame, 24 Semibold,
 # leading 1.3, in a 320 column.
@@ -73,7 +99,7 @@ TITLE_PX = round(24 * K)
 TITLE_LEFT = round(20 * K)              # x=20
 TITLE_BOTTOM = round(20.82 * K)         # 610 - (560.18 + 29)
 
-TRACKING = -0.02                        # letter-spacing: -2% on the 24px pair
+TRACKING = -0.02                        # -2%, on the 24px reference
 WEIGHT_SEMIBOLD = 600
 WEIGHT_MEDIUM = 500
 
@@ -122,6 +148,53 @@ def wrap(text, f, max_w, track=0.0):
     if line:
         lines.append(line)
     return lines
+
+
+def icon_mask(name, px):
+    """One tagline icon, as an L-mode alpha mask at the requested size.
+
+    Stored at 192px and downsampled here rather than rendered per size, so the
+    build needs no SVG rasteriser. Only alpha is kept — the icons are painted
+    white at composite time, so the source fill colour never matters.
+    """
+    return Image.open(ICON_DIR / f"{name}.png").convert("L").resize(
+        (px, px), Image.LANCZOS)
+
+
+def tagline_layer(items, f, top, track=0.0, shadow=(3, 8, 140)):
+    """The tagline: text runs and inline icons, laid end to end and centred.
+
+    Measured first, then drawn, because the block has to be centred and an icon
+    is not a glyph the font can advance past. The icons are vertically nudged by
+    TAGLINE_ICON_DY, which is the frame's own offset between the text box top
+    and the icon frames — they sit fractionally low so their optical centre
+    lands on the x-height rather than on the line box.
+    """
+    dy, blur, alpha = shadow
+    widths, total = [], 0
+    for it in items:
+        w = tracked_width(it[1], f, track) if it[0] == "text" else it[2]
+        widths.append(w)
+        total += w
+
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    shade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d, ds = ImageDraw.Draw(layer), ImageDraw.Draw(shade)
+    x = (W - total) / 2
+    for it, w in zip(items, widths):
+        if it[0] == "text":
+            draw_tracked(ds, (x, top + dy), it[1], f, (0, 0, 0, alpha), track)
+            draw_tracked(d, (x, top), it[1], f, (255, 255, 255, 255), track)
+        else:
+            m = icon_mask(it[1], it[2])
+            pos = (round(x), round(top + TAGLINE_ICON_DY))
+            white = Image.new("RGBA", m.size, (255, 255, 255, 255))
+            black = Image.new("RGBA", m.size, (0, 0, 0, alpha))
+            shade.paste(black, (pos[0], pos[1] + dy), m)
+            layer.paste(white, pos, m)
+        x += w
+    shade = shade.filter(ImageFilter.GaussianBlur(blur))
+    return Image.alpha_composite(shade, layer)
 
 
 def text_layer(lines, f, line_h, top, align="center", track=0.0, shadow=(3, 8, 140)):
@@ -175,18 +248,17 @@ def chrome_layer(title):
         grad.putpixel((0, y), (0, 0, 0, int(255 * max(down, up))))
     layer = Image.alpha_composite(layer, grad.resize((W, H)))
 
-    # Centred at the top, per the frame — not tucked into a corner.
-    track = TRACKING * WORDMARK_PX
+    # Centred at the top, per the frame — not tucked into a corner. Its -1% is
+    # NOT the reference's -2%; the frame sets them separately.
+    track = WORDMARK_TRACK * WORDMARK_PX
     layer = Image.alpha_composite(
         layer, text_layer([WORDMARK], mark_f, line_h, WORDMARK_TOP, "center", track)
     )
 
-    # The tagline sits under it, in the frame's lighter 21/Medium.
+    # The tagline sits under it, in the frame's 16/Medium, with the icons
+    # standing in for the o's of Doomscrolling and Hopescrolling.
     tag_f = font(TAGLINE_PX, WEIGHT_MEDIUM)
-    layer = Image.alpha_composite(
-        layer,
-        text_layer(wrap(TAGLINE, tag_f, TAGLINE_MAX), tag_f, TAGLINE_LINE, TAGLINE_TOP),
-    )
+    layer = Image.alpha_composite(layer, tagline_layer(TAGLINE, tag_f, TAGLINE_TOP))
 
     # The reference, bottom left, measured up from the foot of the frame.
     t_track = TRACKING * TITLE_PX

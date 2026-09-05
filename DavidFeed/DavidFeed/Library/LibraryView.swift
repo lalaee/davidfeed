@@ -307,5 +307,14 @@ private struct SavedFeedScreen: View {
                 // Above the feed's own tap targets, which cover the full screen.
                 .zIndex(1)
             }
+            // Closing this viewer ends its playback — narration and the ambient
+            // bed with it.
+            //
+            // Playback is a singleton so it can survive the app going to the
+            // background and keep the lock screen alive; the cost is that
+            // nothing stops it when a view goes away. That is right for the Home
+            // feed, which is meant to keep playing, and wrong here: this is a
+            // modal session and dismissing it is the reader saying they are done.
+            .onDisappear { Playback.shared.pause() }
     }
 }

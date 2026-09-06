@@ -13,9 +13,9 @@ import HeroLottie from "./HeroLottie";
 /*
  * The animated glyphs, four per line, cycling.
  *
- * The o's of Doomscrolling take the four "doom" faces; the o of Hopescrolling
- * takes the four "hope" ones. Each slot plays a face through and moves to the
- * next, so the line keeps changing rather than looping one gesture.
+ * The o's of Doomscrolling take the four "doom" faces, each slot playing one
+ * through and moving to the next, so the line keeps changing rather than
+ * looping a single gesture. The o of Hopescrolling is one animation on loop.
  *
  * Doom's two slots start two apart, so they never wear the same face at once —
  * with an offset of 1 the second would simply trail the first by one beat and
@@ -27,12 +27,16 @@ const DOOM_FACES = [
   "/motion/hero/doom-venom.json",
   "/motion/hero/doom-tongue.json",
 ];
-const HOPE_FACES = [
-  "/motion/hero/hope-smiling.json",
-  "/motion/hero/hope-relieved.json",
-  "/motion/hero/hope-happy-heart.json",
-  "/motion/hero/hope-smiling-hearts.json",
-];
+/*
+ * Hope is ONE animation, looped — the smiling face that sends hearts up. It is
+ * the only one of the four with heart layers (six of them, Heart-1..Heart-6),
+ * which is what makes it the one that reads as loves coming off the word.
+ *
+ * A single source loops inside the player rather than cycling through play(),
+ * so the SVG is built once instead of every 1.5 seconds. The other three hope
+ * faces stay in public/motion/hero, unreferenced, in case this is reversed.
+ */
+const HOPE_FACES = ["/motion/hero/hope-smiling-hearts.json"];
 
 /*
  * The furniture around the feed at desktop widths.
@@ -153,7 +157,7 @@ export default function DesktopChrome({
             />mscrolling
           </span>
           <span className="text-white">
-            Start H<HeroLottie sources={HOPE_FACES} offset={0} style={{ color: "#76EEE8" }} />pescrolling
+            Start H<HeroLottie sources={HOPE_FACES} style={{ color: "#76EEE8" }} />pescrolling
           </span>
         </h1>
         <p className="text-[24px] font-medium leading-[150%]" style={{ color: "#999999" }}>

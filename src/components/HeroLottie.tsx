@@ -19,11 +19,13 @@ import { GLYPH_ICON_EM } from "./HeroGlyphs";
  * it would render them frozen. Loaded on demand, so it costs the phone
  * nothing: this only ever mounts inside the desk-only chrome.
  *
- * TINTED TO THE LINE. The icons are exported as black strokes, which on this
- * page is invisible. After each render the strokes are set to currentColor —
- * grey on the Doom line, white on the Hope line, exactly as the static glyphs
- * before them were — and black fills likewise. Red fills (the hearts) are
- * left as drawn. Remove the recolour in `tint()` to get Iconly's own palette.
+ * TINTED TO THE LINE, in CSS. The icons export black strokes, invisible here,
+ * so `.hero-lottie` in globals.css recolours black strokes and black fills to
+ * currentColor — grey on Doom, the frame's teal on Hope. It is CSS and not an
+ * attribute pass because Lottie builds some shapes lazily during playback, and
+ * a one-shot pass at DOMLoaded misses them: 3 of 11 strokes stayed black on the
+ * hearts icon, reading as a broken stroke. Red hearts and white mask rects are
+ * left alone; see the note there.
  *
  * The box is the same 1.0114em the traced glyphs used, with the same
  * vertical-align, so nothing else on the line moves.
@@ -62,23 +64,12 @@ const BOX: CSSProperties = {
 };
 
 interface HeroLottieProps {
-  /** URLs of the Lottie JSON files, played in order, looping the set. */
+  /** URLs of the Lottie JSON files, played in order, cycling the set. */
   sources: string[];
   /** Index in `sources` to start at, so sibling slots can differ. */
   offset?: number;
   style?: CSSProperties;
   className?: string;
-}
-
-function tint(container: HTMLElement) {
-  for (const el of container.querySelectorAll<SVGElement>("[stroke], [fill]")) {
-    const stroke = el.getAttribute("stroke");
-    if (stroke && stroke !== "none") el.setAttribute("stroke", "currentColor");
-    const fill = el.getAttribute("fill");
-    if (fill && /^(#000000|rgb\(0, ?0, ?0\)|black)$/i.test(fill)) {
-      el.setAttribute("fill", "currentColor");
-    }
-  }
 }
 
 export default function HeroLottie({ sources, offset = 0, style, className }: HeroLottieProps) {
@@ -113,25 +104,28 @@ export default function HeroLottie({ sources, offset = 0, style, className }: He
 
       anim?.destroy();
       box.replaceChildren();
+      // One source loops in the player. Cycling back through play() would
+      // rebuild the SVG every 1.5s for no reason, and drop a frame each time.
       anim = lottie.loadAnimation({
         container: box,
         renderer: "svg",
-        loop: false,
+        loop: sources.length === 1,
         autoplay: !reduced,
         animationData,
         rendererSettings: { preserveAspectRatio: "xMidYMid meet", progressiveLoad: false },
       });
-      anim.addEventListener("DOMLoaded", () => tint(box));
       if (reduced) {
         // Rest on the first frame of the first face; no cycling.
         anim.goToAndStop(0, true);
         return;
       }
-      anim.addEventListener("complete", () => {
-        if (cancelled) return;
-        index = (index + 1) % sources.length;
-        void play();
-      });
+      if (sources.length > 1) {
+        anim.addEventListener("complete", () => {
+          if (cancelled) return;
+          index = (index + 1) % sources.length;
+          void play();
+        });
+      }
     };
 
     const sync = () => {
@@ -154,5 +148,12 @@ export default function HeroLottie({ sources, offset = 0, style, className }: He
     };
   }, [sources, offset]);
 
-  return <span ref={boxRef} aria-hidden className={className} style={{ ...BOX, ...style }} />;
+  return (
+    <span
+      ref={boxRef}
+      aria-hidden
+      className={className ? `hero-lottie ${className}` : "hero-lottie"}
+      style={{ ...BOX, ...style }}
+    />
+  );
 }

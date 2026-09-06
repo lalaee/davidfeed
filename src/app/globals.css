@@ -1509,3 +1509,26 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .nav-pill { animation: none; }
 }
+
+/* THE HERO'S ANIMATED GLYPHS, tinted in CSS rather than by rewriting attributes.
+ *
+ * The eight Iconly Lotties export black strokes, which are invisible on this
+ * page, so they have to be recoloured to the line they sit in. Doing that by
+ * setting attributes after DOMLoaded — which is what this did first — recolours
+ * only the DOM that exists at that instant. Lottie builds some shapes lazily as
+ * playback reaches them, and those are born black: measured 3 of 11 strokes
+ * still rgb(0,0,0) on the hearts icon, which on a dark page reads exactly like
+ * a broken stroke. CSS has no such window; it applies to elements created at
+ * any time, and it beats presentation attributes, so Lottie rewriting the
+ * attribute every frame cannot win it back.
+ *
+ * Only black is touched. #ffffff fills are Lottie's own MASK rects — recolour
+ * those and the masks stop masking — and rgb(255,0,0) is the hearts, which are
+ * meant to be red. `:not([stroke="none"])` matters too: a blanket rule would
+ * paint a stroke onto shapes that deliberately have none. */
+.hero-lottie [stroke]:not([stroke="none"]) {
+  stroke: currentColor;
+}
+.hero-lottie [fill="rgb(0,0,0)"] {
+  fill: currentColor;
+}

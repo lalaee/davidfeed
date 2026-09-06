@@ -22,8 +22,16 @@ struct FeedView: View {
     @State private var activeID: Int?
 
     /// The web feed opens on a topic and reorders to it, so the first card is
-    /// the topic's first id rather than the first row of shorts.json.
-    private var posts: [Post] { fixedSet ? allPosts : topic.posts(from: allPosts) }
+    /// the topic's first id rather than the first row of shorts.json — then
+    /// deals that topic into an order, so it is not the same card every launch.
+    ///
+    /// A fixed set is NOT dealt, which the web is deliberate about: "a
+    /// collection keeps the order it arrived in — the Library's saved list
+    /// belongs to the reader, and reshuffling it would lose the place they put
+    /// things in. Only the topic feed is dealt."
+    private var posts: [Post] {
+        fixedSet ? allPosts : TopicStore.dealt(topic.posts(from: allPosts))
+    }
 
     /// The card peeking below the current one.
     private var nextID: Int? {

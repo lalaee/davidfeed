@@ -37,7 +37,9 @@ enum TopicStore {
     /// or every render would re-deal the feed under the reader's thumb." Here
     /// the equivalent is one seed per process, so every read of `initial`
     /// within a launch agrees.
-    static let seed = UInt64.random(in: 1...UInt64.max)
+    /// Never 0. The web reserves 0 for its server ("leave the order alone");
+    /// nothing here needs that, so the range simply excludes it.
+    static let seed: UInt32 = .random(in: 1...UInt32.max)
 
     /// Which topic a launch opens on.
     ///
@@ -54,6 +56,42 @@ enum TopicStore {
     /// with. There is no prerender here, so there is no seed 0 and no branch.
     static var initial: Topic? {
         guard !all.isEmpty else { return nil }
-        return all[Int(seed % UInt64(all.count))]
+        return all[Int(seed % UInt32(all.count))]
+    }
+
+    /// The cards of a topic, dealt into an order.
+    ///
+    /// Ported from the web's `shuffled`, and for the reason its note gives:
+    /// "postsForTopic hands back the topic's own array, in the order it is
+    /// written, so the home feed opened on Psalm 27:1 every single time — the
+    /// same card, the same verse, for a feed whose whole premise is that you
+    /// scroll it."
+    ///
+    /// Fisher-Yates driven by mulberry32 rather than Swift's own `shuffled()`,
+    /// because the order has to be STABLE within a launch: the same seed and
+    /// the same topic must deal the same order, so switching topic and
+    /// switching back returns the order you left instead of a fresh one.
+    /// SystemRandomNumberGenerator would re-deal on every read — and `posts`
+    /// is a computed property the feed reads constantly, including from
+    /// `onChange(of: posts.map(\.id))`, which a shifting order would trip on
+    /// every render.
+    static func dealt<T>(_ items: [T]) -> [T] {
+        var s = seed
+        // mulberry32. Wrapping 32-bit arithmetic throughout, which is what
+        // JavaScript's `| 0` and Math.imul do on the other side, so this deals
+        // the same sequence for a given seed.
+        func unit() -> Double {
+            s = s &+ 0x6d2b79f5
+            var t = (s ^ (s >> 15)) &* (1 | s)
+            t = (t &+ ((t ^ (t >> 7)) &* (61 | t))) ^ t
+            return Double(t ^ (t >> 14)) / 4294967296
+        }
+        var out = items
+        var i = out.count - 1
+        while i > 0 {
+            out.swapAt(i, Int(unit() * Double(i + 1)))
+            i -= 1
+        }
+        return out
     }
 }

@@ -230,12 +230,10 @@ struct BibleView: View {
             let y = fitsBelow ? below : max(Self.navCeiling, above)
             VerseActionBar(
                 highlight: app.highlight(k),
-                isSaved: app.isVerseSaved(k),
                 shareItem: shareText(n),
                 zoomNamespace: zoom,
                 onHighlight: { app.setHighlight($0, for: k) },
-                onCompare: { comparing = n },
-                onSave: { app.toggleVerseSaved(k) }
+                onCompare: { comparing = n }
             )
             .padding(.horizontal, 16)
             .offset(y: y)

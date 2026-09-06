@@ -5,9 +5,9 @@ import SwiftUI
 /// From davidfeed's CompareSheet (Figma "Bible" 2646:2163, frame 36942):
 ///
 ///   card       333x444, radius 18.8333, fill #0E0E0E, padding 24/16, gap 32
-///   header     48 tall (a minimum), gap 10: a 48x48 close circle, the
-///              reference, then a hugging "Versions" button
-///   buttons    #212121, fully round, 6/20 padding, 4 gap, 20x20 icon
+///   header     48 tall (a minimum), gap 10: a 48x48 close circle and the
+///              reference. The design's "Versions" pill is omitted — see the
+///              note on the header.
 ///   reference  Semi Bold 17/150%
 ///   label      Medium 15, #999999
 ///   verse      Regular 18/150%, #FFFFFF
@@ -76,19 +76,10 @@ struct CompareSheet: View {
 
             Spacer(minLength: 0)
 
-            // "#212121, fully round, 6/20 padding, 4 gap, 20x20 icon"
-            HStack(spacing: 4) {
-                Image("Versions")
-                    .renderingMode(.template)
-                    .resizable().scaledToFit()
-                    .frame(width: 20, height: 20)
-                Text("Versions")
-                    .font(.system(size: 15, weight: .medium))
-            }
-            .foregroundStyle(DF.ink)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 20)
-            .background(DF.surfaceRaised, in: Capsule())
+            // The design's "Versions" pill is gone. It was there to choose
+            // which translations the card shows, and with only three -- all of
+            // them listed below, always -- it was a control with nothing to
+            // decide. It was never wired to an action here either.
         }
         .frame(minHeight: 48)
         .padding(.horizontal, 16)

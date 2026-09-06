@@ -1,19 +1,24 @@
 import SwiftUI
 
+/// How a selected swatch is marked. The two places this control appears mean
+/// different things by "selected", so they mark it differently.
+enum HighlightSwatchStyle: Equatable {
+    /// A cancel mark inside the circle. The verse action bar, where a swatch
+    /// APPLIES a colour and the marked one is the colour on the verse: the mark
+    /// is an offer to take it off again. Drawn in #0E0E0E per the web's note —
+    /// "every swatch is a bright pastel and a white cross would disappear into
+    /// the yellow."
+    case cancel
+    /// A white rim on the colour. The Library's filter, where nothing is being
+    /// removed and the mark only says which colour the list is narrowed to.
+    case stroke
+}
+
 /// One highlight colour.
-///
-/// Selected state is a cancel mark drawn INSIDE the circle, not a rim. The web
-/// note is explicit about the colour of that mark: "#0E0E0E is the design's own
-/// stroke colour, and it has to be dark: every swatch is a bright pastel and a
-/// white cross would disappear into the yellow."
-///
-/// The same control serves the verse action bar and the Library's colour filter
-/// — "the same cancel mark as the action bar's swatches: there it claimed a
-/// colour was applied, here it says the list is filtered to it" — so tapping the
-/// active one clears in both places.
 struct HighlightSwatch: View {
     let hex: String
     let isOn: Bool
+    var style: HighlightSwatchStyle = .cancel
     let action: () -> Void
 
     static let size: CGFloat = 28.7
@@ -25,11 +30,19 @@ struct HighlightSwatch: View {
                 .frame(width: Self.size, height: Self.size)
                 .overlay {
                     if isOn {
-                        Image("HighlightCancel")
-                            .renderingMode(.template)
-                            .resizable().scaledToFit()
-                            .frame(width: 12, height: 12)
-                            .foregroundStyle(DF.surface)
+                        switch style {
+                        case .cancel:
+                            Image("HighlightCancel")
+                                .renderingMode(.template)
+                                .resizable().scaledToFit()
+                                .frame(width: 12, height: 12)
+                                .foregroundStyle(DF.surface)
+                        case .stroke:
+                            // strokeBorder draws INSIDE the circle's bounds, so
+                            // the rim cannot grow the swatch or eat into the
+                            // gap the row computes between them.
+                            Circle().strokeBorder(.white, lineWidth: 2.5)
+                        }
                     }
                 }
         }
@@ -43,13 +56,23 @@ struct HighlightSwatch: View {
 /// the bar, on #212121 at radius 30).
 struct HighlightSwatchRow: View {
     let selected: String?
+    var style: HighlightSwatchStyle = .cancel
     let onSelect: (String?) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Array(AppState.highlightColours.enumerated()), id: \.offset) { _, hex in
-                HighlightSwatch(hex: hex, isOn: selected == hex) {
-                    onSelect(selected == hex ? nil : hex)
+                HighlightSwatch(hex: hex, isOn: selected == hex, style: style) {
+                    // Tapping the marked swatch clears it in cancel style,
+                    // where the mark is itself the offer to clear. In stroke
+                    // style the selection is sticky: a rim advertises no such
+                    // affordance, so clearing on tap would be a state the
+                    // reader could reach only by accident.
+                    if style == .cancel && selected == hex {
+                        onSelect(nil)
+                    } else {
+                        onSelect(hex)
+                    }
                 }
                 if hex != AppState.highlightColours.last { Spacer(minLength: 0) }
             }

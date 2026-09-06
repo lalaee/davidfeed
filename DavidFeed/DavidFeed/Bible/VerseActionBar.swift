@@ -19,9 +19,12 @@ extension Color {
 ///
 /// From davidfeed's VerseActionBar (Figma "Contextual-highlight" 2649:2528,
 /// frame 36982). It is CONTEXTUAL — it floats below the verse you tapped and
-/// overlaps the verses beneath it rather than sitting in a fixed slot — and it
-/// SCROLLS, because the groups measure wider than the bar: the design clips
-/// Save at the frame edge on purpose.
+/// overlaps the verses beneath it rather than sitting in a fixed slot.
+///
+/// Save has been dropped. The design scrolled the bar because the groups
+/// measured wider than it and clipped Save at the frame edge; with Save gone
+/// the three remaining groups fit well inside the screen, so the bar hugs them
+/// and the horizontal scroll view is no longer earning its place.
 ///
 ///   bar        78 tall, radius 22, fill #0E0E0E, 12 padding
 ///   groups     54 tall, radius 14, fill #212121, 8 apart
@@ -31,7 +34,6 @@ extension Color {
 ///   label      Inter 400, 11.9048, 2% tracking — the nav's own label style
 struct VerseActionBar: View {
     let highlight: String?
-    let isSaved: Bool
     /// Handed straight to the system share sheet — see BibleView.shareText.
     let shareItem: String
     /// So the compare sheet can morph out of the Compare button, the way iOS 26
@@ -39,26 +41,20 @@ struct VerseActionBar: View {
     let zoomNamespace: Namespace.ID
     let onHighlight: (String?) -> Void
     let onCompare: () -> Void
-    let onSave: () -> Void
 
     private let barHeight: CGFloat = 78
     private let groupHeight: CGFloat = 54
     private let swatchGroupWidth: CGFloat = 148
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                swatches
-                action("Compare", icon: "Compare", run: onCompare)
-                    .matchedTransitionSource(id: "compare", in: zoomNamespace)
-                ShareLink(item: shareItem) { actionLabel("Share", icon: "Send") }
-                    .buttonStyle(.plain)
-                action("Save", icon: isSaved ? "BookmarkActive" : "BookmarkInactive",
-                       run: onSave)
-            }
-            .padding(12)
+        HStack(spacing: 8) {
+            swatches
+            action("Compare", icon: "Compare", run: onCompare)
+                .matchedTransitionSource(id: "compare", in: zoomNamespace)
+            ShareLink(item: shareItem) { actionLabel("Share", icon: "Send") }
+                .buttonStyle(.plain)
         }
-        .scrollIndicators(.hidden)
+        .padding(12)
         .frame(height: barHeight)
         .background(DF.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }

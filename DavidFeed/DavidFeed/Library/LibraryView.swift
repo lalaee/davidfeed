@@ -27,7 +27,8 @@ struct LibraryView: View {
 
     @Environment(AppState.self) private var app
     @State private var section: Section = .saved
-    /// Nil shows every highlight; a colour narrows the list to it.
+    /// The colour the highlight list is narrowed to. Set on landing rather
+    /// than left nil — see preselectFilter().
     @State private var filter: String?
     /// The saved set opened as a feed, starting on the tile that was tapped.
     @State private var openedFeedAt: Post?
@@ -44,6 +45,9 @@ struct LibraryView: View {
         .padding(.top, 40)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DF.ground)
+        .onAppear { preselectFilter() }
+        .onChange(of: section) { preselectFilter() }
+        .onChange(of: app.highlights) { preselectFilter() }
         .fullScreenCover(item: $openedFeedAt) { post in
             // No .navigationTransition(.zoom) here. LibraryView has no
             // NavigationStack — the design has no title bar to put one under —
@@ -87,11 +91,32 @@ struct LibraryView: View {
     /// verse action bar's swatch group, and the same four colours in the same
     /// order."
     private var filterBar: some View {
-        HighlightSwatchRow(selected: filter) { filter = $0 }
+        HighlightSwatchRow(selected: filter, style: .stroke) { filter = $0 }
             .padding(.horizontal, 16)
             .frame(height: 54)
             .background(DF.surfaceRaised, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
             .padding(.horizontal, 24)
+    }
+
+    /// The palette colours that actually have highlights, in the palette's
+    /// own order so the choice is stable rather than dictionary order.
+    private var availableColours: [String] {
+        AppState.highlightColours.filter { app.highlights.values.contains($0) }
+    }
+
+    /// The filter lands on a colour instead of on "everything".
+    ///
+    /// With the active swatch marked by a rim rather than a cancel mark, a row
+    /// with nothing marked reads as broken rather than as "no filter applied".
+    /// Re-run when the highlights change too, so deleting the last verse of the
+    /// colour being shown moves the filter to one that still has verses instead
+    /// of leaving an empty list under a marked swatch.
+    ///
+    /// The web starts this at null and shows everything; this is a deliberate
+    /// divergence from it.
+    private func preselectFilter() {
+        if let f = filter, availableColours.contains(f) { return }
+        filter = availableColours.first
     }
 
     @ViewBuilder

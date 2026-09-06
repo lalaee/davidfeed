@@ -30,6 +30,30 @@ enum TopicStore {
         return list
     }()
 
-    /// The web app opens on the first topic, not on the unfiltered set.
-    static var initial: Topic? { all.first }
+    /// One seed per launch.
+    ///
+    /// Ported from the web's `readFeedSeed`, whose note is the reason it is a
+    /// `let` and not a computed value: "one seed per page load, not per render,
+    /// or every render would re-deal the feed under the reader's thumb." Here
+    /// the equivalent is one seed per process, so every read of `initial`
+    /// within a launch agrees.
+    static let seed = UInt64.random(in: 1...UInt64.max)
+
+    /// Which topic a launch opens on.
+    ///
+    /// This was `all.first` — Pressure — so every launch landed on the same
+    /// filter. The web hit exactly this and fixed it in `topicForSeed`; the
+    /// pick is that seed modulo the list, so the port is the same rule.
+    ///
+    /// "Anything" stays in the pool, which the web is explicit about and which
+    /// is worth not second-guessing: "it is one of the six filters, and the
+    /// complaint was landing on the same one every time, not on that one."
+    ///
+    /// The web also has a seed-0 branch returning the first topic. That exists
+    /// only so its static prerender is stable enough for hydration to agree
+    /// with. There is no prerender here, so there is no seed 0 and no branch.
+    static var initial: Topic? {
+        guard !all.isEmpty else { return nil }
+        return all[Int(seed % UInt64(all.count))]
+    }
 }

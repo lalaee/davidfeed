@@ -7,12 +7,32 @@ import DesktopNav from "./DesktopNav";
 import { type TabKey } from "./BottomNav";
 import { ChevronIcon } from "./icons";
 import { TOPICS } from "@/data/topics";
-import {
-  SadTearGlyph,
-  WearyGlyph,
-  HeartGlyph,
-  GLYPH_PAIR_OVERLAP_EM,
-} from "./HeroGlyphs";
+import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
+import HeroLottie from "./HeroLottie";
+
+/*
+ * The animated glyphs, four per line, cycling.
+ *
+ * The o's of Doomscrolling take the four "doom" faces; the o of Hopescrolling
+ * takes the four "hope" ones. Each slot plays a face through and moves to the
+ * next, so the line keeps changing rather than looping one gesture.
+ *
+ * Doom's two slots start two apart, so they never wear the same face at once —
+ * with an offset of 1 the second would simply trail the first by one beat and
+ * they would collide every cycle.
+ */
+const DOOM_FACES = [
+  "/motion/hero/doom-crying.json",
+  "/motion/hero/doom-angry-horns.json",
+  "/motion/hero/doom-venom.json",
+  "/motion/hero/doom-tongue.json",
+];
+const HOPE_FACES = [
+  "/motion/hero/hope-smiling.json",
+  "/motion/hero/hope-relieved.json",
+  "/motion/hero/hope-happy-heart.json",
+  "/motion/hero/hope-smiling-hearts.json",
+];
 
 /*
  * The furniture around the feed at desktop widths.
@@ -104,27 +124,36 @@ export default function DesktopChrome({
        * headline lines and the subtitle, and nothing else. It is scaffolding
        * left in the file, not part of the design. */}
       <section className="pointer-events-none desk-copy fixed top-1/2 z-[500] hidden -translate-y-1/2 flex-col gap-[32px] desk:flex">
-        {/* The o's are icons, per the frame — two traced emoji in Doomscrolling
-         *  and a heart in Hopescrolling. They are INLINE in the text flow, not
-         *  positioned over it: the frame does the latter, with runs of spaces
-         *  under absolutely-placed icon frames, and that only holds while the
-         *  renderer's advances match Figma's. The share clips learned this the
-         *  hard way — placed absolutely there, the heart drifted until it had
-         *  4.86 units of air on one side and 2.08 on the other. Inline, the
-         *  browser keeps each icon with the letters it stands between, at any
-         *  size and in any font fallback.
+        {/* The o's are ANIMATED icons — eight Iconly Lotties, four cycling in
+         *  the o's of Doomscrolling and four in the o of Hopescrolling. They
+         *  replace the traced stills that stood here; HeroGlyphs still holds
+         *  those, and the share clips still burn them in, because a video
+         *  frame cannot carry an animation.
          *
-         *  The heart is the frame's teal; the faces inherit the line's grey. */}
+         *  INLINE in the text flow, not positioned over it. The frame does the
+         *  latter, with runs of spaces under absolutely-placed icon frames, and
+         *  that only holds while the renderer's advances match Figma's. The
+         *  share clips learned this the hard way — placed absolutely there, the
+         *  heart drifted until it had 4.86 units of air on one side and 2.08 on
+         *  the other. Inline, the browser keeps each icon with the letters it
+         *  stands between, at any size and in any font fallback.
+         *
+         *  Each slot takes its line's colour: grey on Doom, and the frame's
+         *  teal on Hope, where a plain white face would lose the heart. */}
         <h1
           className="flex flex-col gap-[16px] text-[56px] font-normal"
           style={{ lineHeight: "50.35px", letterSpacing: "-2.398px" }}
         >
           <span style={{ color: "#999999" }}>
-            Stop D<SadTearGlyph />
-            <WearyGlyph style={{ marginLeft: `-${GLYPH_PAIR_OVERLAP_EM}em` }} />mscrolling
+            Stop D<HeroLottie sources={DOOM_FACES} offset={0} />
+            <HeroLottie
+              sources={DOOM_FACES}
+              offset={2}
+              style={{ marginLeft: `-${GLYPH_PAIR_OVERLAP_EM}em` }}
+            />mscrolling
           </span>
           <span className="text-white">
-            Start H<HeartGlyph style={{ color: "#76EEE8" }} />pescrolling
+            Start H<HeroLottie sources={HOPE_FACES} offset={0} style={{ color: "#76EEE8" }} />pescrolling
           </span>
         </h1>
         <p className="text-[24px] font-medium leading-[150%]" style={{ color: "#999999" }}>

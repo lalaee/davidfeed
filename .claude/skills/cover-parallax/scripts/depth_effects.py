@@ -352,10 +352,22 @@ def encode(frames, path, fps):
 
 
 def seam_db(frames):
-    """How well it loops: PSNR between the last frame and the first."""
-    a, b = frames[0].astype(np.float32), frames[-1].astype(np.float32)
-    mse = float(((a - b) ** 2).mean())
-    return 99.0 if mse < 1e-9 else 10 * np.log10(255.0 ** 2 / mse)
+    """How well it loops, RELATIVE TO A NORMAL STEP.
+
+    The naive reading of this number caused a false alarm: frames[0] and
+    frames[-1] are one step apart, not the same instant, so a raw PSNR between
+    them measures a step and not a discontinuity. On a charcoal drawing every
+    step is large, and three covers reported 14-24 dB while being perfectly
+    periodic — frame at t=2pi was byte-identical to t=0 in all of them.
+
+    So the seam is reported as dB ABOVE the median step. A seamless loop scores
+    near zero; a real discontinuity is a large negative number, whatever the
+    artwork's texture."""
+    def _psnr(x, y):
+        m = np.mean((x.astype(np.float32) - y.astype(np.float32)) ** 2)
+        return 99.0 if m == 0 else 10 * np.log10(255.0 ** 2 / m)
+    steps = [_psnr(frames[i], frames[i + 1]) for i in range(len(frames) - 1)]
+    return _psnr(frames[-1], frames[0]) - float(np.median(steps))
 
 
 def activity(frames):

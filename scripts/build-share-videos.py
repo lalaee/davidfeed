@@ -89,6 +89,16 @@ TAGLINE_RIGHT = round((375 - (216.6 + 141)) * K)  # 17.4 of air, mirroring the 1
 # has no italic instance. So the italic is a second file.
 TAGLINE_RUNS = [("Start ", False), ("Hope", True), ("scrolling", False)]
 
+# The artwork's own bottom corners, from the Feed rect: top square, bottom 20.
+ART_RADIUS = round(20 * K)              # 58
+
+# The music bed, under the reading. Feed.tsx plays this exact file at exactly
+# this gain for the live feed, so a shared clip that used a different level
+# would not sound like the app it came from.
+BED = PUBLIC / "assets/ambient-bed.m4a"
+BED_VOLUME = 0.25
+BED_FADE = 0.6                          # seconds, out only
+
 ICON_DIR = ROOT / "scripts/assets/tagline"
 
 # The verse, exactly as the card draws it: centred, 24 Semibold, leading 1.3,
@@ -202,6 +212,19 @@ def footer_layer():
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     d.rectangle([0, FOOTER_TOP, W, H], fill=(255, 255, 255, 255))
+
+    # The artwork's bottom corners are rounded 20 in the frame, so the white
+    # behind shows through them. An mp4 has no alpha, so they are PAINTED, not
+    # cut: take a rounded mask of the artwork, square its top back off — the
+    # frame rounds only the bottom two — invert it, and fill with the same white
+    # the footer uses, so corner and footer are one surface.
+    mask = Image.new("L", (W, FOOTER_TOP), 0)
+    md = ImageDraw.Draw(mask)
+    md.rounded_rectangle([0, 0, W - 1, FOOTER_TOP - 1], radius=ART_RADIUS, fill=255)
+    md.rectangle([0, 0, W - 1, ART_RADIUS], fill=255)
+    corners = Image.new("RGBA", (W, FOOTER_TOP), (255, 255, 255, 255))
+    corners.putalpha(mask.point(lambda v: 255 - v))
+    layer.alpha_composite(corners, (0, 0))
 
     # The wordmark, with the heart standing in for the o.
     mf = font(WORDMARK_PX, WEIGHT_SEMIBOLD)
@@ -333,6 +356,8 @@ def render(post):
            "-i", str(work / "chrome.png")]
     for p, _, _ in caps:
         cmd += ["-i", str(p)]
+    bed_idx = 3 + len(caps)
+    cmd += ["-stream_loop", "-1", "-i", str(BED)]
 
     # Cover-crop to 1080x1920, the same object-cover the card uses.
     fc = [f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
@@ -344,8 +369,18 @@ def render(post):
         fc.append(f"[{prev}][{i+3}:v]overlay=0:0:enable='between(t,{s:.2f},{e:.2f})'[{nxt}]")
         prev = nxt
 
+    # The reading at unity, the bed under it at the feed's own 0.25.
+    # normalize=0 matters: amix halves every input by default, which would drop
+    # the voice 6dB for the sake of a bed that is meant to sit beneath it. The
+    # bed fades out rather than cutting — the reading ends because it is
+    # finished, the bed would just stop mid-phrase.
+    fc.append("[1:a]aformat=channel_layouts=stereo[va]")
+    fc.append(f"[{bed_idx}:a]aformat=channel_layouts=stereo,volume={BED_VOLUME},"
+              f"afade=t=out:st={max(0.0, length - BED_FADE):.2f}:d={BED_FADE}[ba]")
+    fc.append("[va][ba]amix=inputs=2:duration=first:normalize=0[a]")
+
     cmd += ["-filter_complex", ";".join(fc),
-            "-map", f"[{prev}]", "-map", "1:a",
+            "-map", f"[{prev}]", "-map", "[a]",
             "-t", str(length),
             "-c:v", "libx264", "-preset", "medium", "-crf", "29",
             "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.0",

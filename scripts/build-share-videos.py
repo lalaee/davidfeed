@@ -45,79 +45,82 @@ FONT = ROOT / "scripts/fonts/Inter.ttf"
 W, H = 1080, 1920
 K = W / 375  # 2.88 — every measurement below is the card's own, scaled by this.
 
-# All of it read off the Figma frame "New Feed UI" (2711:1006), a 375x610 card
-# drawn 1:1, and scaled by K. The clip itself stays 1080x1920 because that is
-# what Stories and Status want; the frame is a card mock, not a delivery format.
-# So the top furniture is anchored to the TOP and the reference to the BOTTOM,
-# and the extra height that 9:16 adds falls in the middle, where the artwork is.
-WORDMARK = "Dafod.app"
-WORDMARK_TOP = round(45.55 * K)         # y=45.55 in the frame, and CENTRED
+# All of it read off the Figma frame "New Feed UI" (2753:935), a 375x610 card
+# drawn 1:1, and scaled by K. The clip stays 1080x1920 because that is what
+# Stories and Status want; the frame is a card mock, not a delivery format.
+#
+# THE FURNITURE MOVED INTO A WHITE FOOTER. The previous frame (2711:1006) laid a
+# white wordmark and a two-clause tagline over the ARTWORK at the top. This one
+# ends the artwork at y=536.5 and gives the remaining 73.5 to a white bar: the
+# wordmark at its left, "Start Hopescrolling" at its right, both BLACK. So the
+# footer anchors to the BOTTOM, the artwork takes everything above it, and the
+# height 9:16 adds over the mock falls in the artwork.
+#
+# Two things in the frame do NOT render and are not reproduced: "Frame 37013 —
+# traced" is visible:false, and "Play - Iconly Pro" sits at 9243,-1912, far
+# outside a frame that clips. The iOS status bar is mock chrome — the previous
+# frames carried one too and no shipped clip has ever drawn it.
+FOOTER_UNITS = 610 - 536.5              # 73.5
+FOOTER_H = round(FOOTER_UNITS * K)      # 212
+FOOTER_TOP = H - FOOTER_H               # 1708 — where the artwork ends
+INK = (0, 0, 0, 255)                    # #000000, the footer's text
+
+# The wordmark, bottom LEFT, with a heart standing in for the o of Dafod.
+WORDMARK = "Daf   d.app"                # the run of spaces IS the icon slot
 WORDMARK_PX = round(20 * K)
-WORDMARK_TRACK = -0.01                  # -1%, and NOT the -2% the reference uses
+WORDMARK_LEFT = round(16.4 * K)
+WORDMARK_TOP = FOOTER_TOP + round((562.8 - 536.5) * K)
+WORDMARK_TRACK = -0.01                  # -1%, as before
+# Frame x=49 against the text's own x=16.4 puts the heart in the three spaces
+# after "Daf". Centred in its slot rather than placed absolutely, for the reason
+# the old tagline was: PIL's advances differ from Figma's by a fraction of a
+# unit, and a slot-anchored icon moves with the letters instead of away.
+WORDMARK_SLOT = ("Daf", "   ", "heart", 15.8)
+HEART_RGB = (85, 200, 242)              # #55C8F2 — the frame's own, not white
+WORDMARK_ICON_TOP = FOOTER_TOP + round((567.2 - 536.5) * K)
 
-# THE TAGLINE, and why the icons are placed rather than flowed.
-#
-# The frame draws "Stop D<sad><weary>mscrolling, Start H<heart>pescrolling" —
-# the o's replaced by icons. In Figma that is ONE text layer whose o's are runs
-# of spaces, with three icon frames positioned over the gaps. That is
-# reproduced here as-is, because it is measurably safe to: PIL's advances for
-# this Inter agree with Figma's to 1.08 units over the whole 324-unit line
-# (322.92 vs 324.00, 0.3%), and an icon is 16 units wide, so the worst drift is
-# a few percent of one icon.
-#
-# Flowing the icons inline instead — runs and icons laid end to end — was tried
-# and is WRONG, because it cannot express what the frame actually does: the two
-# face frames OVERLAP by 1.53 units (76.8 and 91.27, both 16 wide). Laid end to
-# end they sit 3.47 units apart where the letters around them sit 2.1-2.8
-# apart, and the pair reads as a hole in the word.
-#
-# Icon x is measured from the TEXT's own left edge, not from the frame, so any
-# residual metric drift moves icons and letters together.
-#
-# The layer is still called "Incoming Verse" in the file, which remains a trap:
-# it is marketing copy, not the psalm. The frame has no caption in it at all, so
-# the verse keeps the place the card gives it — the middle.
-TAGLINE_TOP = round(79.19 * K)
-TAGLINE_PX = round(16 * K)
-TAGLINE_LINE = 16 * 1.11 * K            # line-height 111%, kept unrounded
-TAGLINE_ICON_TOP = 80.19 * K            # the icon frames' y in the frame
-TAGLINE_TEXT = "Stop D       mscrolling, Start H    pescrolling"
+# The tagline, bottom RIGHT, and one clause now rather than two.
+TAGLINE_PX = round(15.208379745483398 * K)
+TAGLINE_LINE = 15.208379745483398 * 1.11 * K    # line-height 111%, unrounded
+TAGLINE_TOP = FOOTER_TOP + round((566 - 536.5) * K)
+TAGLINE_RIGHT = round((375 - (216.6 + 141)) * K)  # 17.4 of air, mirroring the 16.4
+# "Start " and "scrolling" are Medium, "Hope" is Bold ITALIC — which the shipped
+# variable Inter cannot draw: its only axes are Optical size and Weight, and it
+# has no italic instance. So the italic is a second file.
+TAGLINE_RUNS = [("Start ", False), ("Hope", True), ("scrolling", False)]
 
-# Each slot is a run of spaces in TAGLINE_TEXT that icons stand in. The icons
-# are CENTRED in the slot, which is what the frame does — measured off Figma's
-# own render of this row, the face pair has 2.08 units either side of it and the
-# heart 3.12 either side, both symmetric.
-#
-# Centring on the slot rather than placing at the frame's absolute x is what
-# makes it hold: PIL's advances run 1.08 units short of the frame's 324 over the
-# line, so absolute placement drifts progressively right of the letters, and by
-# the heart that was 4.86 units of air on one side against 2.08 on the other.
-# Anchored to its own slot, each icon group moves with the words around it.
-#
-# (prefix_before_slot, slot_text, [(mask, size)], gap_between_icons) in frame units.
-TAGLINE_SLOTS = [
-    ("Stop D", "       ", [("sad-tear", 16.0), ("distressed", 16.0)], 1.74),
-    ("Stop D       mscrolling, Start H", "    ", [("heart", 16.63)], 0.0),
-]
 ICON_DIR = ROOT / "scripts/assets/tagline"
 
-# The verse, exactly as the card draws it: centred in the frame, 24 Semibold,
-# leading 1.3, in a 320 column.
+# The verse, exactly as the card draws it: centred, 24 Semibold, leading 1.3,
+# in a 320 column — but centred in the ARTWORK now, not the frame, since the
+# footer owns the bottom 212px.
 CAPTION_PX = round(24 * K)
 CAPTION_LINE = round(24 * 1.3 * K)
 CAPTION_MAX = round(320 * K)
 
 TITLE_PX = round(24 * K)
 TITLE_LEFT = round(20 * K)              # x=20
-TITLE_BOTTOM = round(20.82 * K)         # 610 - (560.18 + 29)
+# 536.5 - (479.7 + 29): the reference sits 27.8 above the foot of the ARTWORK.
+TITLE_ABOVE_FOOTER = round(27.8 * K)
 
 TRACKING = -0.02                        # -2%, on the 24px reference
 WEIGHT_SEMIBOLD = 600
 WEIGHT_MEDIUM = 500
 
 
-def font(px, weight=WEIGHT_SEMIBOLD):
-    f = ImageFont.truetype(str(FONT), px)
+FONT_ITALIC = ROOT / "scripts/fonts/Inter-BoldItalic.ttf"
+
+
+def font(px, weight=WEIGHT_SEMIBOLD, italic=False):
+    """Inter at a weight, or the separate Bold Italic file.
+
+    The variable Inter.ttf carries Optical size and Weight and nothing else, so
+    "Hope" cannot be slanted out of it. Shearing an upright would be a fake —
+    Inter's italic redraws letterforms, it does not lean them — so the real
+    static Bold Italic is shipped alongside."""
+    if italic:
+        return ImageFont.truetype(str(FONT_ITALIC), round(px))
+    f = ImageFont.truetype(str(FONT), round(px))
     f.set_variation_by_axes([14.0, float(weight)])
     return f
 
@@ -189,55 +192,44 @@ def icon_mask(name, px):
         (px, px), Image.LANCZOS)
 
 
-def tagline_layer(f, top, shadow=(3, 8, 140)):
-    """The tagline, with icons standing in for the o's.
+def footer_layer():
+    """The white bar the card ends on: wordmark left, tagline right, both black.
 
-    THE BASELINE IS NOT THE ANCHOR TOP. PIL's default text anchor puts y at the
-    font's ASCENDER; Figma puts the box top at the LINE BOX and centres the
-    glyph box inside it. With an explicit line-height those differ by
-    (line_height - (ascent + descent)) / 2 — here 111% of 16 against Inter's
-    1.21em natural line, so -2.3px. Skip it and the whole line sits 2.3px low,
-    which reads as the icons floating high above the letters they replace. Any
-    element whose line-height is AUTO needs no such correction, which is why the
-    wordmark and reference do not carry one.
+    None of the shadow machinery below applies here. That exists to lift white
+    text off twenty-eight different paintings; this ground is a flat white the
+    clip paints itself, so the text is simply drawn onto it.
     """
-    dy, blur, alpha = shadow
-    asc, desc = f.getmetrics()
-    y_anchor = top + (TAGLINE_LINE - (asc + desc)) / 2
-
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    shade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d, ds = ImageDraw.Draw(layer), ImageDraw.Draw(shade)
+    d = ImageDraw.Draw(layer)
+    d.rectangle([0, FOOTER_TOP, W, H], fill=(255, 255, 255, 255))
 
-    # Drawn as ONE kerned string, not glyph by glyph.
-    #
-    # PIL's advances for this Inter run 322.92 units against the frame's 324.00.
-    # Spreading that 1.08 over the gaps was tried and is WRONG: draw_tracked
-    # places glyphs individually and so drops KERNING, which widens the line by
-    # more than the correction closes. Measured against Figma's own render of
-    # this row, kerned-and-uncorrected beats tracked-and-unkerned (mean |d|
-    # 0.0817 vs 0.0868), and the left half stays crisp instead of every word
-    # going soft. The residual is ~3px of accumulated drift by the last word —
-    # invisible at viewing size, and not worth trading kerning for.
-    x0 = (W - f.getlength(TAGLINE_TEXT)) / 2
-    ds.text((x0, y_anchor + dy), TAGLINE_TEXT, font=f, fill=(0, 0, 0, alpha))
-    d.text((x0, y_anchor), TAGLINE_TEXT, font=f, fill=(255, 255, 255, 255))
+    # The wordmark, with the heart standing in for the o.
+    mf = font(WORDMARK_PX, WEIGHT_SEMIBOLD)
+    track = WORDMARK_TRACK * WORDMARK_PX
+    draw_tracked(d, (WORDMARK_LEFT, WORDMARK_TOP), WORDMARK, mf, INK, track)
+    prefix, slot, name, size = WORDMARK_SLOT
+    a = WORDMARK_LEFT + tracked_width(prefix, mf, track) + track
+    b = WORDMARK_LEFT + tracked_width(prefix + slot, mf, track) + track
+    m = icon_mask(name, round(size * K))
+    inset, iw = ink_span(m)
+    x = a + (b - a - iw) / 2 - inset
+    layer.paste(Image.new("RGBA", m.size, HEART_RGB + (255,)),
+                (round(x), WORDMARK_ICON_TOP), m)
 
-    for prefix, slot, icons, gap in TAGLINE_SLOTS:
-        a = x0 + f.getlength(prefix)                 # slot starts where the text does
-        b = x0 + f.getlength(prefix + slot)
-        masks = [(icon_mask(n, round(sz * K)), round(sz * K)) for n, sz in icons]
-        spans = [ink_span(m) for m, _ in masks]      # (left inset, ink width)
-        total = sum(w for _, w in spans) + gap * K * (len(masks) - 1)
-        x = a + (b - a - total) / 2                  # centre the group in the slot
-        for (m, px), (inset, iw) in zip(masks, spans):
-            pos = (round(x - inset), round(TAGLINE_ICON_TOP))
-            shade.paste(Image.new("RGBA", m.size, (0, 0, 0, alpha)), (pos[0], pos[1] + dy), m)
-            layer.paste(Image.new("RGBA", m.size, (255, 255, 255, 255)), pos, m)
-            x += iw + gap * K
-
-    shade = shade.filter(ImageFilter.GaussianBlur(blur))
-    return Image.alpha_composite(shade, layer)
+    # The tagline, right-anchored so its air mirrors the wordmark's, in three
+    # runs because the middle one is a different file. Same line-box correction
+    # the old tagline needed: PIL anchors at the ascender, Figma centres the
+    # glyph box in a 111% line, and skipping it floats the row high.
+    fonts = [font(TAGLINE_PX, italic=True) if it else font(TAGLINE_PX, WEIGHT_MEDIUM)
+             for _, it in TAGLINE_RUNS]
+    widths = [f.getlength(t) for (t, _), f in zip(TAGLINE_RUNS, fonts)]
+    asc, desc = fonts[0].getmetrics()
+    y = TAGLINE_TOP + (TAGLINE_LINE - (asc + desc)) / 2
+    x = W - TAGLINE_RIGHT - sum(widths)
+    for (t, _), f, w in zip(TAGLINE_RUNS, fonts, widths):
+        d.text((x, y), t, font=f, fill=INK)
+        x += w
+    return layer
 
 
 def text_layer(lines, f, line_h, top, align="center", track=0.0, shadow=(3, 8, 140)):
@@ -269,47 +261,36 @@ def text_layer(lines, f, line_h, top, align="center", track=0.0, shadow=(3, 8, 1
 
 
 def chrome_layer(title):
-    """Everything that is not the artwork or the caption: scrims, mark, reference.
+    """Everything that is not the artwork or the caption: scrim, reference, footer.
 
-    The frame shows no scrims — its own cover is dark top and bottom, so the
-    text simply sits on it. That is a property of one painting, not of the
-    twenty-eight this has to serve, so the card's bottom gradient is kept and
-    the top is given a lighter mirror. Both are subtle enough that the frame's
-    look survives them, and without them a wordmark over Proverbs 18:10's pale
-    sky disappears.
+    The frame shows no scrim — its own cover is dark exactly where its text
+    sits. That is a property of one painting, not of the twenty-eight this has
+    to serve, so the card's gradient is kept. It now stops at FOOTER_TOP:
+    below that the footer paints its own white and there is nothing to lift.
     """
-    mark_f = font(WORDMARK_PX, WEIGHT_SEMIBOLD)
     title_f = font(TITLE_PX, WEIGHT_SEMIBOLD)
     line_h = round(TITLE_PX * 1.2102)   # the frame's own line-height
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
+    # Only the DOWNWARD half survives. The top mirror existed to lift a wordmark
+    # that sat at y=45; that wordmark is in the footer now, so the top scrim was
+    # darkening the head of twenty-eight paintings for nothing.
+    art = FOOTER_TOP
     grad = Image.new("RGBA", (1, H), (0, 0, 0, 0))
-    top_span = H * 0.20
-    for y in range(H):
-        down = max(0.0, (y - H / 2) / (H / 2)) * 0.40
-        up = max(0.0, (top_span - y) / top_span) * 0.20
-        grad.putpixel((0, y), (0, 0, 0, int(255 * max(down, up))))
+    for y in range(art):
+        down = max(0.0, (y - art / 2) / (art / 2)) * 0.40
+        grad.putpixel((0, y), (0, 0, 0, int(255 * down)))
     layer = Image.alpha_composite(layer, grad.resize((W, H)))
 
-    # Centred at the top, per the frame — not tucked into a corner. Its -1% is
-    # NOT the reference's -2%; the frame sets them separately.
-    track = WORDMARK_TRACK * WORDMARK_PX
-    layer = Image.alpha_composite(
-        layer, text_layer([WORDMARK], mark_f, line_h, WORDMARK_TOP, "center", track)
-    )
-
-    # The tagline sits under it, in the frame's 16/Medium, with the icons
-    # standing in for the o's of Doomscrolling and Hopescrolling.
-    tag_f = font(TAGLINE_PX, WEIGHT_MEDIUM)
-    layer = Image.alpha_composite(layer, tagline_layer(tag_f, TAGLINE_TOP))
-
-    # The reference, bottom left, measured up from the foot of the frame.
+    # The reference, bottom left of the ARTWORK, measured up from the footer
+    # rather than from the foot of the clip.
     t_track = TRACKING * TITLE_PX
     lines = wrap(title, title_f, W - TITLE_LEFT - round(80 * K), t_track)
-    top = H - TITLE_BOTTOM - line_h * len(lines)
-    return Image.alpha_composite(
-        layer, text_layer(lines, title_f, line_h, top, "left", t_track)
-    )
+    top = FOOTER_TOP - TITLE_ABOVE_FOOTER - line_h * len(lines)
+    layer = Image.alpha_composite(
+        layer, text_layer(lines, title_f, line_h, top, "left", t_track))
+
+    return Image.alpha_composite(layer, footer_layer())
 
 
 def duration(path):
@@ -338,9 +319,11 @@ def render(post):
     caps = []
     for i, s in enumerate(post["subtitles"]):
         lines = wrap(s["t"], cap_f, CAPTION_MAX)
-        # Vertically centred, as on the card — the block moves with its own
-        # line count so a two-line caption straddles the midline like a one.
-        top = H // 2 - (CAPTION_LINE * len(lines)) // 2
+        # Vertically centred in the ARTWORK, as on the card — the footer owns
+        # the bottom 212px, so the midline is FOOTER_TOP/2 and not H/2. The
+        # block moves with its own line count so a two-line caption straddles
+        # that midline the way a one-line one does.
+        top = FOOTER_TOP // 2 - (CAPTION_LINE * len(lines)) // 2
         text_layer(lines, cap_f, CAPTION_LINE, top).save(work / f"c{i}.png")
         caps.append((work / f"c{i}.png", max(0.0, s["s"] - start), max(0.0, s["e"] - start)))
 

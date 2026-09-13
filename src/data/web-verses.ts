@@ -44,6 +44,16 @@ import { webSubtitles } from "@/data/web-subtitles";
 
 interface VerseCard {
   id: number;
+  /**
+   * Which trouble this verse answers, for topics.ts.
+   *
+   * The first fifteen are all refuge — rock, fortress, stronghold — so Fear was
+   * once simply "every card in this file", and topics.ts said so by taking
+   * webVerseIds wholesale. The PRESSURE set breaks that: it is the same file
+   * and the same reader, but it answers being closed in on rather than the
+   * dread itself. Defaulting to "fear" keeps the original fifteen untouched.
+   */
+  topic?: "fear" | "pressure";
   /** Rendered on the card, and the reference the reader speaks. */
   title: string;
   /** Basename shared by the mp3 in /assets/shorts and the key in webSubtitles. */
@@ -104,6 +114,41 @@ const VERSE_CARDS: VerseCard[] = [
   { id: 1010, title: "Isaiah 45:2", clip: "isaiah45-v2", seconds: 10.91,
     cover: "gate-in-the-cloud-wall.jpg",
     art: "'I will go before you and will level the mountains' — the road is already laid across the desert, and the one who goes ahead of it fills the sky." },
+
+  // ---- The PRESSURE board, September 2026 -------------------------------
+  // Nine verses recorded as a set in the World English Bible, same reader and
+  // same register as the fifteen above, with covers taken from the FigJam
+  // board that chose them. Psalm 27:3 is the tenth on that board and is not
+  // here: it has no recording yet.
+  { id: 118, topic: "pressure", title: "Psalm 118:6-7", clip: "psalm118-v6-7-web", seconds: 20.48,
+    cover: "two-seated-on-the-headland.jpg",
+    art: "'the LORD is on my side' — two of them, sitting with it, not braced against anything." },
+  { id: 56, topic: "pressure", title: "Psalm 56:3-4", clip: "psalm56-v3-4-web", seconds: 18.76,
+    cover: "hands-laid-on-his-head.jpg",
+    art: "'when I am afraid, I will put my trust in you' — the trust is the hands, and he is under them." },
+  { id: 121, topic: "pressure", title: "Psalm 121:1-2", clip: "psalm121-v1-2-web", seconds: 13.70,
+    cover: "citadel-on-the-hill.jpg",
+    art: "'I will lift up my eyes to the hills' — so the hill is the whole frame, and it is inhabited." },
+  { id: 138, topic: "pressure", title: "Psalm 138:7", clip: "psalm138-v7-web", seconds: 14.40,
+    cover: "path-through-the-wheat.jpg",
+    art: "'though I walk in the midst of trouble' — the walking is the point, and the path already goes through." },
+  // 46 belongs to the 46:1-2 card, so this one takes the 1001+ block even
+  // though it is a psalm. The rule is uniqueness, not tidiness.
+  { id: 1011, topic: "pressure", title: "Psalm 46:6-7", clip: "psalm46-v6-7-web", seconds: 19.13,
+    cover: "light-through-the-face.jpg",
+    art: "'the LORD of Armies is with us' — the light is on him and coming through him, not aimed at him." },
+  { id: 1012, topic: "pressure", title: "2 Chronicles 20:15", clip: "2chronicles20-v15-web", seconds: 22.62,
+    cover: "spear-against-the-red-sun.jpg",
+    art: "'the battle is not yours, but God's' — one figure, one spear, and a horizon that dwarfs both." },
+  { id: 1013, topic: "pressure", title: "Exodus 14:13-14", clip: "exodus14-v13-14-web", seconds: 22.38,
+    cover: "one-facing-the-host.jpg",
+    art: "'stand still, and see' — he is standing still, and the army is what he is standing still in front of." },
+  { id: 1014, topic: "pressure", title: "Isaiah 40:30-31", clip: "isaiah40-v30-31-web", seconds: 22.62,
+    cover: "eagle-against-the-sky.jpg",
+    art: "'they will mount up with wings like eagles' — the eagle, looking up, before any of the flying." },
+  { id: 1015, topic: "pressure", title: "2 Corinthians 4:8-9", clip: "2corinthians4-v8-9-web", seconds: 16.44,
+    cover: "two-running-under-the-tree.jpg",
+    art: "'pursued, yet not forsaken' — they are running, and they are running together." },
 ];
 
 /*
@@ -158,3 +203,7 @@ export const webVersePosts: Post[] = VERSE_CARDS.map(({ id, title, clip, cover, 
 
 /** Ids in this set, for the topic list. */
 export const webVerseIds = VERSE_CARDS.map((c) => c.id);
+/** The refuge set — Fear. */
+export const refugeVerseIds = VERSE_CARDS.filter((c) => c.topic !== "pressure").map((c) => c.id);
+/** The PRESSURE board's verses, which join the psalms already under that label. */
+export const pressureVerseIds = VERSE_CARDS.filter((c) => c.topic === "pressure").map((c) => c.id);

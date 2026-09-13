@@ -134,4 +134,86 @@ export const webSubtitles: Record<string, Subtitle[]> = {
     { id: 2, startTime: 6.53, endTime: 8.82, text: "I will break down gates of bronze and" },
     { id: 3, startTime: 8.82, endTime: 10.91, text: "cut through bars of iron." },
   ],
+  // psalm118-v6-7-web.mp3 — 5 captions
+  "psalm118-v6-7-web": [
+    { id: 1, startTime: 5.89, endTime: 8.33, text: "The LORD is on my side." },
+    { id: 2, startTime: 8.33, endTime: 10.48, text: "I will not be afraid." },
+    { id: 3, startTime: 10.48, endTime: 12.76, text: "What can man do to me?" },
+    { id: 4, startTime: 12.76, endTime: 16.88, text: "The LORD is on my side among those who help me." },
+    { id: 5, startTime: 16.88, endTime: 20.48, text: "Therefore I will look in triumph at those who hate me." },
+  ],
+  // psalm56-v3-4-web.mp3 — 6 captions
+  "psalm56-v3-4-web": [
+    { id: 1, startTime: 2.48, endTime: 5.43, text: "When I am afraid," },
+    { id: 2, startTime: 5.43, endTime: 8.16, text: "I will put my trust in you." },
+    { id: 3, startTime: 8.16, endTime: 11.2, text: "In God, I praise his word." },
+    { id: 4, startTime: 10.48, endTime: 12.98, text: "In God, I put my trust." },
+    { id: 5, startTime: 12.98, endTime: 15.44, text: "I will not be afraid." },
+    { id: 6, startTime: 15.44, endTime: 18.76, text: "What can flesh do to me?" },
+  ],
+  // psalm121-v1-2-web.mp3 — 4 captions
+  "psalm121-v1-2-web": [
+    { id: 1, startTime: 4.27, endTime: 7.42, text: "I will lift up my eyes to the hills." },
+    { id: 2, startTime: 7.42, endTime: 9.43, text: "Where does my help come from?" },
+    { id: 3, startTime: 9.43, endTime: 11.57, text: "My help comes from the LORD," },
+    { id: 4, startTime: 11.57, endTime: 13.7, text: "who made heaven and earth." },
+  ],
+  // psalm46-v6-7-web.mp3 — 6 captions
+  "psalm46-v6-7-web": [
+    { id: 1, startTime: 5.26, endTime: 6.9, text: "The nations raged." },
+    { id: 2, startTime: 6.9, endTime: 8.8, text: "The kingdoms were moved." },
+    { id: 3, startTime: 8.8, endTime: 10.16, text: "He lifted his voice," },
+    { id: 4, startTime: 10.16, endTime: 12.85, text: "and the earth melted." },
+    { id: 5, startTime: 12.85, endTime: 15.59, text: "The LORD of Armies is with us." },
+    { id: 6, startTime: 15.59, endTime: 19.13, text: "The God of Jacob is our refuge. Selah." },
+  ],
+  // 2chronicles20-v15-web.mp3 — 8 captions
+  "2chronicles20-v15-web": [
+    { id: 1, startTime: 4.86, endTime: 5.64, text: "and he said," },
+    { id: 2, startTime: 5.64, endTime: 7.75, text: "Listen, all Judah," },
+    { id: 3, startTime: 7.75, endTime: 10.4, text: "and you inhabitants of Jerusalem," },
+    { id: 4, startTime: 10.4, endTime: 13.28, text: "and you king Jehoshaphat." },
+    { id: 5, startTime: 13.28, endTime: 15.0, text: "Thus says the LORD to you," },
+    { id: 6, startTime: 15.0, endTime: 16.76, text: "‘Don’t be afraid," },
+    { id: 7, startTime: 16.52, endTime: 19.73, text: "neither be dismayed by reason of this great multitude;" },
+    { id: 8, startTime: 19.73, endTime: 22.62, text: "for the battle is not yours, but God’s." },
+  ],
+  // exodus14-v13-14-web.mp3 — 8 captions
+  "exodus14-v13-14-web": [
+    { id: 1, startTime: 3.29, endTime: 6.48, text: "Moses said to the people," },
+    { id: 2, startTime: 6.48, endTime: 9.24, text: "“Don’t be afraid." },
+    { id: 3, startTime: 9.24, endTime: 11.63, text: "Stand still, and see the salvation of the LORD," },
+    { id: 4, startTime: 11.63, endTime: 13.5, text: "which he will work for you today:" },
+    { id: 5, startTime: 13.5, endTime: 16.31, text: "for the Egyptians whom you have seen today," },
+    { id: 6, startTime: 16.31, endTime: 18.56, text: "you shall never see them again." },
+    { id: 7, startTime: 18.56, endTime: 20.47, text: "The LORD will fight for you," },
+    { id: 8, startTime: 20.47, endTime: 22.38, text: "and you shall be still.”" },
+  ],
+  // psalm138-v7-web.mp3 — 5 captions
+  "psalm138-v7-web": [
+    { id: 1, startTime: 4.48, endTime: 6.81, text: "Though I walk in the midst of trouble," },
+    { id: 2, startTime: 6.81, endTime: 8.8, text: "you will revive me." },
+    { id: 3, startTime: 8.8, endTime: 10.92, text: "You will stretch out your hand against the" },
+    { id: 4, startTime: 10.92, endTime: 12.21, text: "wrath of my enemies." },
+    { id: 5, startTime: 12.21, endTime: 14.4, text: "Your right hand will save me." },
+  ],
+  // isaiah40-v30-31-web.mp3 — 8 captions
+  "isaiah40-v30-31-web": [
+    { id: 1, startTime: 5.3, endTime: 7.26, text: "Even the youths faint and get weary," },
+    { id: 2, startTime: 7.26, endTime: 10.3, text: "and the young men utterly fall;" },
+    { id: 3, startTime: 10.3, endTime: 14.19, text: "But those who wait for the LORD will renew their strength." },
+    { id: 4, startTime: 14.19, endTime: 17.35, text: "They will mount up with wings like eagles." },
+    { id: 5, startTime: 17.35, endTime: 18.29, text: "They will run," },
+    { id: 6, startTime: 18.29, endTime: 19.8, text: "and not be weary." },
+    { id: 7, startTime: 19.8, endTime: 20.94, text: "They will walk," },
+    { id: 8, startTime: 20.94, endTime: 22.62, text: "and not faint." },
+  ],
+  // 2corinthians4-v8-9-web.mp3 — 5 captions
+  "2corinthians4-v8-9-web": [
+    { id: 1, startTime: 5.36, endTime: 7.16, text: "We are pressed on every side," },
+    { id: 2, startTime: 7.16, endTime: 8.36, text: "yet not crushed;" },
+    { id: 3, startTime: 8.36, endTime: 11.09, text: "perplexed, yet not to despair;" },
+    { id: 4, startTime: 11.09, endTime: 13.47, text: "pursued, yet not forsaken;" },
+    { id: 5, startTime: 13.47, endTime: 16.44, text: "struck down, yet not destroyed;" },
+  ],
 };

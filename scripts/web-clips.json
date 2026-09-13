@@ -207,5 +207,122 @@
     "text": "I will go before you and will level the mountains; I will break down gates of bronze and cut through bars of iron.",
     "words": 22,
     "seconds": 10.91
+  },
+  {
+    "file": "psalm118-v6-7-web.mp3",
+    "book": "Psalms",
+    "ch": 118,
+    "verses": "6-7",
+    "nums": [
+      6,
+      7
+    ],
+    "text": "Yahweh is on my side. I will not be afraid. What can man do to me? Yahweh is on my side among those who help me. Therefore I will look in triumph at those who hate me.",
+    "words": 37,
+    "seconds": 20.48
+  },
+  {
+    "file": "psalm56-v3-4-web.mp3",
+    "book": "Psalms",
+    "ch": 56,
+    "verses": "3-4",
+    "nums": [
+      3,
+      4
+    ],
+    "text": "When I am afraid, I will put my trust in you. In God, I praise his word. In God, I put my trust. I will not be afraid. What can flesh do to me?",
+    "words": 34,
+    "seconds": 18.76
+  },
+  {
+    "file": "psalm121-v1-2-web.mp3",
+    "book": "Psalms",
+    "ch": 121,
+    "verses": "1-2",
+    "nums": [
+      1,
+      2
+    ],
+    "text": "I will lift up my eyes to the hills. Where does my help come from? My help comes from Yahweh, who made heaven and earth.",
+    "words": 25,
+    "seconds": 13.7
+  },
+  {
+    "file": "psalm46-v6-7-web.mp3",
+    "book": "Psalms",
+    "ch": 46,
+    "verses": "6-7",
+    "nums": [
+      6,
+      7
+    ],
+    "text": "The nations raged. The kingdoms were moved. He lifted his voice, and the earth melted. Yahweh of Armies is with us. The God of Jacob is our refuge. Selah.",
+    "words": 29,
+    "seconds": 19.13
+  },
+  {
+    "file": "2chronicles20-v15-web.mp3",
+    "book": "2 Chronicles",
+    "ch": 20,
+    "verses": "15",
+    "nums": [
+      15,
+      15
+    ],
+    "text": "and he said, “Listen, all Judah, and you inhabitants of Jerusalem, and you king Jehoshaphat. Thus says Yahweh to you, ‘Don’t be afraid, neither be dismayed by reason of this great multitude; for the battle is not yours, but God’s.",
+    "words": 40,
+    "seconds": 22.62
+  },
+  {
+    "file": "exodus14-v13-14-web.mp3",
+    "book": "Exodus",
+    "ch": 14,
+    "verses": "13-14",
+    "nums": [
+      13,
+      14
+    ],
+    "text": "Moses said to the people, “Don’t be afraid. Stand still, and see the salvation of Yahweh, which he will work for you today: for the Egyptians whom you have seen today, you shall never see them again. Yahweh will fight for you, and you shall be still.”",
+    "words": 47,
+    "seconds": 22.38
+  },
+  {
+    "file": "psalm138-v7-web.mp3",
+    "book": "Psalms",
+    "ch": 138,
+    "verses": "7",
+    "nums": [
+      7,
+      7
+    ],
+    "text": "Though I walk in the midst of trouble, you will revive me. You will stretch out your hand against the wrath of my enemies. Your right hand will save me.",
+    "words": 30,
+    "seconds": 14.4
+  },
+  {
+    "file": "isaiah40-v30-31-web.mp3",
+    "book": "Isaiah",
+    "ch": 40,
+    "verses": "30-31",
+    "nums": [
+      30,
+      31
+    ],
+    "text": "Even the youths faint and get weary, and the young men utterly fall; But those who wait for Yahweh will renew their strength. They will mount up with wings like eagles. They will run, and not be weary. They will walk, and not faint.",
+    "words": 44,
+    "seconds": 22.62
+  },
+  {
+    "file": "2corinthians4-v8-9-web.mp3",
+    "book": "2 Corinthians",
+    "ch": 4,
+    "verses": "8-9",
+    "nums": [
+      8,
+      9
+    ],
+    "text": "We are pressed on every side, yet not crushed; perplexed, yet not to despair; pursued, yet not forsaken; struck down, yet not destroyed;",
+    "words": 23,
+    "seconds": 16.44
   }
 ]

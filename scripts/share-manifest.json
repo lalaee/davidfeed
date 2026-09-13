@@ -79,8 +79,8 @@
  {
   "id": 91,
   "title": "Psalm 91:4",
-  "image": "/assets/verses/eagle-against-the-blue.jpg",
-  "loop": "/assets/verses/eagle-against-the-blue-loop.mp4",
+  "image": "/assets/verses/covered-with-feathers.jpg",
+  "loop": "/assets/verses/covered-with-feathers-loop.mp4",
   "video": null,
   "audio": "/assets/shorts/psalm91-v4.mp3",
   "startAt": 0.85,
@@ -999,6 +999,380 @@
     "s": 8.82,
     "e": 10.91,
     "t": "cut through bars of iron."
+   }
+  ]
+ },
+ {
+  "id": 118,
+  "title": "Psalm 118:6-7",
+  "image": "/assets/verses/two-seated-on-the-headland.jpg",
+  "loop": "/assets/verses/two-seated-on-the-headland-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/psalm118-v6-7-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 5.89,
+    "e": 8.33,
+    "t": "The LORD is on my side."
+   },
+   {
+    "s": 8.33,
+    "e": 10.48,
+    "t": "I will not be afraid."
+   },
+   {
+    "s": 10.48,
+    "e": 12.76,
+    "t": "What can man do to me?"
+   },
+   {
+    "s": 12.76,
+    "e": 16.88,
+    "t": "The LORD is on my side among those who help me."
+   },
+   {
+    "s": 16.88,
+    "e": 20.48,
+    "t": "Therefore I will look in triumph at those who hate me."
+   }
+  ]
+ },
+ {
+  "id": 56,
+  "title": "Psalm 56:3-4",
+  "image": "/assets/verses/hands-laid-on-his-head.jpg",
+  "loop": "/assets/verses/hands-laid-on-his-head-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/psalm56-v3-4-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 2.48,
+    "e": 5.43,
+    "t": "When I am afraid,"
+   },
+   {
+    "s": 5.43,
+    "e": 8.16,
+    "t": "I will put my trust in you."
+   },
+   {
+    "s": 8.16,
+    "e": 11.2,
+    "t": "In God, I praise his word."
+   },
+   {
+    "s": 10.48,
+    "e": 12.98,
+    "t": "In God, I put my trust."
+   },
+   {
+    "s": 12.98,
+    "e": 15.44,
+    "t": "I will not be afraid."
+   },
+   {
+    "s": 15.44,
+    "e": 18.76,
+    "t": "What can flesh do to me?"
+   }
+  ]
+ },
+ {
+  "id": 121,
+  "title": "Psalm 121:1-2",
+  "image": "/assets/verses/citadel-on-the-hill.jpg",
+  "loop": "/assets/verses/citadel-on-the-hill-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/psalm121-v1-2-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 4.27,
+    "e": 7.42,
+    "t": "I will lift up my eyes to the hills."
+   },
+   {
+    "s": 7.42,
+    "e": 9.43,
+    "t": "Where does my help come from?"
+   },
+   {
+    "s": 9.43,
+    "e": 11.57,
+    "t": "My help comes from the LORD,"
+   },
+   {
+    "s": 11.57,
+    "e": 13.7,
+    "t": "who made heaven and earth."
+   }
+  ]
+ },
+ {
+  "id": 138,
+  "title": "Psalm 138:7",
+  "image": "/assets/verses/path-through-the-wheat.jpg",
+  "loop": "/assets/verses/path-through-the-wheat-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/psalm138-v7-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 4.48,
+    "e": 6.81,
+    "t": "Though I walk in the midst of trouble,"
+   },
+   {
+    "s": 6.81,
+    "e": 8.8,
+    "t": "you will revive me."
+   },
+   {
+    "s": 8.8,
+    "e": 10.92,
+    "t": "You will stretch out your hand against the"
+   },
+   {
+    "s": 10.92,
+    "e": 12.21,
+    "t": "wrath of my enemies."
+   },
+   {
+    "s": 12.21,
+    "e": 14.4,
+    "t": "Your right hand will save me."
+   }
+  ]
+ },
+ {
+  "id": 1011,
+  "title": "Psalm 46:6-7",
+  "image": "/assets/verses/light-through-the-face.jpg",
+  "loop": "/assets/verses/light-through-the-face-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/psalm46-v6-7-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 5.26,
+    "e": 6.9,
+    "t": "The nations raged."
+   },
+   {
+    "s": 6.9,
+    "e": 8.8,
+    "t": "The kingdoms were moved."
+   },
+   {
+    "s": 8.8,
+    "e": 10.16,
+    "t": "He lifted his voice,"
+   },
+   {
+    "s": 10.16,
+    "e": 12.85,
+    "t": "and the earth melted."
+   },
+   {
+    "s": 12.85,
+    "e": 15.59,
+    "t": "The LORD of Armies is with us."
+   },
+   {
+    "s": 15.59,
+    "e": 19.13,
+    "t": "The God of Jacob is our refuge. Selah."
+   }
+  ]
+ },
+ {
+  "id": 1012,
+  "title": "2 Chronicles 20:15",
+  "image": "/assets/verses/spear-against-the-red-sun.jpg",
+  "loop": "/assets/verses/spear-against-the-red-sun-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/2chronicles20-v15-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 4.86,
+    "e": 5.64,
+    "t": "and he said,"
+   },
+   {
+    "s": 5.64,
+    "e": 7.75,
+    "t": "Listen, all Judah,"
+   },
+   {
+    "s": 7.75,
+    "e": 10.4,
+    "t": "and you inhabitants of Jerusalem,"
+   },
+   {
+    "s": 10.4,
+    "e": 13.28,
+    "t": "and you king Jehoshaphat."
+   },
+   {
+    "s": 13.28,
+    "e": 15.0,
+    "t": "Thus says the LORD to you,"
+   },
+   {
+    "s": 15.0,
+    "e": 16.76,
+    "t": "‘Don’t be afraid,"
+   },
+   {
+    "s": 16.52,
+    "e": 19.73,
+    "t": "neither be dismayed by reason of this great multitude;"
+   },
+   {
+    "s": 19.73,
+    "e": 22.62,
+    "t": "for the battle is not yours, but God’s."
+   }
+  ]
+ },
+ {
+  "id": 1013,
+  "title": "Exodus 14:13-14",
+  "image": "/assets/verses/one-facing-the-host.jpg",
+  "loop": "/assets/verses/one-facing-the-host-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/exodus14-v13-14-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 3.29,
+    "e": 6.48,
+    "t": "Moses said to the people,"
+   },
+   {
+    "s": 6.48,
+    "e": 9.24,
+    "t": "“Don’t be afraid."
+   },
+   {
+    "s": 9.24,
+    "e": 11.63,
+    "t": "Stand still, and see the salvation of the LORD,"
+   },
+   {
+    "s": 11.63,
+    "e": 13.5,
+    "t": "which he will work for you today:"
+   },
+   {
+    "s": 13.5,
+    "e": 16.31,
+    "t": "for the Egyptians whom you have seen today,"
+   },
+   {
+    "s": 16.31,
+    "e": 18.56,
+    "t": "you shall never see them again."
+   },
+   {
+    "s": 18.56,
+    "e": 20.47,
+    "t": "The LORD will fight for you,"
+   },
+   {
+    "s": 20.47,
+    "e": 22.38,
+    "t": "and you shall be still.”"
+   }
+  ]
+ },
+ {
+  "id": 1014,
+  "title": "Isaiah 40:30-31",
+  "image": "/assets/verses/eagle-against-the-sky.jpg",
+  "loop": "/assets/verses/eagle-against-the-sky-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/isaiah40-v30-31-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 5.3,
+    "e": 7.26,
+    "t": "Even the youths faint and get weary,"
+   },
+   {
+    "s": 7.26,
+    "e": 10.3,
+    "t": "and the young men utterly fall;"
+   },
+   {
+    "s": 10.3,
+    "e": 14.19,
+    "t": "But those who wait for the LORD will renew their strength."
+   },
+   {
+    "s": 14.19,
+    "e": 17.35,
+    "t": "They will mount up with wings like eagles."
+   },
+   {
+    "s": 17.35,
+    "e": 18.29,
+    "t": "They will run,"
+   },
+   {
+    "s": 18.29,
+    "e": 19.8,
+    "t": "and not be weary."
+   },
+   {
+    "s": 19.8,
+    "e": 20.94,
+    "t": "They will walk,"
+   },
+   {
+    "s": 20.94,
+    "e": 22.62,
+    "t": "and not faint."
+   }
+  ]
+ },
+ {
+  "id": 1015,
+  "title": "2 Corinthians 4:8-9",
+  "image": "/assets/verses/two-running-under-the-tree.jpg",
+  "loop": "/assets/verses/two-running-under-the-tree-loop.mp4",
+  "video": null,
+  "audio": "/assets/shorts/2corinthians4-v8-9-web.mp3",
+  "startAt": 0,
+  "subtitles": [
+   {
+    "s": 5.36,
+    "e": 7.16,
+    "t": "We are pressed on every side,"
+   },
+   {
+    "s": 7.16,
+    "e": 8.36,
+    "t": "yet not crushed;"
+   },
+   {
+    "s": 8.36,
+    "e": 11.09,
+    "t": "perplexed, yet not to despair;"
+   },
+   {
+    "s": 11.09,
+    "e": 13.47,
+    "t": "pursued, yet not forsaken;"
+   },
+   {
+    "s": 13.47,
+    "e": 16.44,
+    "t": "struck down, yet not destroyed;"
    }
   ]
  }

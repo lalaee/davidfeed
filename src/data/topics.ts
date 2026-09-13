@@ -1,5 +1,5 @@
 import type { Post } from "@/data/posts";
-import { webVerseIds } from "@/data/web-verses";
+import { pressureVerseIds, refugeVerseIds } from "@/data/web-verses";
 
 /*
  * Topics for the header dropdown.
@@ -50,17 +50,22 @@ export interface Topic {
  *   Guilt        "create in me a pure heart", the lament, the plea
  *   Fear         rock, fortress, stronghold, "don't be afraid" — the WEB set
  *
+ * Fear was "every card in web-verses.ts" until the PRESSURE board added nine
+ * more to that same file. Those answer being closed in on, not the dread, so
+ * they are tagged there and join Pressure here; Fear now takes the refuge set
+ * by name rather than by whatever happens to be in the file.
+ *
  * Both Pressure and Fear are about threat, and they are not the same thing:
  * Pressure is being closed in on by people, Fear is the dread itself, which is
  * why the refuge verses sit under the second and the enemy psalms under the
  * first.
  */
 export const TOPICS: Topic[] = [
-  { id: "pressure",    label: "Pressure",    ids: [27, 3, 20, 91, 7] },
+  { id: "pressure",    label: "Pressure",    ids: [27, 3, 20, 91, 7, ...pressureVerseIds] },
   { id: "anxiety",     label: "Anxiety",     ids: [23, 4, 16] },
   { id: "uncertainty", label: "Uncertainty", ids: [25, 5, 16] },
   { id: "guilt",       label: "Guilt",       ids: [51, 44, 45] },
-  { id: "fear",        label: "Fear",        ids: webVerseIds },
+  { id: "fear",        label: "Fear",        ids: refugeVerseIds },
   { id: "all",         label: "Anything",    ids: null },
 ];
 

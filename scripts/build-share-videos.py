@@ -327,7 +327,12 @@ def duration(path):
 def render(post):
     pid = post["id"]
     audio = PUBLIC / post["audio"].lstrip("/")
-    loop = PUBLIC / post["loop"].lstrip("/")
+    # A card with no loop holds still: its cover is the whole video. Rendering
+    # a 96-frame mp4 of an unchanging frame would work too, and would be a lie
+    # about what the asset is — the app drops the video element for these, so
+    # the clip pipeline reads the same jpg the card does.
+    loop = PUBLIC / post["loop"].lstrip("/") if post.get("loop") else None
+    still = PUBLIC / post["image"].lstrip("/")
     start = post.get("startAt") or 0.0
     length = round(duration(audio) - start, 2)
 
@@ -350,8 +355,10 @@ def render(post):
         text_layer(lines, cap_f, CAPTION_LINE, top).save(work / f"c{i}.png")
         caps.append((work / f"c{i}.png", max(0.0, s["s"] - start), max(0.0, s["e"] - start)))
 
-    cmd = ["ffmpeg", "-v", "error", "-y",
-           "-stream_loop", "-1", "-i", str(loop),
+    cmd = ["ffmpeg", "-v", "error", "-y"]
+    cmd += (["-stream_loop", "-1", "-i", str(loop)] if loop
+            else ["-loop", "1", "-framerate", "24", "-i", str(still)])
+    cmd += [
            "-ss", str(start), "-i", str(audio),
            "-i", str(work / "chrome.png")]
     for p, _, _ in caps:

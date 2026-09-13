@@ -54,6 +54,16 @@ interface VerseCard {
    * dread itself. Defaulting to "fear" keeps the original fifteen untouched.
    */
   topic?: "fear" | "pressure";
+  /**
+   * No loop — the cover holds still.
+   *
+   * posterVideoSrc is derived from the cover below rather than declared, so
+   * this is how a card opts out: without it the derivation would hand every
+   * card a loop whether one should exist or not. FeedItem already guards the
+   * video element, so a still card simply sits there while its neighbours
+   * drift, which is the intent.
+   */
+  still?: boolean;
   /** Rendered on the card, and the reference the reader speaks. */
   title: string;
   /** Basename shared by the mp3 in /assets/shorts and the key in webSubtitles. */
@@ -140,13 +150,13 @@ const VERSE_CARDS: VerseCard[] = [
   { id: 1012, topic: "pressure", title: "2 Chronicles 20:15", clip: "2chronicles20-v15-web", seconds: 22.62,
     cover: "spear-against-the-red-sun.jpg",
     art: "'the battle is not yours, but God's' — one figure, one spear, and a horizon that dwarfs both." },
-  { id: 1013, topic: "pressure", title: "Exodus 14:13-14", clip: "exodus14-v13-14-web", seconds: 22.38,
+  { id: 1013, topic: "pressure", still: true, title: "Exodus 14:13-14", clip: "exodus14-v13-14-web", seconds: 22.38,
     cover: "one-facing-the-host.jpg",
     art: "'stand still, and see' — he is standing still, and the army is what he is standing still in front of." },
   { id: 1014, topic: "pressure", title: "Isaiah 40:30-31", clip: "isaiah40-v30-31-web", seconds: 22.62,
     cover: "eagle-against-the-sky.jpg",
     art: "'they will mount up with wings like eagles' — the eagle, looking up, before any of the flying." },
-  { id: 1015, topic: "pressure", title: "2 Corinthians 4:8-9", clip: "2corinthians4-v8-9-web", seconds: 16.44,
+  { id: 1015, topic: "pressure", still: true, title: "2 Corinthians 4:8-9", clip: "2corinthians4-v8-9-web", seconds: 16.44,
     cover: "two-running-under-the-tree.jpg",
     art: "'pursued, yet not forsaken' — they are running, and they are running together." },
 ];
@@ -183,7 +193,7 @@ export const HELD_VERSE_CARDS: VerseCard[] = [
 /** Same floor the psalm shorts use: below this a card is a fragment, not a short. */
 const MIN_SECONDS = 7;
 
-export const webVersePosts: Post[] = VERSE_CARDS.map(({ id, title, clip, cover, seconds }) => {
+export const webVersePosts: Post[] = VERSE_CARDS.map(({ id, title, clip, cover, seconds, still }) => {
   const subtitles = webSubtitles[clip];
   if (!subtitles?.length) throw new Error(`web-verses: ${title} has no aligned captions`);
   if (seconds < MIN_SECONDS) {
@@ -194,8 +204,9 @@ export const webVersePosts: Post[] = VERSE_CARDS.map(({ id, title, clip, cover, 
     title,
     backgroundImage: `/assets/verses/${cover}`,
     // Derived from the cover, never declared, so the still and its loop cannot
-    // drift apart the way a second hand-written path eventually would.
-    posterVideoSrc: `/assets/verses/${cover.replace(/\.jpg$/, "-loop.mp4")}`,
+    // drift apart the way a second hand-written path eventually would. A card
+    // marked `still` gets none, and shows the cover alone.
+    ...(still ? {} : { posterVideoSrc: `/assets/verses/${cover.replace(/\.jpg$/, "-loop.mp4")}` }),
     audioSrc: `/assets/shorts/${clip}.mp3`,
     subtitles,
   };

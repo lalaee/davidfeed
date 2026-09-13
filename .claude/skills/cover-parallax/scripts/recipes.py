@@ -64,6 +64,13 @@ CHOSEN = {
 KEEP = {"knight-resting-among-flowers": ["deep", "relight", "motes"]}
 # Referenced by nothing in src/ — not rendered.
 ORPHANS = {"crowd-in-one-beam", "hands-raising-a-head"}
+# Covers that carry NO loop at all. Not an effect of "none" — those cards drop
+# their video element entirely and show the still, so rendering a loop for them
+# would leave an orphan that the next blanket render keeps refreshing.
+STILL = {"leaning-on-the-horse",        # Psalm 20:7-8
+         "one-facing-the-host",         # Exodus 14:13-14
+         "two-running-under-the-tree"}  # 2 Corinthians 4:8-9
+
 DEFAULT = ["deep"]
 
 
@@ -77,7 +84,7 @@ def plan():
     rows = []
     for jpg in sorted(VERSES.glob("*.jpg")):
         stem = jpg.stem
-        if stem in ORPHANS or stem in KEEP:
+        if stem in ORPHANS or stem in STILL or stem in KEEP:
             continue
         recipe = CHOSEN.get(stem, DEFAULT)
         prim, layers = split(recipe)

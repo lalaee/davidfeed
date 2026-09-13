@@ -53,6 +53,11 @@ CHOSEN = {
     "stair-into-cloud":            ["parallax"],
     "walked-with-through-fog":     ["vertigo"],
     "winged-guard":                ["grade", "deep"],
+    # ---- covers from the FigJam PRESSURE board -------------------------------
+    # These two are chosen; the rest of that set still falls to DEFAULT. motes
+    # alone means the frame does not move — only the dust drifts.
+    "spear-against-the-red-sun":   ["motes"],                   # 2 Chronicles 20:15
+    "eagle-against-the-sky":       ["motes"],                   # Isaiah 40:30-31
 }
 # Psalm 3's knight was chosen and shipped separately; "the others" meant covers
 # that had not been ruled on, not a reversal of that one.

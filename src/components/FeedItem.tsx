@@ -8,6 +8,7 @@ import IconButton from "./IconButton";
 import { BookmarkIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { savedPostStore } from "@/lib/stores";
+import { useMagneticTilt } from "@/hooks/useMagneticTilt";
 import ShareSheet from "./ShareSheet";
 import {
   readCanShareFiles,
@@ -617,6 +618,8 @@ export default function FeedItem({
    * through to, so our own sheet opens instead and offers what that platform
    * genuinely can do.
    */
+  const tiltRef = useMagneticTilt<HTMLDivElement>(!!isActive);
+
   const canShareFiles = useSyncExternalStore(
     shareSubscribeNever,
     readCanShareFiles,
@@ -651,8 +654,25 @@ export default function FeedItem({
   }, [canShareFiles, postId, title]);
 
   return (
-    <div className="relative w-full h-[calc(100dvh-138px)] min-h-[calc(100svh-138px)] snap-start snap-always flex-shrink-0 mb-[12px]
-                    desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]">
+    /*
+     * The tilt goes on the CARD BOX, not on the artwork inside it — the whole
+     * object leans, corners, label and buttons together, the way dafod-2 tilts
+     * its cover. Tilting the image alone would slide a picture around inside a
+     * frame that stayed put, which reads as a bug.
+     *
+     * Only the active card answers. The neighbours are 10px peeks at this
+     * width, and a sliver that tips when the pointer crosses it on the way to
+     * the card is noise; the size guard inside the hook is about width, which a
+     * peek still has. Off on the phone too, where there is no hover to give.
+     *
+     * Transforms do not move layout, so offsetTop is unchanged and the pager
+     * still lands this card on the rest line while it is leaning.
+     */
+    <div
+      ref={tiltRef}
+      className="relative w-full h-[calc(100dvh-138px)] min-h-[calc(100svh-138px)] snap-start snap-always flex-shrink-0 mb-[12px]
+                    desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]"
+    >
       {/* Tappable Background Area for Double-Tap */}
       <div
         className={`absolute inset-0 z-[1] overflow-hidden ${isActive ? "rounded-b-[32px]" : "rounded-[32px]"}`}

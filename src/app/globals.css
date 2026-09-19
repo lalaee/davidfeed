@@ -1230,7 +1230,8 @@ html, body {
    1028 the desk variant uses says it outright. */
 @media (min-width: 1028px) {
   .feed-column {
-    width: 622px;
+    /* Width itself is set with the rest of the desk geometry below, where the
+     * lean it carries is defined. This rule exists for max-width alone. */
     max-width: none;
   }
 }
@@ -1245,7 +1246,7 @@ html, body {
   .sound-badge {
     left: auto;
     right: calc(var(--desk-gutter) + 362px);
-    top: calc(221px + var(--desk-card-h) / 2);
+    top: calc(var(--desk-card-top) + var(--desk-card-h) / 2);
     /* Only the custom property. Tailwind v4 centres with the independent
        `translate` property, not `transform`, so adding a transform here shifted
        the badge a second time — half its width to the right and half its height
@@ -1336,6 +1337,7 @@ html, body {
 :root {
   --desk-gutter: 0px;
   --desk-card-h: 845px;
+  --desk-card-top: 221px;
 }
 
 /* THE DESK CARD HEIGHT, and why it is not simply 845.
@@ -1373,14 +1375,103 @@ html, body {
 @media (min-width: 1028px) {
   :root {
     --desk-gutter: calc((100vw - min(100vw, 1440px)) / 2);
-    --desk-card-h: min(845px, calc(100dvh - 263px));
+
+    /* THE CARD RUNS UNDER THE HEADER, BUT NEVER STARTS THERE.
+     *
+     * The column is the whole window now, so a card leaving the top passes
+     * beneath the 97px bar — which keeps its black fill and its #212121 rule
+     * and paints over the card at z-500. The bar is chrome, not a window.
+     *
+     * The first card must not load half-hidden under it, so the REST position
+     * is paid as padding on the SCROLLER rather than as a column offset, and
+     * scroll-padding-top matches, so every card snaps to that same line.
+     *
+     * THE NEIGHBOURS PEEK, ON BOTH SIDES. At rest the column reads
+     *
+     *     bar | 10 of the previous card | 24 gap | active card | 24 gap | 10 of the next
+     *
+     * so a card is never alone on the screen: the one you just read is still
+     * dissolving under the bar and the one coming is already at the fold, each
+     * showing 10px through the soft edges (see THE BAR'S SOFT EDGE, below).
+     * At the head of the list there is no previous card and nothing peeks;
+     * at the end, nothing follows. Both are the truth, not a bug.
+     *
+     * So the rest line is 97 + 10 + 24 = 131 — it used to be 121, which put
+     * the previous card's bottom exactly ON the rule, where the bar swallowed
+     * it whole and the top peek did not exist. Height follows the frame's own
+     * canvas with the parked switcher's row handed to the card:
+     *
+     *     131 top + 943 card + 24 gap + 10 peek = 1108
+     *
+     * so the reserve is 165 and the ceiling is 943. It round-trips like the
+     * original: at exactly 1108, min(943, 1108 - 165) is 943 with the clamp
+     * doing nothing. On any shorter window the clamp holds the bottom peek at
+     * 10 by shrinking the card, never by hiding the neighbour. */
+    /* How far the card may lean outside its column before anything clips it.
+     * Spent twice: once widening the column, once padding the scroller back. */
+    --desk-lean: 48px;
+    --desk-peek: 10px;
+    --desk-card-top: calc(97px + var(--desk-peek) + 24px);
+    --desk-card-h: min(943px, calc(100dvh - 131px - 24px - var(--desk-peek)));
+  }
+  /* ROOM FOR THE CARD TO LEAN.
+   *
+   * The card is `w-full` inside a scroller inside .feed-column, and all three
+   * measured the frame's 622 — fine while nothing ever left its box. The
+   * magnetic tilt does: 30px of pull at the pointer's extreme, plus ~8 more
+   * where a 3deg rotateY swings a corner toward a 700px perspective. Flush
+   * boxes meant the card's edge went straight and hard the moment it moved.
+   *
+   * The room has to be REAL, not a clip exemption. overflow-clip-margin is the
+   * obvious answer and it does not work here: a scroll container always clips
+   * its padding box, and Chrome coerces `overflow-x: clip` back to `hidden`
+   * when the other axis scrolls, which discards the margin with it. Measured by
+   * hit-testing 20px outside the scroller with the margin set and unset — the
+   * card was absent either way, so nothing was painting there.
+   *
+   * So the COLUMN grows by the lean on each side and the SCROLLER pads it back.
+   * The card's w-full resolves against the padded content box, so it stays 622
+   * at exactly the same place, while the box that clips it — the scroller's
+   * padding box — now sits --desk-lean further out on both sides.
+   *
+   * 48 covers 38 of real excursion with room to spare. The column's extra width
+   * is black on black, and the paging chevrons in that gap are z-500, so a
+   * leaning card passes UNDER them, which is the right way round. */
+  .feed-column {
+    width: calc(622px + 2 * var(--desk-lean));
+    /* Transparent at desk so the ambience shows in the gaps between cards, in
+     * the lean margins and around the peeks — the swirl is meant to surround
+     * the artwork, as it does in Apple's Now Playing. The phone keeps bg-black:
+     * there the column is the whole screen and the black is its safe area. */
+    background: transparent;
+  }
+  .feed-scroll {
+    padding-inline: var(--desk-lean);
+    padding-top: var(--desk-card-top);
+    scroll-padding-top: var(--desk-card-top);
+    /* No CSS snapping at desk: the pager (useCardPager) moves the column from
+     * rest line to rest line itself, on the house curve, and lands exactly on
+     * them. Left on, mandatory snapping would answer every tween frame with a
+     * correction of its own — the two fought, visibly, on the trackpad. The
+     * phone keeps it: a finger drives a real scroll there and snap settles it.
+     * scroll-padding-top stays because it is where the pager reads the rest
+     * line from. */
+    scroll-snap-type: none;
+    /* The LAST card has to be able to reach the rest line too. Its snap
+     * position needs gap + peek of scrollable room below it; the phone's 20px
+     * left it 14px short, so the final card parked 14px lower than every other
+     * and mandatory snapping shrugged. 34 = 24 + 10, and the last card sits on
+     * the same line as the rest with nothing peeking beneath it. */
+    padding-bottom: calc(24px + var(--desk-peek));
   }
   .desk-bar {
     padding-left: calc(var(--desk-gutter) + 48px);
     padding-right: calc(var(--desk-gutter) + 86.27px);
   }
   .desk-feed {
-    right: calc(var(--desk-gutter) + 51px);
+    /* The frame's 51, less the lean the column grew on that side, so the CARD
+     * still lands 51 from the gutter — see ROOM FOR THE CARD TO LEAN. */
+    right: calc(var(--desk-gutter) + 51px - var(--desk-lean));
   }
   .desk-copy {
     left: calc(var(--desk-gutter) + 48px);
@@ -1531,4 +1622,222 @@ html, body {
 }
 .hero-lottie [fill="rgb(0,0,0)"] {
   fill: currentColor;
+}
+
+/* THE BAR'S SOFT EDGE.
+ *
+ * The desktop card scrolls UNDER the 97px bar, which is opaque black with a
+ * #212121 rule along its bottom. That rule was doing two jobs: it is the
+ * design's divider, and it was also a knife — a card on its way out ended
+ * mid-brushstroke, at full sharpness, against flat black. The feed read as
+ * clipped rather than as passing behind something.
+ *
+ * So the strip below the rule takes the card out of focus and out of light
+ * before the bar takes over. It is the progressive-blur stack the platform
+ * still lacks natively (linear-blur() is a csswg proposal, #13285, not a
+ * property), built the way Kenneth Nym and Jonothan Hunt build it: sibling
+ * layers with DOUBLING radii, each masked to a band that overlaps its
+ * neighbours by a whole step. Each layer's backdrop already contains the
+ * output of the ones beneath it, so the radii compound rather than crossfade,
+ * and the hand-off from one radius to the next happens inside a region where
+ * both are partly present — there is no line for a seam to sit on. The masks
+ * read `to top` because the blur has to grow towards the rule, which is the
+ * opposite of every published recipe.
+ *
+ * WHAT THIS REPLACED, so it is not tried again: a version whose masks were run
+ * through feTurbulence to make the frontier "liquid". It looked like dirt on
+ * a lens. Noise in an alpha mask does not read as a wavy edge; it reads as
+ * patches of blur and patches of sharp interleaved — a smear, not a dissolve.
+ * The straight-edge complaint it was answering is real, but the cure is a
+ * longer, smoother ramp with the shade carrying the edge, not an irregular
+ * one. Every mask here is a plain linear gradient.
+ *
+ * THE SHADE IS THE EDGE. A blur stack alone still terminates at a line — a
+ * line of blurred pixels now, but a line. The csswg thread says why: the
+ * workaround "blends between unblurred and uniformly-blurred output", so the
+ * top of the stack is a uniform blur that meets the bar's black at full
+ * brightness. The scrim is what dissolves that: pure black at the rule, gone
+ * by the band's end, on a gentle ease so the card loses its light over the
+ * whole run rather than in the last few pixels. It is the same black the bar
+ * is painted in, so it reads as the bar's shadow, not as a grey veil.
+ *
+ * IT STARTS ABOVE THE RULE. The band is 12px taller than it looks and those
+ * 12px hide behind the bar. Sitting it flush left a one-pixel sliver of sharp
+ * image between the rule and the blur — `h-[97px]` is border-box, so the 1px
+ * border is INSIDE the 97 and the bar's last row is y=96, not 97. Beginning
+ * underneath and letting the bar paint over the overlap means there is nothing
+ * to align. (Comeau's trick, inverted: extend the filtered element past the
+ * edge you care about and let something else crop it.)
+ *
+ * DEPTH IS CAPPED BY THE RESTING CARD. A card at rest starts at
+ * --desk-card-top, 131 — the previous card's 10px peek and a 24 gap below the
+ * rule — so any band deeper than that is working on the card being READ, not
+ * the one leaving. The visible run is 56; the ramps are cut so that at 131
+ * what remains is ~1px of blur and a twentieth of the shade, which rounds the
+ * card's top edge into the bar and is gone a dozen pixels later. Spires,
+ * subtitles and corners all survive. The peek itself sits in the band's
+ * strongest 10px, which is the point: it is a glimpse, not a strip.
+ *
+ * z-490 puts the band over the feed but under every piece of chrome at 500 —
+ * including the bar, which is why the blur never samples the bar's own black
+ * (it is painted afterwards) and why a collection's title at y=156 stays sharp.
+ */
+.desk-bar-edge {
+  /* 12 of the 68 hide behind the bar; 56 are the soft edge you see. */
+  top: 85px;
+  height: 68px;
+}
+/* THE FOLD gets the same treatment, mirrored. There is no bar down there —
+ * the card simply runs off the viewport — but a hard viewport edge through a
+ * painting is the same knife. The 12px overhang now hangs below the viewport
+ * rather than behind a bar, for the same reason: fractional layout can leave a
+ * row of sharp pixels at a flush edge, and an overlap makes that impossible.
+ *
+ * The depth budget is the same as the top's by construction: a resting card
+ * ends 34 above the fold (131 + (100dvh - 165) = 100dvh - 34), its label and
+ * buttons sit a further 24 inside, so 56 visible reaches only the card's last
+ * 22px, which is empty ground. The next card's 10px peek is what lives in its
+ * strongest end, mirroring the previous card's peek under the bar. */
+.desk-bar-edge--bottom {
+  top: auto;
+  bottom: -12px;
+}
+.desk-bar-edge > div {
+  position: absolute;
+  inset: 0;
+}
+.desk-bar-edge > div:nth-child(1) {
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 26%, rgba(0,0,0,0) 42%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 26%, rgba(0,0,0,0) 42%);
+}
+.desk-bar-edge--bottom > div:nth-child(1) {
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 26%, rgba(0,0,0,0) 42%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 26%, rgba(0,0,0,0) 42%);
+}
+.desk-bar-edge > div:nth-child(2) {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0) 14%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,0) 60%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0) 14%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,0) 60%);
+}
+.desk-bar-edge--bottom > div:nth-child(2) {
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 14%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,0) 60%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 14%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,0) 60%);
+}
+.desk-bar-edge > div:nth-child(3) {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 74%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 74%);
+}
+.desk-bar-edge--bottom > div:nth-child(3) {
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 74%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,1) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 74%);
+}
+.desk-bar-edge > div:nth-child(4) {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,1) 74%, rgba(0,0,0,0) 88%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,1) 74%, rgba(0,0,0,0) 88%);
+}
+.desk-bar-edge--bottom > div:nth-child(4) {
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,1) 74%, rgba(0,0,0,0) 88%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 46%, rgba(0,0,0,1) 60%, rgba(0,0,0,1) 74%, rgba(0,0,0,0) 88%);
+}
+.desk-bar-edge > div:nth-child(5) {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 76%, rgba(0,0,0,1) 90%, rgba(0,0,0,1) 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 76%, rgba(0,0,0,1) 90%, rgba(0,0,0,1) 100%);
+}
+.desk-bar-edge--bottom > div:nth-child(5) {
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 76%, rgba(0,0,0,1) 90%, rgba(0,0,0,1) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 76%, rgba(0,0,0,1) 90%, rgba(0,0,0,1) 100%);
+}
+.desk-bar-edge > div:nth-child(6) {
+  -webkit-backdrop-filter: blur(32px);
+  backdrop-filter: blur(32px);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0) 76%, rgba(0,0,0,1) 92%, rgba(0,0,0,1) 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0) 76%, rgba(0,0,0,1) 92%, rgba(0,0,0,1) 100%);
+}
+.desk-bar-edge--bottom > div:nth-child(6) {
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 76%, rgba(0,0,0,1) 92%, rgba(0,0,0,1) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 76%, rgba(0,0,0,1) 92%, rgba(0,0,0,1) 100%);
+}
+.desk-bar-edge > div:nth-child(7) {
+  /* The scrim. Stops on an ease-in from the open end so the darkening arrives
+   * slowly and finishes hard against the edge.
+   *
+   * At rest a neighbour's 10px peek lives in each band, and the design wants
+   * it seen. So the bands never switch off for that: the blur stays, so the
+   * peek is a soft glimpse rather than a hard sliver of artwork, and only the
+   * scrim pulls back — to 20% at a rest position, where the peek's own run of
+   * the gradient (0.58-1.0 for the top's 10px, 0.58-0.86 for the bottom's)
+   * comes down to 0.12-0.2 and reads through it; back to full once the feed
+   * is between cards and the edge is a knife again. 45% was tried first and
+   * the peek vanished: card bottoms are mostly dark ground under a label, and
+   * a third of black over ten blurred pixels of it is indistinguishable from
+   * the bar. --edge-travel is the Feed's "distance from the nearest rest
+   * position", 0..1 over 40px. */
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0)    0%,
+    rgba(0, 0, 0, 0.04) 20%,
+    rgba(0, 0, 0, 0.12) 36%,
+    rgba(0, 0, 0, 0.30) 52%,
+    rgba(0, 0, 0, 0.58) 68%,
+    rgba(0, 0, 0, 0.86) 82%,
+    rgba(0, 0, 0, 1)    92%,
+    rgba(0, 0, 0, 1)    100%
+  );
+  opacity: calc(0.2 + 0.8 * var(--edge-travel, 1));
+}
+.desk-bar-edge--bottom > div:nth-child(7) {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0)    0%,
+    rgba(0, 0, 0, 0.04) 20%,
+    rgba(0, 0, 0, 0.12) 36%,
+    rgba(0, 0, 0, 0.30) 52%,
+    rgba(0, 0, 0, 0.58) 68%,
+    rgba(0, 0, 0, 0.86) 82%,
+    rgba(0, 0, 0, 1)    92%,
+    rgba(0, 0, 0, 1)    100%
+  );
+}
+
+/* THE AMBIENCE'S DIM — see FeedAmbience.tsx.
+ *
+ * Apple runs its swirl at full vividness because nothing sits on it but
+ * controls. Here a painting sits on it, and the painting has to stay the
+ * brightest thing on the screen; the background is a mood, not a rival. A
+ * flat black at this opacity keeps the palette and takes the shout out of it.
+ * The one knob for "too loud" / "too dull". */
+:root {
+  --ambience-dim: 0.32;
+}
+.feed-ambience-dim {
+  background: rgba(0, 0, 0, var(--ambience-dim));
+}
+
+/* THE AMBIENCE'S STAND-IN — see FeedAmbience.tsx. The cover at 1.25x under
+ * the same blur and saturation the shader applies, so the first frame is the
+ * right colour and the hand-off to the canvas is a fade between two versions
+ * of the same thing. One static paint: the blur is expensive, but it is not
+ * animated and it is gone once the canvas has drawn. */
+.feed-ambience-standin {
+  opacity: 1;
+  /* visibility follows the fade so the blurred layer is dropped from paint
+   * entirely once it is invisible, not kept composited at opacity 0. */
+  transition: opacity 620ms cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 620ms;
+}
+.feed-ambience-standin[data-drawn] {
+  opacity: 0;
+  visibility: hidden;
+}
+.feed-ambience-standin > img {
+  transform: scale(1.25);
+  filter: blur(60px) saturate(2.75);
 }

@@ -107,6 +107,19 @@ export default function DesktopChrome({
     <>
       <DesktopNav activeTab={activeTab} />
 
+      {/* THE SOFT EDGES — see globals.css, which carries the reasoning and every
+          number. One at the bar, one at the fold: a card on its way out in
+          either direction goes out of focus and out of light before the edge
+          instead of being sliced by it.
+
+          They live HERE and not in DesktopNav, beside the bar the top one
+          belongs to, because the Bible and the Library draw their own headers
+          under that bar at z-10 — the chapter pill sits at y=121, squarely
+          inside the band — and a blur hung off the bar itself took those with
+          it. Only the feed runs its content under the rule on purpose. */}
+      <SoftEdge />
+      <SoftEdge side="bottom" />
+
       {/* Left column — Figma "Container" 2662:10867, transcribed.
        *
        * The frame is drawn at 0.8483095, proven by five values that unscale to
@@ -254,6 +267,36 @@ export default function DesktopChrome({
         <PageButton label="Next verse" onClick={onNext} disabled={!canNext} />
       </div>
     </>
+  );
+}
+
+/*
+ * Seven bare layers: six compounding blurs under overlapping gradient masks,
+ * then the scrim. Which way they ramp is the modifier's business, in CSS.
+ *
+ * The Feed writes two variables on the column from the scroller's position.
+ * The top band takes --edge-top as its opacity: 0 at the head of the list,
+ * where there is no previous card to soften. Otherwise both bands stay on —
+ * each holds a neighbour's 10px peek, which should be a soft glimpse, not a
+ * hard sliver — and only their scrims listen to --edge-travel, in CSS, easing
+ * back at rest so the peeks read through. See the note on both in Feed.tsx.
+ */
+function SoftEdge({ side = "top" }: { side?: "top" | "bottom" }) {
+  return (
+    <div
+      aria-hidden
+      className={`desk-bar-edge pointer-events-none fixed inset-x-0 z-[490] hidden desk:block
+                  ${side === "bottom" ? "desk-bar-edge--bottom" : ""}`}
+      style={side === "top" ? { opacity: "var(--edge-top, 1)" } : undefined}
+    >
+      <div />
+      <div />
+      <div />
+      <div />
+      <div />
+      <div />
+      <div />
+    </div>
   );
 }
 

@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useEffect, useLayoutEffect, useMemo, useState, useCallback, useSyncExternalStore } from "react";
+
+import { useCardPager } from "@/hooks/useCardPager";
+import FeedAmbience from "./FeedAmbience";
 import FeedItem from "./FeedItem";
 import { type TabKey } from "./BottomNav";
 import SoundBadge from "./SoundBadge";
@@ -278,6 +281,55 @@ export default function Feed({
     window.addEventListener("wheel", unlock, opts);
   }, []);
 
+  // THE SOFT EDGES ANSWER TO THE SCROLLER.
+  //
+  // Both bands exist for a card in motion — one leaving under the bar, one
+  // arriving over the fold. But at rest each also holds a neighbour's 10px
+  // peek (see the card-geometry note in globals.css), which the design wants
+  // seen: a soft glimpse of what you just read and of what comes next. Two
+  // numbers, read straight off the scroller, settle both:
+  //
+  //   --edge-top     "is anything above the active card?"  0 at the head of
+  //                  the list, where there is no previous card and the band
+  //                  would only be shading the first card's corners with a
+  //                  shadow cast by nothing; 1 by 32px in, a touch before the
+  //                  first card's top edge (34 below the rule) meets it.
+  //                  The top band takes it as its opacity.
+  //   --edge-travel  "is the feed between cards?"  0 at any rest position,
+  //                  1 by 40px away from one. Rest positions are every card
+  //                  pitch from 0, plus the end of the scroller. Both bands'
+  //                  SCRIMS ease back on it, in CSS, so the peeks read
+  //                  through at rest; the blur itself never switches off,
+  //                  which is what keeps a peek a glimpse and not a sliver.
+  //
+  // Off the scroller rather than off activeIndex, which the observer only
+  // flips at the halfway point — by then the first card had been sliding under
+  // the bar, unsoftened, for half its height. Written as CSS variables on the
+  // column, not as state: they change on every scroll frame and nothing else
+  // needs to re-render for them.
+  const columnRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const scroller = containerRef.current;
+    const column = columnRef.current;
+    if (!scroller || !column) return;
+    const paint = () => {
+      const top = scroller.scrollTop;
+      const [a, b] = itemRefs.current;
+      const pitch = a && b ? b.offsetTop - a.offsetTop : 0;
+      let fromRest = 0;
+      if (pitch > 0) {
+        const phase = top % pitch;
+        const end = scroller.scrollHeight - scroller.clientHeight;
+        fromRest = Math.min(phase, pitch - phase, Math.abs(end - top));
+      }
+      column.style.setProperty("--edge-top", Math.min(1, top / 32).toFixed(3));
+      column.style.setProperty("--edge-travel", Math.min(1, fromRest / 40).toFixed(3));
+    };
+    paint();
+    scroller.addEventListener("scroll", paint, { passive: true });
+    return () => scroller.removeEventListener("scroll", paint);
+  }, [posts]);
+
   // Ambient bed. Owned by the Feed, not by a card, so it plays continuously
   // underneath the whole feed and never restarts when the active card changes.
   // It is rendered outside the item wrappers, which is what keeps the
@@ -421,15 +473,39 @@ export default function Feed({
     pendingIndexRef.current = null;
   }, [activeIndex]);
 
+  // The motion itself — one card per gesture on the house curve, for the
+  // wheel, the chevrons and the keys alike. See useCardPager for why native
+  // scroll and scrollIntoView were both retired from this.
+  const activeIndexRef = useRef(activeIndex);
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  // WHERE THE FEED IS GOING, for the ambience behind it.
+  //
+  // activeIndex is the observer's word and arrives at the halfway point of a
+  // page. The background has to start turning when the page STARTS, so it
+  // follows the pager's aim while a step is in flight and falls back to
+  // activeIndex once the observer catches up — cleared in render, the same
+  // documented adjust-on-change pattern pausedAt uses above, not in an effect.
+  const [aim, setAim] = useState<number | null>(null);
+  const [aimedFrom, setAimedFrom] = useState(activeIndex);
+  if (aimedFrom !== activeIndex) {
+    setAimedFrom(activeIndex);
+    setAim(null);
+  }
+  const pager = useCardPager(containerRef, itemRefs, posts.length, activeIndexRef, setAim);
+  const ambienceIndex = Math.min(aim ?? activeIndex, posts.length - 1);
+
   const goToCard = useCallback(
     (delta: number) => {
       const from = pendingIndexRef.current ?? activeIndex;
       const next = Math.min(Math.max(from + delta, 0), posts.length - 1);
       if (next === from) return;
       pendingIndexRef.current = next;
-      itemRefs.current[next]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      pager.go(next);
     },
-    [activeIndex, posts.length],
+    [activeIndex, posts.length, pager],
   );
 
   /*
@@ -572,16 +648,30 @@ export default function Feed({
       {/* Fixed background that extends into Safari safe area */}
       <div className="fixed inset-0 bg-black z-[-1]" />
 
+      {/* The active cover, swirled and blurred across the desktop behind the
+          column — Apple Music's Now Playing background. Positioned at z-0 so it
+          paints above the page's black and below the column, which follows it
+          in the document. */}
+      <FeedAmbience
+        src={posts[ambienceIndex]?.backgroundImage}
+        warm={[-2, -1, 1, 2]
+          .map((d) => posts[ambienceIndex + d]?.backgroundImage)
+          .filter((u): u is string => !!u)}
+      />
+
       {/* Continuous ambient bed — one element for the whole feed, outside the
           card wrappers so scrolling never interrupts it. */}
       <audio ref={bedRef} src="/assets/ambient-bed.m4a" loop preload="auto" />
-    <div className="feed-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
-                    desk-feed md:max-w-[375px] desk:fixed desk:top-[221px] desk:mx-0
-                    desk:h-[calc(100dvh-221px)]">
+    <div
+      ref={columnRef}
+      className="feed-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
+                    desk-feed md:max-w-[375px] desk:fixed desk:top-0 desk:mx-0
+                    desk:h-[100dvh]"
+    >
       {/* Scrollable Feed Container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scrollbar-hide pb-[20px] [overflow-anchor:none]
+        className="feed-scroll flex-1 overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scrollbar-hide pb-[20px] [overflow-anchor:none]
                    desk:[&>div>div]:rounded-[53px] desk:[&>div>div]:overflow-hidden"
       >
         {posts.map((post, index) => (

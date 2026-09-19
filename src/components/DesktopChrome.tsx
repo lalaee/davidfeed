@@ -6,7 +6,7 @@ import { useState } from "react";
 import DesktopNav from "./DesktopNav";
 import { type TabKey } from "./BottomNav";
 import { ChevronIcon } from "./icons";
-import { TOPICS } from "@/data/topics";
+import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
 import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
 import HeroLottie from "./HeroLottie";
 
@@ -187,7 +187,7 @@ export default function DesktopChrome({
           )}
           <span className="text-[27px] font-bold leading-none text-white">{collectionLabel}</span>
         </div>
-      ) : (
+      ) : TOPICS_ENABLED ? (
         <>
         {/* Topic switcher, above the card */}
         <button
@@ -245,7 +245,7 @@ export default function DesktopChrome({
           })}
         </div>
         </>
-      )}
+      ) : null}
 
       {/* Paging, to the left of the card */}
       <div className="desk-paging fixed top-1/2 z-[500] hidden -translate-y-1/2

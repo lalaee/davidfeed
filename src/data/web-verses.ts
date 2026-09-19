@@ -131,7 +131,7 @@ const VERSE_CARDS: VerseCard[] = [
   // board that chose them. Psalm 27:3 is the tenth on that board and is not
   // here: it has no recording yet.
   { id: 118, topic: "pressure", title: "Psalm 118:6-7", clip: "psalm118-v6-7-web", seconds: 20.48,
-    cover: "two-seated-on-the-headland.jpg",
+    cover: "held-in-the-long-grass.jpg",
     art: "'the LORD is on my side' — two of them, sitting with it, not braced against anything." },
   { id: 56, topic: "pressure", title: "Psalm 56:3-4", clip: "psalm56-v3-4-web", seconds: 18.76,
     cover: "hands-laid-on-his-head.jpg",

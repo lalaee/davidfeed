@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ChevronIcon } from "./icons";
-import { TOPICS } from "@/data/topics";
+import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
 
 /*
  * The topic header, from Figma "New Feed UI" (2623:924) — Frame 36970.
@@ -129,6 +129,9 @@ export default function FeedHeader({
       </>
     );
   }
+
+  // Topics are parked; a collection still names itself above.
+  if (!TOPICS_ENABLED) return null;
 
   return (
     <>

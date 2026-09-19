@@ -7,7 +7,7 @@ import SoundBadge from "./SoundBadge";
 import FeedHeader from "./FeedHeader";
 import DesktopChrome from "./DesktopChrome";
 import { chapterPosts, type Post } from "@/data/posts";
-import { TOPICS, postsForTopic, topicForSeed } from "@/data/topics";
+import { TOPICS, TOPICS_ENABLED, postsForTopic, topicForSeed } from "@/data/topics";
 
 /**
  * Ambient bed level under the narration. dafod mixes voice 0.95 / bed 0.25.
@@ -133,7 +133,9 @@ export default function Feed({
   // computes the default topic from seed 0, the client computes the real pick
   // from its seed, and useSyncExternalStore reconciles them.
   const [chosenTopic, setChosenTopic] = useState<string | null>(null);
-  const topicId = chosenTopic ?? topicForSeed(feedSeedValue);
+  // Pinned to "all" while topics are parked — that entry's ids are null, so
+  // postsForTopic hands back the whole feed. See TOPICS_ENABLED in topics.ts.
+  const topicId = TOPICS_ENABLED ? (chosenTopic ?? topicForSeed(feedSeedValue)) : "all";
   const posts = useMemo(
     () =>
       // A collection keeps the order it arrived in — the Library's saved list

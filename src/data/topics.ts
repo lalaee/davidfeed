@@ -60,6 +60,18 @@ export interface Topic {
  * why the refuge verses sit under the second and the enemy psalms under the
  * first.
  */
+/**
+ * Topics are PARKED, not deleted.
+ *
+ * Flip to true and the feed groups again — the table below, postsForTopic,
+ * topicForSeed and both switchers are all intact and still built.
+ *
+ * It works by pinning topicId to "all", the entry whose `ids` are null, so
+ * postsForTopic already returns everything and nothing downstream has to know
+ * the feature is off.
+ */
+export const TOPICS_ENABLED = false;
+
 export const TOPICS: Topic[] = [
   { id: "pressure",    label: "Pressure",    ids: [27, 3, 20, 91, 7, ...pressureVerseIds] },
   { id: "anxiety",     label: "Anxiety",     ids: [23, 4, 16] },

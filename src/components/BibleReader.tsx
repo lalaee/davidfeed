@@ -69,10 +69,9 @@ interface BibleReaderProps {
   /** Book name as it appears in BOOKS, e.g. "Psalms". */
   book: string;
   chapter: number;
-  artworkSrc?: string;
 }
 
-export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-poster-frame.jpg" }: BibleReaderProps) {
+export default function BibleReader({ book, chapter }: BibleReaderProps) {
   const router = useRouter();
   const chapterTitle = makeChapterTitle(book, chapter);
 
@@ -411,25 +410,38 @@ export default function BibleReader({ book, chapter, artworkSrc = "/assets/feed-
             <button
               type="button"
               onClick={() => setShowBooks(true)}
-              // The frame's 158 is a FLOOR, not the width. It was measured when
-              // the reader had one chapter called "Psalm 46"; any of 1,189 can
-              // open now, and 158 leaves the title 74px — enough for "John 3"
-              // and not for "Psalms 46", which ran straight through the 12px
-              // padding. Hugs its content above 158, and only truncates where
-              // the row genuinely cannot hold it (a 320px screen showing
-              // "1 Thessalonians 5").
-              className="flex h-[72px] w-fit min-w-[158px] items-center gap-[12px] rounded-[22px] p-[12px] active:opacity-70 transition-opacity"
+              // THE PILL IS NOW JUST THE TITLE, so its box is measured from the
+              // title rather than inherited from the artwork that used to sit
+              // beside it.
+              //
+              // The frame's 158x72 and its 12 padding were both sized around a
+              // 48px thumbnail: 12 + 48 + 12 gap + title + 12 held the height at
+              // 72, and 158 was the floor that fitted "Psalm 46" next to the
+              // picture. With the thumbnail gone those numbers describe nothing
+              // — 72 tall around a 22px line box is 25 above and below against
+              // 12 at the sides, and the 158 floor padded the right-hand end
+              // with empty ground on every short title. It read as a pill with
+              // its contents pushed into one corner.
+              //
+              // So: one padding value on all four sides, and no floor. The
+              // frame's 12 was the starting point and proved mean once it was
+              // the only thing holding the title off the edge — a thumbnail
+              // carries its own visual margin and a word does not. 18 on the
+              // phone, 24 from 1028 up, both uniform.
+              //
+              // The extra 6 at desk is not decoration. The reader's column
+              // widens from 390 to 782 there and the pill is the only object on
+              // its row, so the same 18 that reads generous against a phone's
+              // edge reads tight against all that air. 24 also lands the pill at
+              // 70 tall, where the frame's own 22 radius sits at the proportion
+              // it was drawn for (22 on 72) rather than approximating a capsule.
+              //
+              // Still shrinkable: min-w-0 and truncate stay, so a 320px screen
+              // showing "1 Thessalonians 5" clips the title instead of shoving
+              // the version pill off the row.
+              className="flex w-fit items-center rounded-[22px] p-[18px] desk:p-[24px] active:opacity-70 transition-opacity"
               style={{ backgroundColor: "#0E0E0E" }}
             >
-              {/* Artwork Thumbnail */}
-              <div className="w-[48px] h-[48px] rounded-[12px] border-[0.5px] border-[rgba(120,120,128,0.2)] overflow-hidden flex-shrink-0">
-                <img
-                  src={artworkSrc}
-                  alt={chapterTitle}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {/* Chapter Title */}
               <span className="min-w-0 truncate text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px]">
                 {chapterTitle}
               </span>

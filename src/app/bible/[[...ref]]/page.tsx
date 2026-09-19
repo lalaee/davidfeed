@@ -37,7 +37,6 @@ export default async function BiblePage({ params }: { params: Promise<{ ref?: st
       <BibleReader
         book={known ? book : DEFAULT_BOOK}
         chapter={known ? chapter : DEFAULT_CHAPTER}
-        artworkSrc="/assets/feed-poster-frame.jpg"
       />
     </main>
   );

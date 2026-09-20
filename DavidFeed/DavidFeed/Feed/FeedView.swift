@@ -99,7 +99,10 @@ struct FeedView: View {
             .scrollIndicators(.hidden)
             .background(DF.ground)
             .overlay(alignment: .top) {
-                if !fixedSet {
+                // Parked with the topics: there is one feed and it has no
+                // name to show. A collection still titles itself, which is why
+                // this is the topic switcher going and not the whole overlay.
+                if !fixedSet && TopicStore.enabled {
                     FeedHeaderView(topic: $topic, topics: TopicStore.all)
                         // FeedHeader.tsx puts this at max(safe-area-top, 45) - 1.
                         // The overlay's origin is ALREADY the safe-area top, so

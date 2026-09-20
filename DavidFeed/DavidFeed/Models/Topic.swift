@@ -54,8 +54,18 @@ enum TopicStore {
     /// The web also has a seed-0 branch returning the first topic. That exists
     /// only so its static prerender is stable enough for hydration to agree
     /// with. There is no prerender here, so there is no seed 0 and no branch.
+    /// Topics are PARKED, not deleted — the web's TOPICS_ENABLED, ported.
+    ///
+    /// Flip to true and the feed groups again: the picker, `initial`'s random
+    /// pick and `Topic.posts(from:)` are all intact and still built. It works
+    /// the same way the web's does, by pinning to "all" — the entry whose `ids`
+    /// are nil — so `posts(from:)` already returns everything and nothing
+    /// downstream has to know the feature is off.
+    static let enabled = false
+
     static var initial: Topic? {
         guard !all.isEmpty else { return nil }
+        guard enabled else { return all.first { $0.ids == nil } ?? all.first }
         return all[Int(seed % UInt32(all.count))]
     }
 

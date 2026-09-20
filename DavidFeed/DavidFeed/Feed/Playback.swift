@@ -218,7 +218,7 @@ final class Playback {
                 image
             }
         }
-        attachAnimatedArtwork(&info, for: post)
+        if #available(iOS 26, *) { attachAnimatedArtwork(&info, for: post) }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
@@ -230,6 +230,7 @@ final class Playback {
     /// `supportedAnimatedArtworkKeys` — rather than assuming 1x1 and 3x4 are
     /// both available. Our assets are 3:4, so a 1x1 slot is left alone rather
     /// than filled with something the system would likely reject.
+    @available(iOS 26, *)
     private func attachAnimatedArtwork(_ info: inout [String: Any], for post: Post) {
         guard let video = post.animatedArtworkURL,
               let previewURL = post.animatedArtworkPreviewURL

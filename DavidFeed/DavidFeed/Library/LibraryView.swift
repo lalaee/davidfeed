@@ -323,7 +323,7 @@ private struct SavedFeedScreen: View {
                         // 48pt, comfortably over the 44pt minimum: this is the
                         // primary way out of a screen that has no other chrome.
                         .frame(width: 48, height: 48)
-                        .glassEffect(.regular.interactive(), in: .circle)
+                        .glassOrSurface(interactive: true, in: .circle)
                         .contentShape(.circle)
                 }
                 .buttonStyle(.plain)

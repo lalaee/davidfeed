@@ -151,7 +151,7 @@ struct FeedCardView: View {
                 .foregroundStyle(DF.ink)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
-                .glassEffect(.regular, in: .capsule)
+                .glassOrSurface(in: .capsule)
                 .allowsHitTesting(false)
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
         }

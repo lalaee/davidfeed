@@ -54,7 +54,7 @@ struct RootView: View {
             else { return }
             BibleStore.shared.open(title: post.title)
         }
-        .tabBarMinimizeBehavior(.never)
+        .tabBarNeverMinimizes()
         .tint(DF.ink)
         .background(DF.ground)
     }

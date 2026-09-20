@@ -60,7 +60,7 @@ struct BibleView: View {
                 // No dissolve at the bottom, by choice: the reader carried the
                 // feed's EdgeDissolve band for a while and it was taken out --
                 // verses under the tab bar stay as they are. The feed keeps it.
-                .scrollEdgeEffectStyle(.soft, for: .top)
+                .softTopEdge()
                 .onChange(of: store.chapter) { proxy.scrollTo("top", anchor: .top) }
                 .onChange(of: store.book) { proxy.scrollTo("top", anchor: .top) }
                 // Set when the Bible is opened from a card. Handled here rather
@@ -305,7 +305,7 @@ struct BibleView: View {
                 .rotationEffect(.degrees(rotation))
                 .foregroundStyle(DF.ink)
                 .frame(width: 52, height: 52)
-                .glassEffect(.regular.interactive(), in: .circle)
+                .glassOrSurface(interactive: true, in: .circle)
         }
         .buttonStyle(.plain)
     }

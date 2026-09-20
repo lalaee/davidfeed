@@ -1,72 +1,68 @@
 import SwiftUI
 
-/// A card, or a verse, going out of focus and out of light as it passes under
-/// the chrome -- the desktop web's `.desk-bar-edge`, built its way.
+/// Content going out of focus and out of light as it passes under the chrome.
 ///
-/// iOS 26 has a native version, `.scrollEdgeEffectStyle(.soft)`, and that was
-/// the first attempt. It rendered on the iOS 26.0 simulator and did not render
-/// on an iPhone running 26.6.1 -- at the bottom edge, in the feed and the
-/// reader alike -- and an Xcode 26.0.1 install has no 26.6 simulator to reason
-/// against. Rather than special-case an OS version, this is the web's own
-/// construction, which depends on nothing newer than Material (iOS 15) and a
-/// gradient mask, and so renders the same on every modern iOS.
+/// Its history, because each step ruled something out. The native
+/// `.scrollEdgeEffectStyle(.soft)` rendered on the 26.0 simulator and not on
+/// the phone -- a known Apple bug at the bottom edge (FB18350439; the DTS
+/// workaround in that thread is `.background(.regularMaterial)`). A masked
+/// Material band rendered and was "a basic blur". A masked glass band was the
+/// same blur at a refraction pass per layer. A glass shelf was a container.
 ///
-/// The web's note is the spec. Sibling backdrop layers, each masked to a band
-/// that overlaps its neighbours, so "each layer's backdrop already contains the
-/// output of the ones beneath it" and the blur COMPOUNDS toward the edge rather
-/// than crossfading.
+/// What every masked band shares is the CSSWG's own description of the trick:
+/// it "blends between unblurred and uniformly-blurred output". The radius
+/// never changes; only how much of one blur shows through. This does not do
+/// that. It is Core Animation's real `variableBlur` -- the effect Apple's own
+/// bars use, in which the radius itself ramps continuously across the band --
+/// reached the way Tim Oliver's BlurUIKit reaches it (MIT, vendored under
+/// VariableBlur/): a stock UIVisualEffectView is asked for the class of the
+/// filter on its backdrop, that class is asked for a `variableBlur`, and it is
+/// given a gradient mask. Nothing is linked; every step fails soft, and the
+/// worst case is a plain uniform blur rather than nothing.
 ///
-/// The layers are Material, and were briefly Liquid Glass. Masked glass
-/// rendered on the phone and looked identical to this -- a rimless backdrop
-/// over dark content is a blur whichever effect draws it, and glass costs a
-/// refraction pass per layer for nothing. Where glass is wanted it needs a
-/// shape; that is GlassShelf, on the feed. This band is the reader's.
-/// Material has no radius to double, so the compounding does the doubling:
-/// three stacked ultra-thin materials, each one's mask beginning deeper into
-/// the band than the last, so the edge is blurred three times over and the
-/// band's top once, faintly.
+/// The bottom third is fully dissolved -- that is the strip under the tab bar
+/// -- and the ramp lives in the two thirds above it, so a card loses focus
+/// progressively before the bar rather than at it. A black shade rides with it
+/// at the strength the caller sets: the web's "shade is the edge", the same
+/// black the bar is painted in, so it reads as the bar's shadow. The feed keeps
+/// it light to leave the ambience under the glass.
 ///
-/// And "THE SHADE IS THE EDGE": a blur stack alone still terminates at a line --
-/// a line of blurred pixels now, but a line. The scrim is what dissolves it,
-/// dark at the screen's edge and gone by the band's top on a gentle ease. On
-/// the reader that shade is the ground's own black. On the feed it is kept
-/// light, so the ambience still reaches the tab bar's glass.
+/// Over both, film grain that thickens toward the edge -- a still hash of
+/// position emitted as signed specks of light and shade, so it is texture the
+/// content moves through rather than noise laid on top of it. That, and the radius genuinely ramping, is
+/// what separates this from a progressive blur.
 ///
-/// Fixed to the container rather than the content, the way the web's band is
-/// fixed to its bar: content scrolls THROUGH it. Dark-schemed explicitly, so a
-/// phone in light mode does not frost the reel white. Ignores touches, so it
-/// can sit over a scroll view without taking anything from it.
+/// Fixed to the container, so content scrolls through it. Ignores touches.
 struct EdgeDissolve: View {
     /// How far the band reaches up from the bottom edge.
     let height: CGFloat
-    /// How dark the shade is at the very edge. 1 is the web's "pure black at
-    /// the rule"; the feed uses less, to leave the ambience under the glass.
-    var shade: Double = 0.95
+    /// How dark the shade is at the very edge.
+    var shade: Double = 0.85
+    /// How much grain: the peak light a speck adds or takes, twice over.
+    /// 0.3 is a whisper of texture; 1 is television static.
+    var grain: Double = 0.3
 
     var body: some View {
         ZStack {
-            ForEach([0.0, 0.35, 0.65], id: \.self) { start in
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .mask {
-                        LinearGradient(
-                            stops: [
-                                .init(color: .clear, location: start),
-                                .init(color: .black, location: min(1, start + 0.45)),
-                                .init(color: .black, location: 1),
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    }
-            }
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0),
-                    .init(color: .black.opacity(shade * 0.35), location: 0.55),
-                    .init(color: .black.opacity(shade), location: 1),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
+            VariableBlur(direction: .up)
+                .maximumBlurRadius(24)
+                .blurStartingInset(.relative(fraction: 0.35))
+                .dimmingTintColor(.black)
+                .dimmingAlpha(.constant(alpha: shade))
+                .dimmingOvershoot(nil)
+            Rectangle()
+                .fill(.white)
+                .colorEffect(ShaderLibrary.grain(.float(grain)))
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.7),
+                            .init(color: .black, location: 1),
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                }
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)

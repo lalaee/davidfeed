@@ -2,10 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Background audio. GENERATE_INFOPLIST_FILE stays on and Xcode merges its
-	     generated keys over this base; UIBackgroundModes has to live here because
-	     Xcode's generator only honours a documented subset of INFOPLIST_KEY_*
-	     settings, and this key is not one of them - it was silently dropped. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

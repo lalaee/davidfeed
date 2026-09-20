@@ -65,33 +65,16 @@ for post in posts:
 copied = missing = 0
 keep = set()
 
-# The bed is NOT mixed here any more.
-#
-# It used to be: build-share-videos.py mapped only the narration, so a shared
-# card arrived as a dry voice over silence and this step put the bed under it.
-# The web has since done that itself -- same 0.25 BED_VOLUME, same normalize=0
-# reasoning -- and added a 0.6s fade on the tail, which this never had. Mixing
-# here now would lay a SECOND bed over theirs at double the level.
-#
-# So the only thing left to do is the loop, and with the audio already right
-# that is a pure stream copy: no re-encode of either track, nothing to clip,
-# nothing to drift.
+# Share clips ship as the web renders them: single pass, H.264, bed already
+# under the voice. They used to be looped here so a Story got two passes, and
+# that doubling was 93MB of the app -- the single largest thing in it. The
+# second pass now happens on the phone at share time: ShareClip composes the
+# bundled clip twice with a passthrough export, a stream copy that takes a
+# fraction of a second, so the recipient still gets two passes and the
+# download does not carry them. H.264 on purpose: these files leave the phone
+# for other people's devices, and HEVC would risk a recipient who cannot play
+# it.
 THREADS = max(2, (os.cpu_count() or 4) // 2)
-
-def loop_twice(src, out):
-    """Play the clip through TWICE.
-
-    A single pass of an 8-11s verse is over before someone swiping a Story has
-    settled into it. Looping the finished clip rather than its parts carries
-    video, burned-in captions, narration and bed together, so nothing can drift
-    out of sync -- and -c copy means the second pass is the same bytes as the
-    first.
-    """
-    subprocess.run(
-        ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error",
-         "-stream_loop", "1", "-i", src,
-         "-c", "copy", "-movflags", "+faststart", out],
-        check=True)
 
 shared = 0
 for src_rel, out_name in share_pairs:
@@ -99,17 +82,50 @@ for src_rel, out_name in share_pairs:
     src = os.path.join(web, src_rel)
     out = os.path.join(dest, out_name)
     if not os.path.exists(out) or os.path.getmtime(src) > os.path.getmtime(out):
-        loop_twice(src, out)
-        shared += 1
-print(f"   share clips: {len(share_pairs)} referenced, {shared} looped (bed comes baked in)")
+        shutil.copy2(src, out); shared += 1
+print(f"   share clips: {len(share_pairs)} referenced, {shared} copied (single pass; looped at share time)")
 
+# What ships is not a copy of the web's files but a re-encode of them, and the
+# numbers are why. The web's H.264 parallax loops are soft painterly texture
+# with slow camera motion -- the easiest thing there is to compress -- and at
+# HEVC crf 28 they come out at a FIFTH of the size with SSIM 0.983 against the
+# source, frame-checked at 100% for banding in the gradients. Narration is
+# spoken word: 64k mono AAC halves it. Together with single-pass share clips
+# that is 275MB -> ~130MB, under the line where iOS asks before a cellular
+# download, with no hosting and the app still fully offline.
+#
+# hvc1, not hev1: AVFoundation will not play the other tag. Every phone iOS 18
+# runs on decodes HEVC in hardware.
+def hevc(src, out):
+    subprocess.run(
+        ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-threads", str(THREADS),
+         "-i", src, "-c:v", "libx265", "-preset", "medium", "-crf", "28",
+         "-tag:v", "hvc1", "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", out],
+        check=True)
+
+def aac(src, out):
+    subprocess.run(
+        ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error",
+         "-i", src, "-c:a", "aac", "-b:a", "64k", "-ac", "1", "-movflags", "+faststart", out],
+        check=True)
+
+encoded = 0
 for rel in sorted(wanted):
     src, name = os.path.join(web, rel), os.path.basename(rel)
-    keep.add(name)
-    out = os.path.join(dest, name)
     if not os.path.exists(src):
         print(f"   MISSING in web repo: {rel}"); missing += 1; continue
-    if not os.path.exists(out) or os.path.getmtime(src) > os.path.getmtime(out):
+    stem, ext = os.path.splitext(name)
+    if ext == ".mp3":
+        name = stem + ".m4a"                      # Post.narrationURL looks for this first
+    keep.add(name)
+    out = os.path.join(dest, name)
+    if os.path.exists(out) and os.path.getmtime(src) <= os.path.getmtime(out):
+        continue
+    if ext == ".mp4" and name != "ambient-bed.m4a":
+        hevc(src, out); encoded += 1
+    elif ext == ".mp3":
+        aac(src, out); encoded += 1
+    else:
         shutil.copy2(src, out); copied += 1
 
 # Artwork gets reassigned upstream, so files fall out of use. Drop them, and the
@@ -123,7 +139,7 @@ for f in os.listdir(dest):
             continue
     os.remove(os.path.join(dest, f)); removed += 1
 
-print(f"   copied {copied}, removed {removed} unreferenced, {missing} missing")
+print(f"   copied {copied}, re-encoded {encoded}, removed {removed} unreferenced, {missing} missing")
 PY
 
 echo "== 3/4  rendering 3:4 lock-screen artwork for anything new =="

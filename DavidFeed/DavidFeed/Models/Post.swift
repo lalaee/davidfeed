@@ -29,9 +29,10 @@ struct Post: Codable, Identifiable, Hashable {
     /// bundle is flat, so only the filename carries over.
     private func bundled(_ path: String?, ext: String) -> URL? {
         guard let path, let name = path.split(separator: "/").last else { return nil }
-        let stem = name.hasSuffix("." + ext)
-            ? String(name.dropLast(ext.count + 1))
-            : String(name)
+        // Whatever the web's file is called, the bundle may hold it re-encoded
+        // under another extension (mp3 narration ships as m4a), so the stem is
+        // the name with ANY extension removed.
+        let stem = (String(name) as NSString).deletingPathExtension
         return Bundle.main.url(forResource: stem, withExtension: ext)
     }
 
@@ -43,7 +44,8 @@ struct Post: Codable, Identifiable, Hashable {
     var loopURL: URL? {
         bundled(videoSrc, ext: "mp4") ?? bundled(posterVideoSrc, ext: "mp4")
     }
-    var narrationURL: URL? { bundled(audioSrc, ext: "mp3") }
+    /// AAC in the bundle (64k mono; spoken word), the web's mp3 as the fallback.
+    var narrationURL: URL? { bundled(audioSrc, ext: "m4a") ?? bundled(audioSrc, ext: "mp3") }
 
     /// The clip a share hands over — NOT the card's parallax loop.
     ///

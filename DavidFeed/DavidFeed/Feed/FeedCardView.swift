@@ -117,8 +117,10 @@ struct FeedCardView: View {
                     // loop: everything the reader expects to send with it is
                     // burned into that clip. Falls back to the loop only if a
                     // card has no share render yet.
-                    if let clip = post.shareURL ?? post.loopURL {
-                        ShareLink(item: clip) {
+                    if post.shareURL != nil {
+                        // The item is composed when the sheet asks for it --
+                        // the bundled single pass played twice; see ShareClip.
+                        ShareLink(item: ShareClip(post: post), preview: SharePreview(post.title)) {
                             RailIcon(asset: "Send", tint: DF.ink)
                         }
                         .buttonStyle(.plain)

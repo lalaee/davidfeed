@@ -14,10 +14,18 @@ import SwiftUI
 /// The web's note is the spec. Sibling backdrop layers, each masked to a band
 /// that overlaps its neighbours, so "each layer's backdrop already contains the
 /// output of the ones beneath it" and the blur COMPOUNDS toward the edge rather
-/// than crossfading. Material has no radius to double, so the compounding does
-/// the doubling: three stacked ultra-thin materials, each one's mask beginning
-/// deeper into the band than the last, so the edge is blurred three times over
-/// and the band's top once, faintly.
+/// than crossfading.
+///
+/// The layers are Liquid Glass, not Material. A masked ultra-thin material was
+/// the first cut and read as exactly what it is -- the flat frosted blur iOS
+/// has had since 15. Glass is what the AirDrop sheet and this app's own tab
+/// bar are made of: it refracts what is behind it, carries a highlight at its
+/// rim, and lets the ambience through as colour rather than smoke. It is also
+/// the one iOS 26 backdrop effect known to render on the phone this ships to.
+/// Glass has no radius to double either, so stacking does the doubling: two
+/// layers, the second's mask beginning halfway down, so the edge is glassed
+/// twice and the band's top once, faintly. Two rather than three because glass
+/// blurs harder per layer than a material and each layer is a refraction pass.
 ///
 /// And "THE SHADE IS THE EDGE": a blur stack alone still terminates at a line --
 /// a line of blurred pixels now, but a line. The scrim is what dissolves it,
@@ -38,9 +46,9 @@ struct EdgeDissolve: View {
 
     var body: some View {
         ZStack {
-            ForEach([0.0, 0.35, 0.65], id: \.self) { start in
-                Rectangle()
-                    .fill(.ultraThinMaterial)
+            ForEach([0.0, 0.5], id: \.self) { start in
+                Color.clear
+                    .glassEffect(.regular, in: .rect)
                     .mask {
                         LinearGradient(
                             stops: [

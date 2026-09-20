@@ -61,6 +61,9 @@ echo
 echo "== installing =="
 xcrun devicectl device install app --device "$INSTALL_ID" "$APP" || exit 1
 echo
-xcrun devicectl device process launch --device "$INSTALL_ID" com.davidfeed.ios >/dev/null 2>&1 \
+# --terminate-existing, or a launch while the app is already open just
+# foregrounds the OLD process and the new bundle is never run. That produced
+# one "no blur in build" report against a build that had it.
+xcrun devicectl device process launch --terminate-existing --device "$INSTALL_ID" com.davidfeed.ios >/dev/null 2>&1 \
   && echo "Launched." \
   || echo "Installed. Unlock the phone and tap the icon (or re-run) to launch."

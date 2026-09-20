@@ -116,35 +116,42 @@ struct VibrancyHairline: UIViewRepresentable {
     final class HairlineView: UIView {
         // Dark material: the bar is over dark cards, and the vibrancy's lift is
         // measured against this. `.fill` keeps the backdrop's hue in the line
-        // (mauve over a red card, green over a field) at about 3.5x the body's
-        // brightness, measured -- already above Netflix's 2.4x. `.label` was
-        // tried and clips to pure white on every card, which is a line, not a
-        // reflection.
+        // (mauve over a red card, green over a field); `.label` was tried and
+        // clips to pure white on every card, which is a line, not a reflection.
         private let blurEffect = UIBlurEffect(style: .systemThinMaterialDark)
         private lazy var blur = UIVisualEffectView(effect: blurEffect)
         private lazy var vibrancy = UIVisualEffectView(effect: UIVibrancyEffect(blurEffect: blurEffect, style: .fill))
         private let stroke = CAShapeLayer()     // what the vibrancy lifts
         private let window_ = CAShapeLayer()    // where the effect shows at all
-        private let fade = CAGradientLayer()    // the top of the shape only
+        private let floor = CAShapeLayer()      // a plain highlight under it
         private let maskHost = UIView()
 
         override init(frame: CGRect) {
             super.init(frame: frame)
             isUserInteractionEnabled = false
+            // Netflix's rim keeps a grey floor even over black. This is that:
+            // a plain white line at 30%, outside the effect, so the rim is
+            // there whatever the backdrop is doing and the vibrancy colours it.
+            floor.fillColor = nil
+            floor.strokeColor = UIColor.white.withAlphaComponent(0.3).cgColor
+            floor.lineWidth = 1
+            floor.lineCap = .round
+            layer.addSublayer(floor)
             addSubview(blur)
             blur.contentView.addSubview(vibrancy)
             for shape in [stroke, window_] {
                 shape.fillColor = nil
                 shape.strokeColor = UIColor.white.cgColor
                 shape.lineWidth = 1
+                shape.lineCap = .round
             }
             vibrancy.contentView.layer.addSublayer(stroke)
-            fade.colors = [UIColor.white.cgColor, UIColor.white.cgColor, UIColor.clear.cgColor]
-            fade.locations = [0, 0.1, 0.42]
-            window_.mask = fade
+            // One flat mask: a view carrying a single shape layer. The first
+            // version nested a gradient mask inside the mask's shape layer to
+            // fade the sides out; that renders in the simulator and is the
+            // prime suspect for drawing nothing on the phone. The fade is now
+            // geometry -- the path stops 25 degrees above the ends.
             maskHost.layer.addSublayer(window_)
-            // A mask on the effect view itself is supported; one on its
-            // superview is not.
             blur.mask = maskHost
         }
 
@@ -155,20 +162,23 @@ struct VibrancyHairline: UIViewRepresentable {
             // A 1pt stroke centred half a point in, so it sits inside the edge
             // the way the system's own rim does.
             let inset = bounds.insetBy(dx: 0.5, dy: 0.5)
-            let path: CGPath
+            let path = UIBezierPath()
             if isCapsule {
-                path = UIBezierPath(roundedRect: inset, cornerRadius: inset.height / 2).cgPath
+                // The top arc only: up the left end from 25 degrees above its
+                // middle, across the top, down the right end to the same.
+                let r = inset.height / 2, theta = 25 * CGFloat.pi / 180
+                path.addArc(withCenter: CGPoint(x: inset.minX + r, y: inset.minY + r), radius: r,
+                            startAngle: .pi + theta, endAngle: 3 * .pi / 2, clockwise: true)
+                path.addLine(to: CGPoint(x: inset.maxX - r, y: inset.minY))
+                path.addArc(withCenter: CGPoint(x: inset.maxX - r, y: inset.minY + r), radius: r,
+                            startAngle: 3 * .pi / 2, endAngle: 2 * .pi - theta, clockwise: true)
             } else {
                 // The flat bar (iOS 18): its top edge, straight across.
-                let line = UIBezierPath()
-                line.move(to: CGPoint(x: inset.minX, y: inset.minY))
-                line.addLine(to: CGPoint(x: inset.maxX, y: inset.minY))
-                path = line.cgPath
+                path.move(to: CGPoint(x: inset.minX, y: inset.minY))
+                path.addLine(to: CGPoint(x: inset.maxX, y: inset.minY))
             }
             for view in [blur, vibrancy, maskHost] { view.frame = bounds }
-            for layer in [stroke, window_, fade] { layer.frame = bounds }
-            stroke.path = path
-            window_.path = path
+            for shape in [stroke, window_, floor] { shape.frame = bounds; shape.path = path.cgPath }
         }
     }
 }

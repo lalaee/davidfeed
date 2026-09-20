@@ -101,27 +101,16 @@ struct FeedView: View {
             .ignoresSafeArea()
             .scrollIndicators(.hidden)
             .background { FeedAmbience(post: activePost) }
-            // The reel dissolving under the tab bar: from the screen's bottom
-            // edge up to just past the resting card's bottom, covering the gap
-            // and the next card's peek -- which the web says "is what lives in
-            // its strongest end". An 8pt overlap onto the card, for the reason
-            // the web gives: a flush edge can leave a row of sharp pixels. The
-            // card's label sits well above it. Built by hand rather than with
-            // .scrollEdgeEffectStyle; EdgeDissolve says why.
+            // The glass shelf the reel dissolves into, holding the tab bar. From
+            // the screen's bottom edge to 40pt above the bar -- 8pt below the
+            // resting card's bottom, so the card floats above the rim and the
+            // next card's peek sits entirely under the glass. Pushed down by
+            // the inset because an overlay's frame stops at the safe area even
+            // though the content runs under the bar; .ignoresSafeArea on the
+            // child does nothing there, measured. GlassShelf says why a shape
+            // and not a band.
             .overlay(alignment: .bottom) {
-                // The scroll view's CONTENT runs under the bar, but the frame an
-                // overlay attaches to stops at the safe area -- so without this
-                // the band hung from the tab bar's top edge and stacked its full
-                // height upward, 100pt into the card and over the label, with
-                // nothing under the bar at all.
-                //
-                // Measured, not assumed: .ignoresSafeArea on the overlay child
-                // did NOT extend it. Backgrounds get that treatment -- it is how
-                // FeedAmbience fills the ground -- and overlays evidently do
-                // not; the band stayed exactly where it was. An explicit offset
-                // by the inset moves it, and depends on nothing being propagated.
-                EdgeDissolve(height: DF.cardInsetBottom + geo.safeAreaInsets.bottom + 8,
-                             shade: 0.4)
+                GlassShelf(height: geo.safeAreaInsets.bottom + 40)
                     .offset(y: geo.safeAreaInsets.bottom)
             }
             .overlay(alignment: .top) {

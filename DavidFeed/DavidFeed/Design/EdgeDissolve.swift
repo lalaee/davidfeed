@@ -16,16 +16,15 @@ import SwiftUI
 /// output of the ones beneath it" and the blur COMPOUNDS toward the edge rather
 /// than crossfading.
 ///
-/// The layers are Liquid Glass, not Material. A masked ultra-thin material was
-/// the first cut and read as exactly what it is -- the flat frosted blur iOS
-/// has had since 15. Glass is what the AirDrop sheet and this app's own tab
-/// bar are made of: it refracts what is behind it, carries a highlight at its
-/// rim, and lets the ambience through as colour rather than smoke. It is also
-/// the one iOS 26 backdrop effect known to render on the phone this ships to.
-/// Glass has no radius to double either, so stacking does the doubling: two
-/// layers, the second's mask beginning halfway down, so the edge is glassed
-/// twice and the band's top once, faintly. Two rather than three because glass
-/// blurs harder per layer than a material and each layer is a refraction pass.
+/// The layers are Material, and were briefly Liquid Glass. Masked glass
+/// rendered on the phone and looked identical to this -- a rimless backdrop
+/// over dark content is a blur whichever effect draws it, and glass costs a
+/// refraction pass per layer for nothing. Where glass is wanted it needs a
+/// shape; that is GlassShelf, on the feed. This band is the reader's.
+/// Material has no radius to double, so the compounding does the doubling:
+/// three stacked ultra-thin materials, each one's mask beginning deeper into
+/// the band than the last, so the edge is blurred three times over and the
+/// band's top once, faintly.
 ///
 /// And "THE SHADE IS THE EDGE": a blur stack alone still terminates at a line --
 /// a line of blurred pixels now, but a line. The scrim is what dissolves it,
@@ -46,9 +45,9 @@ struct EdgeDissolve: View {
 
     var body: some View {
         ZStack {
-            ForEach([0.0, 0.5], id: \.self) { start in
-                Color.clear
-                    .glassEffect(.regular, in: .rect)
+            ForEach([0.0, 0.35, 0.65], id: \.self) { start in
+                Rectangle()
+                    .fill(.ultraThinMaterial)
                     .mask {
                         LinearGradient(
                             stops: [

@@ -57,19 +57,10 @@ struct BibleView: View {
                 }
                 .scrollIndicators(.hidden)
                 // iOS 26's own treatment for content passing under the toolbar.
-                // The bottom edge is deliberately NOT the system's: .soft there
-                // did not render on a phone running 26.6.1, so the tab bar's
-                // edge is EdgeDissolve, built the web's way. Reaches three
-                // lines or so above the bar; the pager and the action bar are
-                // drawn after it, so they stay crisp over it.
+                // No dissolve at the bottom, by choice: the reader carried the
+                // feed's EdgeDissolve band for a while and it was taken out --
+                // verses under the tab bar stay as they are. The feed keeps it.
                 .scrollEdgeEffectStyle(.soft, for: .top)
-                .overlay(alignment: .bottom) {
-                    // Pushed down by the inset so it hangs from the screen's
-                    // edge rather than the bar's top -- see the feed's band for
-                    // why an offset and not .ignoresSafeArea.
-                    EdgeDissolve(height: screen.safeAreaInsets.bottom + 72)
-                        .offset(y: screen.safeAreaInsets.bottom)
-                }
                 .onChange(of: store.chapter) { proxy.scrollTo("top", anchor: .top) }
                 .onChange(of: store.book) { proxy.scrollTo("top", anchor: .top) }
                 // Set when the Bible is opened from a card. Handled here rather

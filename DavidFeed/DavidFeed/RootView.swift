@@ -12,8 +12,6 @@ struct RootView: View {
     /// and shadowing it makes the TabView content fail to construct.
     enum Screen: Hashable { case home, bible, library }
     @State private var screen: Screen = .home
-    /// Where the system drew the tab bar's capsule, for the reflector.
-    @State private var bar: TabBarPlatterProbe.Bar?
 
     var body: some View {
         TabView(selection: $screen) {
@@ -59,12 +57,6 @@ struct RootView: View {
         .tabBarNeverMinimizes()
         .tint(DF.ink)
         .background(DF.ground)
-        .background(TabBarPlatterProbe { bar = $0 })
-        // The bar's top edge reflecting the card above it. Only on the feed:
-        // the Bible and Library have no media above the bar to reflect.
-        .overlay {
-            TabBarReflector(bar: bar, visible: screen == .home)
-        }
     }
 
     /// davidfeed draws its own nav glyphs, with a distinct filled variant for the

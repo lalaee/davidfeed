@@ -33,6 +33,9 @@ struct FeedView: View {
         fixedSet ? allPosts : TopicStore.dealt(topic.posts(from: allPosts))
     }
 
+    /// The card whose cover the ambience is drawn from.
+    private var activePost: Post? { posts.first { $0.id == activeID } }
+
     /// The card peeking below the current one.
     private var nextID: Int? {
         guard let activeID, let i = posts.firstIndex(where: { $0.id == activeID }) else { return nil }
@@ -95,9 +98,27 @@ struct FeedView: View {
             // down and the PREVIOUS card filled the strip above it. Ignoring the
             // safe area makes a snapped card's top the screen's top, and the only
             // neighbour on screen is the next card peeking at the bottom.
-            .ignoresSafeArea()
+            //
+            // TOP ONLY. Ignoring all edges also zeroed the bottom inset the tab
+            // bar contributes, and the scroll-edge effect below draws IN that
+            // inset -- with it gone there was nowhere for the effect to exist,
+            // and the peek under the bar stayed at full brightness with none
+            // of the blur-and-fade the reader shows. Keeping the bottom inset
+            // gives the effect its region; card height comes from the
+            // enclosing GeometryReader, not from this scroll view, so the
+            // reel's geometry does not move.
+            .ignoresSafeArea(edges: .top)
             .scrollIndicators(.hidden)
-            .background(DF.ground)
+            // The desktop web dissolves a card into the bar it scrolls under
+            // with six stacked backdrop-filter layers at doubling radii, and
+            // calls it "the progressive-blur stack the platform still lacks
+            // natively". This platform has it: .soft is that blur-and-fade at
+            // the scroll edge, drawn by the system where the reel passes under
+            // the tab bar. Bottom only -- with the topics parked nothing sits
+            // at the top but the status bar, and the web's stack is about a
+            // bar, not a status strip.
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
+            .background { FeedAmbience(post: activePost) }
             .overlay(alignment: .top) {
                 // Parked with the topics: there is one feed and it has no
                 // name to show. A collection still titles itself, which is why
@@ -132,5 +153,50 @@ struct FeedView: View {
                 activeID = posts.first?.id
             }
         }
+    }
+}
+
+/// The web's stand-in for its Apple Music ambience, ported as the thing itself.
+///
+/// FeedAmbience.tsx runs a Pixi scene on the desktop -- four rotating copies of
+/// the cover, a twist filter, Kawase blur, saturation 2.75 -- and until that has
+/// drawn, "a CSS stand-in holds the ground: the cover itself, which the browser
+/// already has for the card, at 1.25x, blurred and saturated to the same
+/// recipe." This is that stand-in: blur 60, saturate 2.75, at 1.25x, from the
+/// artwork the card already decoded. The swirl is not ported.
+///
+/// On the phone the card fills the screen, so the ambience shows in the gap
+/// between cards, the strip under the next card's peek, and -- the part that
+/// earns it -- through the tab bar's glass, which picks up the cover's colour
+/// the way Apple Music's does.
+///
+/// 1.25x is the web's number and it is not decoration: a blur samples past its
+/// edges, so at 1x the rim would fade to transparent over black. Overscanning
+/// keeps that fringe off screen, and `opaque: true` tells the blur the layer
+/// has no transparent edge to fade into, which closes the last few points.
+///
+/// "The turn lands with the page": the web fades the new cover in over the old
+/// rather than swapping, so the ground never jumps. Keying on the post id makes
+/// the change a transition between two images instead of a mutation of one.
+private struct FeedAmbience: View {
+    let post: Post?
+
+    var body: some View {
+        ZStack {
+            DF.ground
+            if let post, let ui = ArtworkCache.image(post.artworkURL) {
+                Image(uiImage: ui)
+                    .resizable()
+                    .scaledToFill()
+                    .scaleEffect(1.25)
+                    .blur(radius: 60, opaque: true)
+                    .saturation(2.75)
+                    .id(post.id)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.5), value: post?.id)
+        .clipped()
+        .ignoresSafeArea()
     }
 }

@@ -56,8 +56,11 @@ struct BibleView: View {
                     .onPreferenceChange(SelectedVerseFrame.self) { barAnchor = $0 }
                 }
                 .scrollIndicators(.hidden)
-                // iOS 26's own treatment for content passing under the bar.
-                .scrollEdgeEffectStyle(.soft, for: .top)
+                // iOS 26's own treatment for content passing under chrome:
+                // the toolbar above, and now the tab bar and pager below.
+                // The web builds this by hand on the desktop; here it is the
+                // system's progressive blur at both scroll edges.
+                .scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
                 .onChange(of: store.chapter) { proxy.scrollTo("top", anchor: .top) }
                 .onChange(of: store.book) { proxy.scrollTo("top", anchor: .top) }
                 // Set when the Bible is opened from a card. Handled here rather

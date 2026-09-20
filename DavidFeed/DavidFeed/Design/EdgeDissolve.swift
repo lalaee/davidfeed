@@ -39,8 +39,9 @@ struct EdgeDissolve: View {
     /// How dark the shade is at the very edge.
     var shade: Double = 0.85
     /// How much grain: the peak light a speck adds or takes, twice over.
-    /// 0.3 is a whisper of texture; 1 is television static.
-    var grain: Double = 0.3
+    /// 0.3 is a whisper of texture; 1 is television static. Off by default --
+    /// the blur is being judged on its own -- and at 0 the layer is not built.
+    var grain: Double = 0
 
     var body: some View {
         ZStack {
@@ -50,6 +51,7 @@ struct EdgeDissolve: View {
                 .dimmingTintColor(.black)
                 .dimmingAlpha(.constant(alpha: shade))
                 .dimmingOvershoot(nil)
+            if grain > 0 {
             Rectangle()
                 .fill(.white)
                 .colorEffect(ShaderLibrary.grain(.float(grain)))
@@ -63,6 +65,7 @@ struct EdgeDissolve: View {
                         startPoint: .top, endPoint: .bottom
                     )
                 }
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)

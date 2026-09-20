@@ -90,7 +90,7 @@ struct FeedCardView: View {
             // doesn't play". The still underneath means nothing flashes black
             // while the loop for a newly-focused card spins up.
             if playsLoop, let loop = post.loopURL {
-                LoopPlayerView(url: loop, isPlaying: true)
+                LoopPlayerView(url: loop, isPlaying: true, reflects: isActive)
             }
         }
         .frame(width: size.width, height: size.height)

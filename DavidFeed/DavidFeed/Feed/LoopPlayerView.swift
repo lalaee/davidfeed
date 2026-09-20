@@ -11,11 +11,14 @@ struct LoopPlayerView: UIViewRepresentable {
     let url: URL
     /// Loops are decorative; the card pauses them off-screen to keep scrolling smooth.
     var isPlaying: Bool
+    /// The active card's loop is what the tab bar reflects.
+    var reflects = false
 
     func makeUIView(context: Context) -> LoopPlayerUIView { LoopPlayerUIView(url: url) }
 
     func updateUIView(_ view: LoopPlayerUIView, context: Context) {
         view.setPlaying(isPlaying)
+        view.setReflecting(reflects)
     }
 
     static func dismantleUIView(_ view: LoopPlayerUIView, coordinator: ()) {
@@ -66,8 +69,13 @@ final class LoopPlayerUIView: UIView {
         }
     }
 
+    func setReflecting(_ on: Bool) {
+        if on { ReflectionSampler.shared.attach(queuePlayer) } else { ReflectionSampler.shared.detach(queuePlayer) }
+    }
+
     func tearDown() {
         wantsPlaying = false
+        ReflectionSampler.shared.detach(queuePlayer)
         statusObservation?.invalidate()
         statusObservation = nil
         queuePlayer.pause()

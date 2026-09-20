@@ -118,8 +118,17 @@ enum Reflection {
 /// capsule's ends curve away from it.
 struct TabBarReflector: View {
     let bar: TabBarPlatterProbe.Bar?
-    let colours: [Color]
+    /// The card above the bar: its still is the reflection until the loop's
+    /// frames arrive, and for the few cards that have no loop.
+    let post: Post?
     let visible: Bool
+
+    /// Read here and not in RootView, so the 24Hz stream of live colours
+    /// re-renders the rim alone and not the TabView around it.
+    private var colours: [Color] {
+        let live = ReflectionSampler.shared.colours
+        return live.isEmpty ? Reflection.colours(for: post) : live
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -133,9 +142,9 @@ struct TabBarReflector: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .opacity(visible ? 1 : 0)
-        // The ambience turns over in 0.5s when the card changes; the rim turns
-        // with it, so the two read as one light changing.
-        .animation(.easeInOut(duration: 0.5), value: colours)
+        // Short: the live colours arrive at 24Hz already eased, and this only
+        // bridges the ticks. A longer one dragged the light behind the loop.
+        .animation(.easeInOut(duration: 0.12), value: colours)
         .animation(.easeInOut(duration: 0.25), value: visible)
     }
 

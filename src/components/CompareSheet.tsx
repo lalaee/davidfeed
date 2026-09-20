@@ -92,8 +92,7 @@ export default function CompareSheet({
             onClick={onClose}
             aria-label="Close"
             className="flex h-[48px] w-[48px] flex-shrink-0 items-center justify-center rounded-full
-                       border-none text-white transition-transform duration-[190ms]
-                       ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]"
+                       border-none text-white press"
             style={{ backgroundColor: "#212121" }}
           >
             <CloseIcon size={20} />
@@ -132,9 +131,7 @@ export default function CompareSheet({
             // The label returns at desk, where the card is 740 and nothing is
             // competing for the room.
             className="flex h-[48px] w-[48px] flex-shrink-0 items-center justify-center gap-[4px]
-                       rounded-full border-none px-0 py-[6px]
-                       transition-transform duration-[190ms]
-                       ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]
+                       rounded-full border-none px-0 py-[6px] press
                        desk:w-auto desk:px-[20px]"
             // White while picking, the way the nav marks its current tab —
             // the button is a mode, so it shows which mode you are in. #000000
@@ -171,8 +168,7 @@ export default function CompareSheet({
                   // rather than swallowing the tap without explanation.
                   disabled={only}
                   className="flex h-[48px] w-full flex-shrink-0 items-center justify-between rounded-[14px]
-                             border-none px-[16px] text-left transition-transform duration-[190ms]
-                             ease-[cubic-bezier(0.32,0.72,0,1)] enabled:active:scale-[0.98]"
+                             border-none px-[16px] text-left press-soft"
                   style={{ backgroundColor: on ? "#212121" : "transparent" }}
                 >
                   <span

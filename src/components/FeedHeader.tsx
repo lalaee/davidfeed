@@ -107,8 +107,7 @@ export default function FeedHeader({
             // sitting off the baseline.
             className="fixed left-[8px] z-[600] flex h-[44px] w-[44px] items-center justify-center
                        text-white no-underline desk:hidden
-                       transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                       active:scale-[0.9]"
+                       press"
             style={{ top: `calc(${TOP} - 7.5px)` }}
           >
             {/* The header's own chevron, turned a quarter to point back. A

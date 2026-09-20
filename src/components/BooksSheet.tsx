@@ -96,8 +96,7 @@ export default function BooksSheet({
             onClick={onClose}
             aria-label="Close"
             className="flex h-[48px] w-[48px] flex-shrink-0 items-center justify-center rounded-full
-                       border-none text-white transition-transform duration-[190ms]
-                       ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]"
+                       border-none text-white press"
             style={{ backgroundColor: "#212121" }}
           >
             <CloseIcon size={20} />
@@ -153,8 +152,7 @@ export default function BooksSheet({
                                 onClick={() => handleChapterPress(name, ch)}
                                 aria-current={current ? "page" : undefined}
                                 className="flex h-[48px] flex-1 items-center justify-center rounded-[7px]
-                                           border-none transition-transform duration-[190ms]
-                                           ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.94]"
+                                           border-none press"
                                 // The design draws no selected chapter — every
                                 // chip in the frame reads "1". This keeps the
                                 // one you are reading marked, in the card's own

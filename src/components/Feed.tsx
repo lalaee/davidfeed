@@ -668,7 +668,14 @@ export default function Feed({
                     desk-feed md:max-w-[375px] desk:fixed desk:top-0 desk:mx-0
                     desk:h-[100dvh]"
     >
-      {/* Scrollable Feed Container */}
+      {/* Scrollable Feed Container.
+          The wrapper exists for one CSS property: at desk it carries the mask
+          that fades cards out under the header (.feed-mask in globals.css).
+          On the scroller itself the same mask cost ~8fps — a masked scroll
+          container is re-rasterised every frame — while on a non-scrolling
+          parent it is a compositor mask over the scroller's layer, ~2fps.
+          Measured, not assumed. */}
+      <div className="feed-mask flex min-h-0 flex-1 flex-col">
       <div
         ref={containerRef}
         className="feed-scroll flex-1 overflow-y-scroll snap-y snap-mandatory overscroll-y-contain scrollbar-hide pb-[20px] [overflow-anchor:none]
@@ -699,6 +706,7 @@ export default function Feed({
             />
           </div>
         ))}
+      </div>
       </div>
 
       <FeedHeader

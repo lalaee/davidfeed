@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import DesktopNav from "./DesktopNav";
+import LiquidGlass from "./LiquidGlass";
 import { type TabKey } from "./BottomNav";
 import { ChevronIcon } from "./icons";
 import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
@@ -55,14 +56,19 @@ const HOPE_FACES = ["/motion/hero/hope-smiling-hearts.json"];
  *              transparent. Every pill is named "Navicon/active" in the file,
  *              so the fill is what marks the current tab, not the name.
  *   copy       523 wide at x=48, on the paging buttons' own horizontal axis.
- *              "Stop Doomscrolling" #999999 over "Start Hopescrolling" white,
- *              both Inter REGULAR 56, then a description in Inter Medium
- *              24/150% #999999. Re-cut from "Container" 2662:10867, which
+ *              "Stop Doomscrolling" over "Start Hopescrolling", both Inter
+ *              REGULAR 56, then a description in Inter Medium 24/150%. The
+ *              frame greys the first line and the description (#999999); with
+ *              the ambience behind them both went white — the first line and
+ *              its faces outright, the description at 90% — because grey on
+ *              a coloured swirl reads as disabled, not as secondary. Re-cut from "Container" 2662:10867, which
  *              supersedes this frame's own copy block — see the note on it
  *              below. No button: that frame's is laid out past its bounds.
  *   topic      above the feed at y=156: "Deal with" #999999 beside the
  *              topic in bold white, both Inter 27, then a chevron.
- *   paging     two 72x72 #212121 circles, 16 apart, to the LEFT of the card.
+ *   paging     two 72x72 #212121 circles, 16 apart, to the LEFT of the card —
+ *              now 56 glass discs; 72 beside a 622 card read as controls
+ *              competing with it rather than serving it.
  *
  * Everything here is desk-only. Below 1028 the phone layout stands unchanged,
  * so this renders nothing rather than reflowing into it.
@@ -161,7 +167,7 @@ export default function DesktopChrome({
           className="flex flex-col gap-[16px] text-[56px] font-normal"
           style={{ lineHeight: "50.35px", letterSpacing: "-2.398px" }}
         >
-          <span style={{ color: "#999999" }}>
+          <span className="text-white">
             Stop D<HeroLottie sources={DOOM_FACES} offset={0} />
             <HeroLottie
               sources={DOOM_FACES}
@@ -173,7 +179,7 @@ export default function DesktopChrome({
             Start H<HeroLottie sources={HOPE_FACES} style={{ color: "#76EEE8" }} />pescrolling
           </span>
         </h1>
-        <p className="text-[24px] font-medium leading-[150%]" style={{ color: "#999999" }}>
+        <p className="text-[24px] font-medium leading-[150%]" style={{ color: "rgba(255, 255, 255, 0.9)" }}>
           Experience a collection of short verses that brings hope centered
           around a theme
         </p>
@@ -190,8 +196,7 @@ export default function DesktopChrome({
               href={collectionBackHref}
               aria-label="Back to Library"
               className="flex h-[41px] w-[41px] items-center justify-center text-white no-underline
-                         transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                         active:scale-[0.9]"
+                         press"
             >
               <span className="flex rotate-90">
                 <ChevronIcon size={41} />
@@ -312,19 +317,31 @@ function PageButton({
   up?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className="flex h-[72px] w-[72px] items-center justify-center rounded-full border-none text-white
-                 transition-[transform,opacity] duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                 enabled:active:scale-[0.94] disabled:opacity-30"
-      style={{ backgroundColor: "#212121" }}
+    // Glass, like the nav pills, with the same numbers — the frame's #212121
+    // circle over the ambience read as a coin on a swirl. lg-quiet swaps the
+    // pane's verse-darkening drop shadow for a soft cast, since these float
+    // in open space; lg-disabled keeps the wrapper from lifting on hover when
+    // there is nowhere to page to.
+    <LiquidGlass
+      radius={28}
+      depth={6}
+      strength={50}
+      chromaticAberration={3}
+      blur={4}
+      className={`lg-quiet${disabled ? " lg-disabled" : ""}`}
     >
-      <span className={`flex ${up ? "rotate-180" : ""}`}>
-        <ChevronIcon size={48} />
-      </span>
-    </button>
+      <button
+        type="button"
+        aria-label={label}
+        onClick={onClick}
+        disabled={disabled}
+        className="flex h-[56px] w-[56px] items-center justify-center rounded-full border-none
+                   bg-transparent text-white disabled:opacity-30"
+      >
+        <span className={`flex ${up ? "rotate-180" : ""}`}>
+          <ChevronIcon size={36} />
+        </span>
+      </button>
+    </LiquidGlass>
   );
 }

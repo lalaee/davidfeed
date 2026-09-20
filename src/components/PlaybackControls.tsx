@@ -45,7 +45,7 @@ export default function PlaybackControls({
       <button
         type="button"
         onClick={handlePrevious}
-        className="active:scale-95 transition-transform flex-shrink-0"
+        className="press flex-shrink-0"
       >
         <img
           src="/assets/prev-icon.svg"
@@ -59,7 +59,7 @@ export default function PlaybackControls({
       <button
         type="button"
         onClick={handlePlayPause}
-        className="active:scale-95 transition-transform mb-[-18px] mx-auto"
+        className="press mb-[-18px] mx-auto"
       >
         <img
           src={playing ? "/assets/pause-icon.svg" : "/assets/play-icon.svg"}
@@ -73,7 +73,7 @@ export default function PlaybackControls({
       <button
         type="button"
         onClick={handleNext}
-        className="active:scale-95 transition-transform flex-shrink-0"
+        className="press flex-shrink-0"
       >
         <img
           src="/assets/next-icon.svg"

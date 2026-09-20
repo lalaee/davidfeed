@@ -50,7 +50,7 @@ export default function VersePlayerCard({
         <button
           type="button"
           onClick={handleSave}
-          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center active:scale-95 transition-transform flex-shrink-0"
+          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center press flex-shrink-0"
         >
           <img
             src={saved ? "/assets/save-filled-icon.svg" : "/assets/save-icon.svg"}
@@ -65,7 +65,7 @@ export default function VersePlayerCard({
         <button
           type="button"
           onClick={onPersonalise}
-          className="w-[146px] h-[54px] px-[15px] rounded-[27px] bg-[#101010] flex items-center justify-center gap-[3px] active:scale-95 transition-transform mx-auto"
+          className="w-[146px] h-[54px] px-[15px] rounded-[27px] bg-[#101010] flex items-center justify-center gap-[3px] press mx-auto"
         >
           <img
             src="/assets/personalise-icon.svg"
@@ -82,7 +82,7 @@ export default function VersePlayerCard({
         <button
           type="button"
           onClick={onShare}
-          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center active:scale-95 transition-transform flex-shrink-0"
+          className="w-[50px] h-[50px] rounded-full bg-[#101010] flex items-center justify-center press flex-shrink-0"
         >
           <img
             src="/assets/share-icon.svg"

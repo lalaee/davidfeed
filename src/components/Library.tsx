@@ -143,9 +143,7 @@ function TabPill({
       onClick={onClick}
       aria-pressed={active}
       className="flex-shrink-0 rounded-[19.25px] border-none px-[16px] py-[8px]
-                 text-[17px] font-semibold leading-[22px]
-                 transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                 active:scale-[0.96]"
+                 text-[17px] font-semibold leading-[22px] press"
       style={{
         backgroundColor: active ? "#FFFFFF" : "#0E0E0E",
         color: active ? "#0E0E0E" : "#FFFFFF",
@@ -195,8 +193,7 @@ function SavedFeed() {
             // away. The WIDTH needs no breakpoint — (column - 48 - 4) / 3 is
             // 107.33 at 375 and 243.33 at 782 on its own.
             className="block aspect-[107.33/126] overflow-hidden rounded-[12px] no-underline
-                       transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                       active:scale-[0.96] desk:aspect-[243.33/284]"
+                       press-soft desk:aspect-[243.33/284]"
           >
             <img
               src={post.backgroundImage}
@@ -347,9 +344,7 @@ function SavedHighlights() {
                 aria-label={on ? "Show every colour" : `Show only ${colour}`}
                 aria-pressed={on}
                 onClick={() => setFilter(on ? null : colour)}
-                className="flex-shrink-0 rounded-full border-none p-0
-                           transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                           active:scale-[0.94]"
+                className="flex-shrink-0 rounded-full border-none p-0 press"
                 style={{
                   width: 28.7,
                   height: 28.7,

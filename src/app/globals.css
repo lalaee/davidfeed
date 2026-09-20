@@ -565,6 +565,65 @@ button, [role="button"], a {
   transition: transform 190ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* THE PRESS, for every plain button — ported from dafod-2.
+ *
+ * dafod-2 gives all of its controls one gesture, in CSS, and it is the thing
+ * everyone reads as "DAFOD": the LiquidGlass nav pills, the sheet buttons and
+ * the transport all share it (LiquidGlass.svelte, PersonaliseSheet.svelte,
+ * and MediaControls.jsx's DAFOD_PRESS / DAFOD_RELEASE). Verbatim:
+ *
+ *   rest -> hover    scale 1.04
+ *   down             scale 0.92, 140ms — fast in, on the house curve
+ *   release          420ms on cubic-bezier(0.34, 1.7, 0.5, 1)
+ *
+ * The 1.7 is the whole point. A y-control past 1 makes the curve OVERSHOOT
+ * its target before settling, so a released button springs past rest and
+ * comes back — one bounce, read as the control answering the finger. The
+ * press-in gets its own shorter duration so the acknowledgement is instant
+ * and only the release is elastic; a bounce on the way DOWN reads as
+ * hesitation.
+ *
+ * This replaces the per-button `transition-transform duration-[190ms]
+ * ease-[...] active:scale-[0.9x]` that had crept across fourteen files with
+ * five different scales. One class, one gesture. Two weights:
+ *
+ *   .press       pills, chips, chevrons, transport — 1.04 / 0.92
+ *   .press-soft  cards, rows, CTAs — 1.02 / 0.97, dafod-2's own numbers
+ *                for its .cta and .ghost-btn; a whole card swelling 4% is a
+ *                jump, not a press.
+ *
+ * ICON buttons are NOT this. IconButton.tsx has its own press and a baked
+ * damped-spring commit per glyph (see the icon-motion skill); that is a
+ * richer gesture than one overshoot and it stays.
+ *
+ * Background and opacity ride along at the short duration so a button that
+ * also changes colour on state (the nav pill, a toggle) keeps doing so.
+ * `:not(:disabled)` is dafod-2's guard too — a disabled control must not
+ * answer. transform-origin centre, as theirs. */
+.press,
+.press-soft {
+  transform-origin: center center;
+  transition:
+    transform 420ms cubic-bezier(0.34, 1.7, 0.5, 1),
+    background-color 140ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.press:hover:not(:disabled)      { transform: scale(1.04); }
+.press-soft:hover:not(:disabled) { transform: scale(1.02); }
+.press:active:not(:disabled),
+.press-soft:active:not(:disabled) {
+  transition-duration: 140ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+.press:active:not(:disabled)      { transform: scale(0.92); }
+.press-soft:active:not(:disabled) { transform: scale(0.97); }
+/* Hover is a pointer's gesture. A touch screen's "hover" is the last tap,
+   which would leave a button standing at 1.04 after the finger left. */
+@media (hover: none) {
+  .press:hover:not(:disabled),
+  .press-soft:hover:not(:disabled) { transform: none; }
+}
+
 /* The share glyph is a paper plane, so it should leave like one rather than
    just pulsing. It launches along its own nose (up and right), vanishes, and a
    fresh one arrives from behind the lower-left to settle at rest — the send
@@ -987,6 +1046,44 @@ button, [role="button"], a {
     opacity: 1;
   }
 }
+/* The desktop nav sits on the CARD'S AXIS, and shrinks about it.
+   The frame ends the pills 86.27 from the right, a number that belonged to a
+   composition with a black bar; over the ambience the pills are the only
+   thing in the header besides the wordmark, and they read as belonging to the
+   card. So the nav's centre is the card's centre — 51 + 622/2 = 362 from the
+   gutter, the same axis .desk-topic uses — placed by anchoring its right edge
+   there and translating it back by half its own width. `translate` rather
+   than a translateX inside `transform`, so the scroll morph (DesktopNav.tsx)
+   can own `transform` alone and scale about the centre without the two
+   compounding. 0.9 is the Bible header's own figure. */
+.desk-nav-morph {
+  position: absolute;
+  right: calc(var(--desk-gutter) + 362px);
+  top: 50%;
+  translate: 50% -50%;
+  transform-origin: center center;
+  transform: scale(calc(1 - 0.1 * var(--edge-top, 0)));
+  transition: transform 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* A quieter shadow for glass that floats in open space. dafod-2's pane casts
+   a deliberately dramatic shadow (36px and 64px throws) so a pill over
+   scrolling verses darkens the text passing beneath it. The paging chevrons
+   sit over nothing but the ambience, and that same throw read as a heavy dark
+   halo around a 72px circle. The inset specular and rim stay — they are what
+   make it glass — and the throw drops to one soft 8px cast. */
+.lg-wrap.lg-quiet .lg-pane {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.18),
+    0 8px 20px -4px rgba(0, 0, 0, 0.35);
+}
+/* A pane around a disabled control must not answer: no lift, no dip, no glow.
+   The control inside still fades itself (disabled:opacity-30). */
+.lg-wrap.lg-disabled,
+.lg-wrap.lg-disabled:hover,
+.lg-wrap.lg-disabled:active { transform: none; }
+.lg-wrap.lg-disabled .lg-pane::after { opacity: 0; }
 
 /* iOS 26 toolbar morph — the header pill row shrinks ~4% over the first 80px
    of verse-scroll, and the glass panes saturate up slightly to compensate for
@@ -1141,10 +1238,21 @@ button, [role="button"], a {
   }
 
   /* Press feedback is direct manipulation, not decoration, so it stays — but
-     it lands instantly rather than easing. */
-  .icon-press {
+     it lands instantly rather than easing. The bounce is the elastic part and
+     it goes with the rest. */
+  .icon-press,
+  .press,
+  .press-soft {
     transition: none;
   }
+  /* The nav's shrink is elastic chrome, the same class of motion as the
+     bottom nav's scroll scale above; it does not happen. */
+  .desk-nav-morph {
+    transform: none;
+    transition: none;
+  }
+  .press:hover:not(:disabled),
+  .press-soft:hover:not(:disabled) { transform: none; }
 
   .snap-mandatory {
     scroll-snap-type: y proximity;
@@ -1449,6 +1557,7 @@ html, body {
     padding-inline: var(--desk-lean);
     padding-top: var(--desk-card-top);
     scroll-padding-top: var(--desk-card-top);
+
     /* No CSS snapping at desk: the pager (useCardPager) moves the column from
      * rest line to rest line itself, on the house curve, and lands exactly on
      * them. Left on, mandatory snapping would answer every tween frame with a
@@ -1463,6 +1572,29 @@ html, body {
      * and mandatory snapping shrugged. 34 = 24 + 10, and the last card sits on
      * the same line as the rest with nothing peeking beneath it. */
     padding-bottom: calc(24px + var(--desk-peek));
+  }
+  /* CARDS DISSOLVE INTO THE AMBIENCE UNDER THE HEADER.
+   *
+   * With the bar's fill gone, a card on its way out — and, at rest, the
+   * previous card's whole bottom 107px, label and buttons included — showed
+   * through the header region: a lighter rounded shape behind the pills,
+   * blurred by the band, ending in a line at 97. "It feels like there is a
+   * container here." Nothing was drawn there; it was the card itself.
+   *
+   * A mask fades the feed's own content to transparent toward the top, so
+   * what shows through a card is the ambience, not a surface. Clear below
+   * 112, gone above 72: the previous card's 10px peek at 97–107 sits at
+   * 0.6–0.9 — a soft glimpse, as designed — while its label row at 61–83 is
+   * all but out, and a card in transit dissolves across the 40px under the
+   * pills (which end at 74). The blur band still runs above it, so the
+   * dissolve is out of focus as well as out of alpha. This is what the top
+   * scrim used to do with black; the mask does it with nothing.
+   *
+   * On .feed-mask, the scroller's non-scrolling parent, not on the scroller
+   * — see the note in Feed.tsx for the 8fps that decided it. */
+  .feed-mask {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 72px, #000 112px);
+    mask-image: linear-gradient(to bottom, transparent 72px, #000 112px);
   }
   .desk-bar {
     padding-left: calc(var(--desk-gutter) + 48px);
@@ -1687,6 +1819,41 @@ html, body {
   top: 85px;
   height: 68px;
 }
+/* THE TOP BAND HAS NO SCRIM. Its job — closing the join so a card on its
+ * way out does not simply stop — is done by the feed's mask now
+ * (.feed-mask, above): the card fades to transparent under the header and
+ * the ambience shows through. A black gradient here on top of that would
+ * only draw the shadow under the nav that was asked away. The fold keeps its
+ * scrim: nothing masks the scroller's bottom, and the viewport edge is still
+ * an edge. */
+.desk-bar-edge:not(.desk-bar-edge--bottom) > div:nth-child(7) {
+  display: none;
+}
+
+/* THE TOP BAND REACHES THE TOP.
+ *
+ * The header has no surface any more (DesktopNav.tsx), so a card on its way
+ * out would cross the 97px under the wordmark at full sharpness. The band
+ * now starts at y=0 and is 153 tall, and the six layers keep their ORIGINAL
+ * masks, spread over the whole height: one continuous ramp from nothing at
+ * 153 to the full stack at the top edge.
+ *
+ * Not a plateau. The first version held the two strongest layers at full
+ * across the bar's 97px, on the reasoning that a blur over an already-blurred
+ * ambience would be invisible. It was not: the plateau began in a 4px step
+ * at y=97, and even against the swirl that step drew a faint horizontal
+ * boundary the whole width of the window — "it feels like there is a
+ * container here". A step of any strength is a line; a ramp is not. So the
+ * blur simply grows all the way up, which also does the right thing by the
+ * previous card's peek at 97–107: about 8px there, a soft glimpse, instead of
+ * the 32 that had smeared it into nothing. The resting card's top edge at
+ * 131 gets ~2px, as before. There is no scrim (above); the scroller's mask
+ * does that work. */
+.desk-bar-edge:not(.desk-bar-edge--bottom) {
+  top: 0;
+  height: 153px;
+}
+
 /* THE FOLD gets the same treatment, mirrored. There is no bar down there —
  * the card simply runs off the viewport — but a hard viewport edge through a
  * painting is the same knife. The 12px overhang now hangs below the viewport

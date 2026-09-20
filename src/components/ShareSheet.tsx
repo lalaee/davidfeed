@@ -25,7 +25,7 @@ import { fetchShareFile, shareFileName } from "@/lib/shareVideo";
 
 const SHEET_ROW =
   "w-full bg-[#1c1c1e] rounded-[16px] px-[16px] py-[14px] flex items-center gap-[14px] text-left " +
-  "transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] " +
+  "press-soft " +
   "disabled:opacity-40";
 
 interface ShareSheetProps {

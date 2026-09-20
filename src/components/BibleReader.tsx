@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import DesktopNav from "./DesktopNav";
+import LiquidGlass from "./LiquidGlass";
 import BooksSheet from "./BooksSheet";
 import CompareSheet from "./CompareSheet";
 import VerseActionBar, { type VerseAction } from "./VerseActionBar";
@@ -407,6 +408,15 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
         <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[40px] desk:pt-[121px]">
           {/* Verse Artwork + Title Row — iOS 26 morph: scales with scroll */}
           <div ref={morphRef} className="app-header-morph flex items-center justify-between h-[72px]">
+            {/* Both header pills are LiquidGlass, with dafod-2's own numbers
+                for the same two pills in its reader: the chapter pill takes
+                its "book-pill" set (22 / 6 / 50 / 3 / 4), the version pill its
+                lighter "version-pill" set (18 / 4 / 30 / 2 / 3). The #0E0E0E
+                fills go; the pane's smoked tint is the surface now, and the
+                wrapper owns hover, press and release. The chapter wrapper
+                may shrink (min-w-0) so a long title still truncates inside
+                it rather than pushing the version pill off the row. */}
+            <LiquidGlass radius={22} depth={6} strength={50} chromaticAberration={3} blur={4} className="min-w-0">
             <button
               type="button"
               onClick={() => setShowBooks(true)}
@@ -439,30 +449,30 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
               // Still shrinkable: min-w-0 and truncate stay, so a 320px screen
               // showing "1 Thessalonians 5" clips the title instead of shoving
               // the version pill off the row.
-              className="flex w-fit items-center rounded-[22px] p-[18px] desk:p-[24px] active:opacity-70 transition-opacity"
-              style={{ backgroundColor: "#0E0E0E" }}
+              className="flex w-full items-center rounded-[22px] border-none bg-transparent p-[18px] desk:p-[24px]"
             >
               <span className="min-w-0 truncate text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px]">
                 {chapterTitle}
               </span>
             </button>
+            </LiquidGlass>
 
             {/* Version Selector — opens the reading translation picker. */}
+            <LiquidGlass radius={18} depth={4} strength={30} chromaticAberration={2} blur={3} className="flex-shrink-0">
             <button
               type="button"
               aria-haspopup="listbox"
               aria-expanded={versionOpen}
               aria-label={`Version: ${shownVersion}. Change version`}
               onClick={() => setVersionOpen((o) => !o)}
-              className="flex h-[38px] flex-shrink-0 items-center justify-center rounded-[19.252px] px-[16px]
-                         transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                         active:scale-[0.94]"
-              style={{ backgroundColor: "#0E0E0E" }}
+              className="flex h-[38px] flex-shrink-0 items-center justify-center rounded-[19.252px] border-none
+                         bg-transparent px-[16px]"
             >
               <span className="text-[17px] font-semibold text-white tracking-[-0.408px] leading-[22px]">
                 {shownVersion}
               </span>
             </button>
+            </LiquidGlass>
           </div>
 
           {/* Reading translation. Same language as the feed's topic dropdown —
@@ -706,8 +716,7 @@ function ChapterPagerButton({
       className={`absolute z-[60] flex h-[52px] w-[52px] items-center justify-center rounded-full
                   border-none text-white
                   bottom-[calc(97px+env(safe-area-inset-bottom))] desk:bottom-[32px]
-                  transition-transform duration-[190ms] ease-[cubic-bezier(0.32,0.72,0,1)]
-                  active:scale-[0.94]
+                  press
                   ${side === "left" ? "left-[47px]" : "right-[47px]"}`}
       style={{ backgroundColor: "#0E0E0E" }}
     >

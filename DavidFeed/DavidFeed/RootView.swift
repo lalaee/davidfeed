@@ -63,9 +63,7 @@ struct RootView: View {
         // The bar's top edge reflecting the card above it. Only on the feed:
         // the Bible and Library have no media above the bar to reflect.
         .overlay {
-            TabBarReflector(bar: bar,
-                            colours: Reflection.colours(for: Playback.shared.currentPost),
-                            visible: screen == .home)
+            TabBarReflector(bar: bar, visible: screen == .home)
         }
     }
 

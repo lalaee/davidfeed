@@ -70,62 +70,31 @@ struct TabBarPlatterProbe: UIViewRepresentable {
     }
 }
 
-/// The colours the rim reflects: the bottom third of the card's artwork,
-/// left to right, so the line carries the scene's colours in the order they
-/// sit above it. Six samples; a 1.5pt line cannot show more.
+/// The rim, as UIKit vibrancy.
 ///
-/// The artwork is a frame of the card's own loop, which is what the reader
-/// sees above the bar. Dark, moody frames would give a rim too dim to read as
-/// light, so each sample keeps its hue and is lit: a reflection is the scene's
-/// colour at the brightness of the light hitting the glass, not the scene's
-/// own brightness. Grey scenes come out as a plain white specular.
-enum Reflection {
-    private static var cache: [Int: [Color]] = [:]
-    static let samples = 6
-
-    static func colours(for post: Post?) -> [Color] {
-        guard let post else { return [] }
-        if let hit = cache[post.id] { return hit }
-        guard let image = ArtworkCache.image(post.artworkURL)?.cgImage else { return [] }
-        let n = samples
-        guard let ctx = CGContext(data: nil, width: n, height: 1, bitsPerComponent: 8, bytesPerRow: n * 4,
-                                  space: CGColorSpaceCreateDeviceRGB(),
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-        else { return [] }
-        ctx.interpolationQuality = .high
-        // Core Graphics draws with a bottom-left origin: the image scaled to
-        // three rows with its bottom at y=0 puts its bottom third in the one
-        // row the context has.
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(n), height: 3))
-        guard let data = ctx.data else { return [] }
-        let px = data.bindMemory(to: UInt8.self, capacity: n * 4)
-        var out: [Color] = []
-        for i in 0..<n {
-            let r = CGFloat(px[i * 4]) / 255, g = CGFloat(px[i * 4 + 1]) / 255, b = CGFloat(px[i * 4 + 2]) / 255
-            var h: CGFloat = 0, s: CGFloat = 0, v: CGFloat = 0, a: CGFloat = 0
-            UIColor(red: r, green: g, blue: b, alpha: 1).getHue(&h, saturation: &s, brightness: &v, alpha: &a)
-            out.append(Color(UIColor(hue: h, saturation: min(s * 1.25, 1), brightness: max(v, 0.92), alpha: 1)))
-        }
-        cache[post.id] = out
-        return out
-    }
-}
-
-/// A point wide: at 1.5 it read as a drawn line rather than an edge catching light.
-/// The rim itself, drawn in window coordinates over the whole screen so the
-/// measured frame can be used as-is. Only the top of the shape is kept: a
-/// reflection of a scene above lands on the upper edge and dies out where the
-/// capsule's ends curve away from it.
+/// Netflix's bar reads its rim off the backdrop: the line is a lighter version
+/// of whatever is behind and above it at that pixel, so it turns blue under a
+/// blue title and shifts as the content moves. That is what a vibrancy effect
+/// does. A 1pt stroke along the capsule's top arc is drawn inside a
+/// `UIVibrancyEffect`, which renders it as the blurred backdrop under the line,
+/// lifted. Live, per pixel, no sampling code -- and it follows the video, not
+/// just the card. The effect view is masked to the stroke itself, so nothing
+/// else is frosted; the blur radius still reaches the content above the bar,
+/// which is where the colour comes from.
+///
+/// Drawn in window coordinates over the whole screen so the measured frame can
+/// be used as-is. Only the top of the shape is kept: a reflection of a scene
+/// above lands on the upper edge and dies out where the capsule's ends curve
+/// away from it.
 struct TabBarReflector: View {
     let bar: TabBarPlatterProbe.Bar?
-    let colours: [Color]
     let visible: Bool
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.clear
-            if let bar, !colours.isEmpty {
-                rim(capsule: bar.isCapsule)
+            if let bar {
+                VibrancyHairline(size: bar.frame.size, isCapsule: bar.isCapsule)
                     .frame(width: bar.frame.width, height: bar.frame.height)
                     .offset(x: bar.frame.minX, y: bar.frame.minY)
             }
@@ -133,32 +102,73 @@ struct TabBarReflector: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .opacity(visible ? 1 : 0)
-        // The ambience turns over in 0.5s when the card changes; the rim turns
-        // with it, so the two read as one light changing.
-        .animation(.easeInOut(duration: 0.5), value: colours)
         .animation(.easeInOut(duration: 0.25), value: visible)
     }
+}
 
-    @ViewBuilder
-    private func rim(capsule: Bool) -> some View {
-        let paint = LinearGradient(colors: colours, startPoint: .leading, endPoint: .trailing)
-        Group {
-            if capsule {
-                Capsule().strokeBorder(paint, lineWidth: 1)
-            } else {
-                Rectangle().strokeBorder(paint, lineWidth: 1)
+struct VibrancyHairline: UIViewRepresentable {
+    let size: CGSize
+    let isCapsule: Bool
+
+    func makeUIView(context: Context) -> HairlineView { HairlineView() }
+    func updateUIView(_ view: HairlineView, context: Context) { view.configure(size: size, isCapsule: isCapsule) }
+
+    final class HairlineView: UIView {
+        // Dark material: the bar is over dark cards, and the vibrancy's lift is
+        // measured against this. `.fill` keeps the backdrop's hue in the line
+        // (mauve over a red card, green over a field) at about 3.5x the body's
+        // brightness, measured -- already above Netflix's 2.4x. `.label` was
+        // tried and clips to pure white on every card, which is a line, not a
+        // reflection.
+        private let blurEffect = UIBlurEffect(style: .systemThinMaterialDark)
+        private lazy var blur = UIVisualEffectView(effect: blurEffect)
+        private lazy var vibrancy = UIVisualEffectView(effect: UIVibrancyEffect(blurEffect: blurEffect, style: .fill))
+        private let stroke = CAShapeLayer()     // what the vibrancy lifts
+        private let window_ = CAShapeLayer()    // where the effect shows at all
+        private let fade = CAGradientLayer()    // the top of the shape only
+        private let maskHost = UIView()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            isUserInteractionEnabled = false
+            addSubview(blur)
+            blur.contentView.addSubview(vibrancy)
+            for shape in [stroke, window_] {
+                shape.fillColor = nil
+                shape.strokeColor = UIColor.white.cgColor
+                shape.lineWidth = 1
             }
+            vibrancy.contentView.layer.addSublayer(stroke)
+            fade.colors = [UIColor.white.cgColor, UIColor.white.cgColor, UIColor.clear.cgColor]
+            fade.locations = [0, 0.1, 0.42]
+            window_.mask = fade
+            maskHost.layer.addSublayer(window_)
+            // A mask on the effect view itself is supported; one on its
+            // superview is not.
+            blur.mask = maskHost
         }
-        .mask {
-            LinearGradient(stops: [
-                .init(color: .white, location: 0),
-                .init(color: .white, location: 0.1),
-                .init(color: .clear, location: 0.42),
-            ], startPoint: .top, endPoint: .bottom)
+
+        required init?(coder: NSCoder) { fatalError("not used") }
+
+        func configure(size: CGSize, isCapsule: Bool) {
+            let bounds = CGRect(origin: .zero, size: size)
+            // A 1pt stroke centred half a point in, so it sits inside the edge
+            // the way the system's own rim does.
+            let inset = bounds.insetBy(dx: 0.5, dy: 0.5)
+            let path: CGPath
+            if isCapsule {
+                path = UIBezierPath(roundedRect: inset, cornerRadius: inset.height / 2).cgPath
+            } else {
+                // The flat bar (iOS 18): its top edge, straight across.
+                let line = UIBezierPath()
+                line.move(to: CGPoint(x: inset.minX, y: inset.minY))
+                line.addLine(to: CGPoint(x: inset.maxX, y: inset.minY))
+                path = line.cgPath
+            }
+            for view in [blur, vibrancy, maskHost] { view.frame = bounds }
+            for layer in [stroke, window_, fade] { layer.frame = bounds }
+            stroke.path = path
+            window_.path = path
         }
-        // Softened by a third of a point so it sits in the glass edge instead
-        // of lying on it as a drawn line.
-        .blur(radius: 0.35)
-        .opacity(0.9)
     }
 }

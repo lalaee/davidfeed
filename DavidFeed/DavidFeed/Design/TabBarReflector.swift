@@ -111,6 +111,7 @@ enum Reflection {
     }
 }
 
+/// A point wide: at 1.5 it read as a drawn line rather than an edge catching light.
 /// The rim itself, drawn in window coordinates over the whole screen so the
 /// measured frame can be used as-is. Only the top of the shape is kept: a
 /// reflection of a scene above lands on the upper edge and dies out where the
@@ -143,9 +144,9 @@ struct TabBarReflector: View {
         let paint = LinearGradient(colors: colours, startPoint: .leading, endPoint: .trailing)
         Group {
             if capsule {
-                Capsule().strokeBorder(paint, lineWidth: 1.5)
+                Capsule().strokeBorder(paint, lineWidth: 1)
             } else {
-                Rectangle().strokeBorder(paint, lineWidth: 1.5)
+                Rectangle().strokeBorder(paint, lineWidth: 1)
             }
         }
         .mask {

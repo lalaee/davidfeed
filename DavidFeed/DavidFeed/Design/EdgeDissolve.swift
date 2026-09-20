@@ -20,9 +20,12 @@ import SwiftUI
 /// given a gradient mask. Nothing is linked; every step fails soft, and the
 /// worst case is a plain uniform blur rather than nothing.
 ///
-/// The radius ramps over the whole band, from zero at its feathered top to
-/// full at the screen's edge, so the strip under the tab bar sits deep in the
-/// blur and a card loses focus progressively before the bar rather than at it. A black shade rides with it
+/// The band's top third is left at radius zero and the ramp runs over the two
+/// thirds below it, from nothing to full at the screen's edge -- which puts the
+/// strip under the tab bar on the ramp rather than fully dissolved. That is
+/// what the renderer's starting inset does for .up, read from its source, and
+/// it is the form that was preferred over a full-band ramp with a feathered
+/// top: the dissolve stays light and the card keeps its edge. A black shade rides with it
 /// at the strength the caller sets: the web's "shade is the edge", the same
 /// black the bar is painted in, so it reads as the bar's shadow. The feed keeps
 /// it light to leave the ambience under the glass.
@@ -45,16 +48,9 @@ struct EdgeDissolve: View {
 
     var body: some View {
         ZStack {
-            // No starting inset. For .up the renderer holds the band's TOP at
-            // radius zero for that fraction and ramps only after it -- read
-            // from its source, the opposite of what the name suggests -- so a
-            // 0.35 inset left the strip under the tab bar short of full blur
-            // and put a hard knee a third of the way down. The ramp now runs
-            // the whole band, zero at the feathered top, full at the screen's
-            // edge, and the radius is raised so that under the bar it is
-            // already deep.
             VariableBlur(direction: .up)
-                .maximumBlurRadius(32)
+                .maximumBlurRadius(24)
+                .blurStartingInset(.relative(fraction: 0.35))
                 .dimmingTintColor(.black)
                 .dimmingAlpha(.constant(alpha: shade))
                 .dimmingOvershoot(nil)
@@ -76,22 +72,6 @@ struct EdgeDissolve: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        // Feathered at the top. BlurUIKit captures the backdrop at 0.75 scale
-        // for performance, so everything inside the band is resampled --
-        // faintly softened even where the radius is zero -- while everything
-        // outside is not, and that is a straight seam at the frame edge that
-        // no gradient inside the band can remove. Fading the band itself in
-        // over its top third puts nothing where the seam would be.
-        .mask {
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0),
-                    .init(color: .black, location: 0.32),
-                    .init(color: .black, location: 1),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-        }
         .colorScheme(.dark)
         .allowsHitTesting(false)
     }

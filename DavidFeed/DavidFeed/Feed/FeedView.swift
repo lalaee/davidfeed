@@ -98,27 +98,32 @@ struct FeedView: View {
             // down and the PREVIOUS card filled the strip above it. Ignoring the
             // safe area makes a snapped card's top the screen's top, and the only
             // neighbour on screen is the next card peeking at the bottom.
-            //
-            // TOP ONLY. Ignoring all edges also zeroed the bottom inset the tab
-            // bar contributes, and the scroll-edge effect below draws IN that
-            // inset -- with it gone there was nowhere for the effect to exist,
-            // and the peek under the bar stayed at full brightness with none
-            // of the blur-and-fade the reader shows. Keeping the bottom inset
-            // gives the effect its region; card height comes from the
-            // enclosing GeometryReader, not from this scroll view, so the
-            // reel's geometry does not move.
-            .ignoresSafeArea(edges: .top)
+            .ignoresSafeArea()
             .scrollIndicators(.hidden)
-            // The desktop web dissolves a card into the bar it scrolls under
-            // with six stacked backdrop-filter layers at doubling radii, and
-            // calls it "the progressive-blur stack the platform still lacks
-            // natively". This platform has it: .soft is that blur-and-fade at
-            // the scroll edge, drawn by the system where the reel passes under
-            // the tab bar. Bottom only -- with the topics parked nothing sits
-            // at the top but the status bar, and the web's stack is about a
-            // bar, not a status strip.
-            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .background { FeedAmbience(post: activePost) }
+            // The reel dissolving under the tab bar: from the screen's bottom
+            // edge up to just past the resting card's bottom, covering the gap
+            // and the next card's peek -- which the web says "is what lives in
+            // its strongest end". An 8pt overlap onto the card, for the reason
+            // the web gives: a flush edge can leave a row of sharp pixels. The
+            // card's label sits well above it. Built by hand rather than with
+            // .scrollEdgeEffectStyle; EdgeDissolve says why.
+            .overlay(alignment: .bottom) {
+                // The scroll view's CONTENT runs under the bar, but the frame an
+                // overlay attaches to stops at the safe area -- so without this
+                // the band hung from the tab bar's top edge and stacked its full
+                // height upward, 100pt into the card and over the label, with
+                // nothing under the bar at all.
+                //
+                // Measured, not assumed: .ignoresSafeArea on the overlay child
+                // did NOT extend it. Backgrounds get that treatment -- it is how
+                // FeedAmbience fills the ground -- and overlays evidently do
+                // not; the band stayed exactly where it was. An explicit offset
+                // by the inset moves it, and depends on nothing being propagated.
+                EdgeDissolve(height: DF.cardInsetBottom + geo.safeAreaInsets.bottom + 8,
+                             shade: 0.4)
+                    .offset(y: geo.safeAreaInsets.bottom)
+            }
             .overlay(alignment: .top) {
                 // Parked with the topics: there is one feed and it has no
                 // name to show. A collection still titles itself, which is why

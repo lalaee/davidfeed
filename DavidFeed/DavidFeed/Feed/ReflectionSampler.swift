@@ -40,13 +40,15 @@ final class ReflectionSampler {
     private var range: SIMD2<Float>?
     /// Motion. The strip is read at four times the rim's resolution; where
     /// a fine bin's luminance differs from the last frame's, something moved
-    /// there. A parallax drifts a few pixels a second and its averaged colour
-    /// barely changes -- this is what does change, and it lights the rim
-    /// where the loop is moving. Normalised to its own running peak, so a
-    /// slow loop's motion still shows at full strength.
+    /// there, and that lights the rim where the loop is moving. In absolute
+    /// terms: a still loop gives nothing, a fast one a lot. The first version
+    /// scaled each frame's motion to its own running peak, which turned a
+    /// still loop's codec noise into a full-strength flicker -- the glint
+    /// looked random because, then, it was.
     private static let fine = 4
+    private static let noiseFloor: Float = 0.008   // codec noise, in luminance
+    private static let fullGlint: Float = 0.04     // a 4% change per frame = full
     private var previousFine: [Float] = []
-    private var motionPeak: Float = 0
     private var motion: [Float] = []
 
     private init() {}
@@ -84,7 +86,6 @@ final class ReflectionSampler {
         colours = []
         previousFine = []
         motion = []
-        motionPeak = 0
         range = nil
     }
 
@@ -110,13 +111,16 @@ final class ReflectionSampler {
             let slice = i * Self.fine ..< (i + 1) * Self.fine
             strip.append(fineStrip[slice].reduce(SIMD3<Float>(repeating: 0), +) / Float(Self.fine))
             var e: Float = 0
-            if previousFine.count == fineLum.count { for k in slice { e = max(e, abs(fineLum[k] - previousFine[k])) } }
-            energy.append(e)
+            if previousFine.count == fineLum.count { for k in slice { e += abs(fineLum[k] - previousFine[k]) } }
+            energy.append(max(e / Float(Self.fine) - Self.noiseFloor, 0) / Self.fullGlint)
         }
         previousFine = fineLum
-        motionPeak = max(motionPeak * 0.92, energy.max() ?? 0)
-        let normalised = energy.map { min($0 / max(motionPeak, 0.003), 1) }
-        if motion.count != normalised.count { motion = normalised } else { for i in normalised.indices { motion[i] += (normalised[i] - motion[i]) * 0.6 } }
+        let glint = energy.map { min($0, 1) }
+        // Rises with the motion, decays behind it, so a passing edge leaves a
+        // short trail rather than a flicker.
+        if motion.count != glint.count { motion = glint } else {
+            for i in glint.indices { motion[i] += (glint[i] - motion[i]) * (glint[i] > motion[i] ? 0.5 : 0.15) }
+        }
         // Stretch: the strip's own darkest and brightest bins become the
         // rim's dark and bright ends every frame, so the pattern along the
         // edge always uses the whole range and its movement is what shows.
@@ -131,7 +135,9 @@ final class ReflectionSampler {
         // scene sits lower than it could so the glint has room to stand out.
         let lit = zip(zip(strip, lums), motion).map { pair, m in
             let (rgb, lum) = pair
-            let scene: Float = r.y - r.x < 0.04 ? 0.5 : 0.3 + 0.45 * (lum - r.x) / (r.y - r.x)
+            // Stretched over the strip's own range, but never over less than
+            // a quarter of the scale: a flat strip's noise is not a pattern.
+            let scene: Float = 0.3 + 0.45 * (lum - r.x) / max(r.y - r.x, 0.25)
             return Self.lit(rgb, stretched: scene + 0.55 * m)
         }
         if smoothed.count != lit.count {
@@ -150,9 +156,14 @@ final class ReflectionSampler {
         guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
         let width = CVPixelBufferGetWidth(buffer), height = CVPixelBufferGetHeight(buffer)
         let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
-        // The bottom eighth, near enough: what sits right above the bar.
-        let rows = max(1, Int(Float(height) * 0.12))
-        var source = vImage_Buffer(data: base + (height - rows) * rowBytes,
+        // The band from 72% to 88% down the frame. The bottom 12% is what
+        // sits nearest the bar, but on screen it is under the darkest part
+        // of the card's scrim -- the reader cannot see it, so a rim that
+        // followed it looked like it followed nothing. This band is the last
+        // of the picture the reader actually sees above the bar.
+        let rows = max(1, Int(Float(height) * 0.16))
+        let firstRow = Int(Float(height) * 0.72)
+        var source = vImage_Buffer(data: base + firstRow * rowBytes,
                                    height: vImagePixelCount(rows), width: vImagePixelCount(width), rowBytes: rowBytes)
         var pixels = [UInt8](repeating: 0, count: n * 4)
         return pixels.withUnsafeMutableBytes { raw -> [SIMD3<Float>]? in

@@ -156,7 +156,7 @@ struct TabBarReflector: View {
     private func rim(capsule: Bool) -> some View {
         let paint = LinearGradient(colors: colours, startPoint: .leading, endPoint: .trailing)
         ZStack {
-            edge(capsule: capsule, paint: paint, width: 5).blur(radius: 3).opacity(0.45)
+            edge(capsule: capsule, paint: paint, width: 6).blur(radius: 3.5).opacity(0.6)
             edge(capsule: capsule, paint: paint, width: 1)
         }
         .mask {

@@ -19,7 +19,7 @@ import SwiftUI
 @MainActor
 final class ReflectionSampler {
     static let shared = ReflectionSampler()
-    static let samples = 16
+    static let samples = 24
 
     /// Left to right across the bar. Empty when nothing is attached.
     private(set) var colours: [Color] = []
@@ -35,6 +35,19 @@ final class ReflectionSampler {
     /// The colours as floats, eased frame to frame so the rim breathes
     /// rather than flickers.
     private var smoothed: [SIMD3<Float>] = []
+    /// The strip's darkest and brightest bin, eased, so the stretch below
+    /// does not jump when a highlight enters or leaves the strip.
+    private var range: SIMD2<Float>?
+    /// Motion. The strip is read at four times the rim's resolution; where
+    /// a fine bin's luminance differs from the last frame's, something moved
+    /// there. A parallax drifts a few pixels a second and its averaged colour
+    /// barely changes -- this is what does change, and it lights the rim
+    /// where the loop is moving. Normalised to its own running peak, so a
+    /// slow loop's motion still shows at full strength.
+    private static let fine = 4
+    private var previousFine: [Float] = []
+    private var motionPeak: Float = 0
+    private var motion: [Float] = []
 
     private init() {}
 
@@ -69,6 +82,10 @@ final class ReflectionSampler {
         player = nil
         smoothed = []
         colours = []
+        previousFine = []
+        motion = []
+        motionPeak = 0
+        range = nil
     }
 
     private func follow(_ item: AVPlayerItem?) {
@@ -82,13 +99,45 @@ final class ReflectionSampler {
         let time = output.itemTime(forHostTime: link.targetTimestamp)
         guard output.hasNewPixelBuffer(forItemTime: time),
               let buffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: nil),
-              let strip = Self.bottomStrip(of: buffer, samples: Self.samples)
+              let fineStrip = Self.bottomStrip(of: buffer, samples: Self.samples * Self.fine)
         else { return }
-        let lit = strip.map(Self.lit)
+        // Colour: the fine bins pooled to the rim's. Motion: the largest
+        // frame-to-frame change among each rim bin's fine bins.
+        let fineLum = fineStrip.map { $0.x * 0.2126 + $0.y * 0.7152 + $0.z * 0.0722 }
+        var strip: [SIMD3<Float>] = []
+        var energy: [Float] = []
+        for i in 0..<Self.samples {
+            let slice = i * Self.fine ..< (i + 1) * Self.fine
+            strip.append(fineStrip[slice].reduce(SIMD3<Float>(repeating: 0), +) / Float(Self.fine))
+            var e: Float = 0
+            if previousFine.count == fineLum.count { for k in slice { e = max(e, abs(fineLum[k] - previousFine[k])) } }
+            energy.append(e)
+        }
+        previousFine = fineLum
+        motionPeak = max(motionPeak * 0.92, energy.max() ?? 0)
+        let normalised = energy.map { min($0 / max(motionPeak, 0.003), 1) }
+        if motion.count != normalised.count { motion = normalised } else { for i in normalised.indices { motion[i] += (normalised[i] - motion[i]) * 0.6 } }
+        // Stretch: the strip's own darkest and brightest bins become the
+        // rim's dark and bright ends every frame, so the pattern along the
+        // edge always uses the whole range and its movement is what shows.
+        // A quarter of the frame averaged into sixteen bins barely changed
+        // as the parallax drifted; this is what makes the drift visible.
+        let lums = strip.map { $0.x * 0.2126 + $0.y * 0.7152 + $0.z * 0.0722 }
+        let frame = SIMD2(lums.min() ?? 0, lums.max() ?? 1)
+        if let r = range { range = r + (frame - r) * 0.2 } else { range = frame }
+        let r = range!
+        // Brightness: the stretched scene, and on top of it the glint --
+        // up to +0.55 where the loop is moving, travelling with it. The
+        // scene sits lower than it could so the glint has room to stand out.
+        let lit = zip(zip(strip, lums), motion).map { pair, m in
+            let (rgb, lum) = pair
+            let scene: Float = r.y - r.x < 0.04 ? 0.5 : 0.3 + 0.45 * (lum - r.x) / (r.y - r.x)
+            return Self.lit(rgb, stretched: scene + 0.55 * m)
+        }
         if smoothed.count != lit.count {
             smoothed = lit
         } else {
-            for i in lit.indices { smoothed[i] += (lit[i] - smoothed[i]) * 0.45 }
+            for i in lit.indices { smoothed[i] += (lit[i] - smoothed[i]) * 0.4 }
         }
         colours = smoothed.map { Color(red: Double($0.x), green: Double($0.y), blue: Double($0.z)) }
     }
@@ -101,7 +150,8 @@ final class ReflectionSampler {
         guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
         let width = CVPixelBufferGetWidth(buffer), height = CVPixelBufferGetHeight(buffer)
         let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
-        let rows = max(1, height / 4)
+        // The bottom eighth, near enough: what sits right above the bar.
+        let rows = max(1, Int(Float(height) * 0.12))
         var source = vImage_Buffer(data: base + (height - rows) * rowBytes,
                                    height: vImagePixelCount(rows), width: vImagePixelCount(width), rowBytes: rowBytes)
         var pixels = [UInt8](repeating: 0, count: n * 4)
@@ -115,12 +165,9 @@ final class ReflectionSampler {
     }
 
     /// The scene's colour at the brightness of light on glass: hue kept,
-    /// saturation pushed, and brightness lifted onto a floor -- but not to a
-    /// constant, so a bright patch moving through the strip still reads
-    /// brighter than the dark around it.
-    nonisolated private static func lit(_ rgb: SIMD3<Float>) -> SIMD3<Float> {
+    /// saturation pushed, brightness set by the caller's stretch.
+    nonisolated private static func lit(_ rgb: SIMD3<Float>, stretched brightness: Float) -> SIMD3<Float> {
         let maxC = rgb.max(), minC = rgb.min(), delta = maxC - minC
-        let v = maxC
         let s = maxC > 0 ? delta / maxC : 0
         var h: Float = 0
         if delta > 0 {
@@ -129,7 +176,7 @@ final class ReflectionSampler {
             else { h = (rgb.x - rgb.y) / delta + 4 }
             if h < 0 { h += 6 }
         }
-        let s2 = min(s * 1.25, 1), v2 = 0.55 + 0.45 * v
+        let s2 = min(s * 1.3, 1), v2 = min(max(brightness, 0), 1)
         let c = v2 * s2, x = c * (1 - abs(h.truncatingRemainder(dividingBy: 2) - 1)), m = v2 - c
         let base: SIMD3<Float>
         switch Int(h) {

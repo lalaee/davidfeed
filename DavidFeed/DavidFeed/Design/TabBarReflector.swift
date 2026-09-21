@@ -159,6 +159,9 @@ struct TabBarReflector: View {
             edge(capsule: capsule, paint: paint, width: 6).blur(radius: 3.5).opacity(0.6)
             edge(capsule: capsule, paint: paint, width: 1)
         }
+        // A blur spreads both ways; clipped to the bar's own outline so the
+        // glow falls into the glass and never past its edge.
+        .clipShape(capsule ? AnyShape(Capsule()) : AnyShape(Rectangle()))
         .mask {
             LinearGradient(stops: [
                 .init(color: .white, location: 0),

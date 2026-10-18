@@ -1058,7 +1058,7 @@ button, [role="button"], a {
    compounding. 0.9 is the Bible header's own figure. */
 .desk-nav-morph {
   position: absolute;
-  right: calc(var(--desk-gutter) + 362px);
+  right: calc(var(--desk-gutter) + 51px + var(--desk-card-w) / 2);
   top: 50%;
   translate: 50% -50%;
   transform-origin: center center;
@@ -1353,7 +1353,7 @@ html, body {
 @media (min-width: 1028px) {
   .sound-badge {
     left: auto;
-    right: calc(var(--desk-gutter) + 362px);
+    right: calc(var(--desk-gutter) + 51px + var(--desk-card-w) / 2);
     top: calc(var(--desk-card-top) + var(--desk-card-h) / 2);
     /* Only the custom property. Tailwind v4 centres with the independent
        `translate` property, not `transform`, so adding a transform here shifted
@@ -1521,6 +1521,15 @@ html, body {
     --desk-peek: 10px;
     --desk-card-top: calc(97px + var(--desk-peek) + 24px);
     --desk-card-h: min(943px, calc(100dvh - 131px - 24px - var(--desk-peek)));
+    /* THE CARD IS THE FILM'S SHAPE. The LemoLab films are 1080x1920, and a
+     * card that is not 9:16 shows them cropped — object-cover takes the top
+     * and bottom off a film whose captions and credits sit exactly there. So
+     * the width is no longer the frame's 622; it is derived from the height
+     * the viewport allows, at the film's ratio. At the 1108 canvas that is
+     * 943 x 530; at a 994 window, 829 x 466. Every desk anchor that used to
+     * say 622 now says this, so the column, the nav, the badge, the topic and
+     * the paging all follow the card wherever the height puts it. */
+    --desk-card-w: calc(var(--desk-card-h) * 9 / 16);
   }
   /* ROOM FOR THE CARD TO LEAN.
    *
@@ -1546,7 +1555,7 @@ html, body {
    * is black on black, and the paging chevrons in that gap are z-500, so a
    * leaning card passes UNDER them, which is the right way round. */
   .feed-column {
-    width: calc(622px + 2 * var(--desk-lean));
+    width: calc(var(--desk-card-w) + 2 * var(--desk-lean));
     /* Transparent at desk so the ambience shows in the gaps between cards, in
      * the lean margins and around the peeks — the swirl is meant to surround
      * the artwork, as it does in Apple's Now Playing. The phone keeps bg-black:
@@ -1632,7 +1641,7 @@ html, body {
      * calc — the first attempt at this used
      * calc(100vw - 2 * var(--desk-gutter) - 753px) and computed to ZERO width at
      * every size. */
-    right: calc(var(--desk-gutter) + 833px);
+    right: calc(var(--desk-gutter) + 211px + var(--desk-card-w));
     max-width: 523px;
   }
   /* The topic label is CENTRED on the card, and centring is why it cannot be
@@ -1660,11 +1669,12 @@ html, body {
    * hung off one end of it. */
   .desk-topic {
     left: auto;
-    right: calc(var(--desk-gutter) + 362px);
+    right: calc(var(--desk-gutter) + 51px + var(--desk-card-w) / 2);
     translate: 50% 0;
   }
   .desk-paging {
-    right: calc(var(--desk-gutter) + 729px);
+    /* 51 + card + 56: the frame's 729 with the card's width taken out. */
+    right: calc(var(--desk-gutter) + 107px + var(--desk-card-w));
   }
 }
 

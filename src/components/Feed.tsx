@@ -12,17 +12,6 @@ import DesktopChrome from "./DesktopChrome";
 import { chapterPosts, type Post } from "@/data/posts";
 import { TOPICS, TOPICS_ENABLED, postsForTopic, topicForSeed } from "@/data/topics";
 
-/**
- * Ambient bed level under the narration. dafod mixes voice 0.95 / bed 0.25.
- *
- * The chapter mp3s are pure speech — 16 genuine silent gaps at -50dB, including
- * a full second of silence between the spoken title and the first verse — so
- * the bed has to come from here. (An earlier reading suggested the narrations
- * already carried one; that was a mismeasurement: `silencedetect` had been run
- * with `-v error`, which suppresses the filter's own output.)
- */
-const BED_VOLUME = 0.25;
-
 /** Remembers only an explicit choice, so a deliberate mute survives a reload. */
 const SOUND_PREF = "davidfeed:sound";
 
@@ -74,6 +63,51 @@ function shuffled<T>(items: T[], seed: number): T[] {
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * The same passage never twice in a row.
+ *
+ * The LemoLab films come three readings to a psalm, and a fair shuffle of
+ * eight cards drawn from three psalms puts two of one psalm side by side most
+ * of the time — measured over seeds, far more often than not. Reading the same
+ * psalm again, in a different style, the moment it ends reads as a repeat, not
+ * a feed.
+ *
+ * So after the shuffle, cards are re-dealt greedily: each slot takes the first
+ * remaining card, in shuffled order, whose passage differs from the one before
+ * it. Shuffled order is kept wherever it already obeys the rule, so the deal is
+ * still the seed's. The one exception is when a passage has more cards left
+ * than the others can separate — then it must go next or it will be stranded
+ * at the end in a run, so it is taken first. With 3/3/2 that never triggers;
+ * it is there so a lopsided list degrades to the fewest repeats, not to a
+ * clump.
+ *
+ * The passage is the title up to its verse colon: "Psalm 23:1-3" and "Psalm
+ * 23" are the same psalm, "Proverbs 18:10" is Proverbs 18. Deterministic, so
+ * the server's seed-0 order and every client seed obey it alike.
+ */
+function passageOf(title: string): string {
+  return title.split(":")[0].trim();
+}
+function spread<T extends { title: string }>(items: T[]): T[] {
+  const left = items.slice();
+  const out: T[] = [];
+  let last: string | null = null;
+  while (left.length) {
+    const counts = new Map<string, number>();
+    for (const it of left) counts.set(passageOf(it.title), (counts.get(passageOf(it.title)) ?? 0) + 1);
+    let pick = -1;
+    for (const [key, n] of counts) {
+      if (key !== last && n * 2 > left.length) { pick = left.findIndex((it) => passageOf(it.title) === key); break; }
+    }
+    if (pick < 0) pick = left.findIndex((it) => passageOf(it.title) !== last);
+    if (pick < 0) pick = 0; // only one passage left; nothing can separate it
+    const [it] = left.splice(pick, 1);
+    out.push(it);
+    last = passageOf(it.title);
   }
   return out;
 }
@@ -146,7 +180,7 @@ export default function Feed({
       // put things in. Only the topic feed is dealt.
       collectionLabel
         ? allPosts
-        : shuffled(postsForTopic(allPosts, topicId), feedSeedValue),
+        : spread(shuffled(postsForTopic(allPosts, topicId), feedSeedValue)),
     [allPosts, topicId, collectionLabel, feedSeedValue],
   );
 
@@ -330,61 +364,16 @@ export default function Feed({
     return () => scroller.removeEventListener("scroll", paint);
   }, [posts]);
 
-  // Ambient bed. Owned by the Feed, not by a card, so it plays continuously
-  // underneath the whole feed and never restarts when the active card changes.
-  // It is rendered outside the item wrappers, which is what keeps the
-  // "only the focused card may play" sweep below from touching it.
-  const bedRef = useRef<HTMLAudioElement>(null);
-
-  // A tap stops the CARD, but the bed is not the card's to stop — it is
-  // rendered out here so it survives scrolling. Without this it kept playing
-  // under a stopped card, which is the one thing a pause must not do.
-  const [cardPaused, setCardPaused] = useState(false);
-  // A pause belongs to the visit, not the card, exactly as FeedItem treats its
-  // own: scrolling to another card clears it. Adjusted during render rather
-  // than in an effect, the same documented pattern the card uses.
-  const [pausedAt, setPausedAt] = useState(activeIndex);
-  if (pausedAt !== activeIndex) {
-    setPausedAt(activeIndex);
-    if (cardPaused) setCardPaused(false);
-  }
-
-  // Acted on in the same tick as the tap, not left to the effect below. The
-  // card stops its video and narration synchronously inside the handler, so a
-  // state-driven bed lags them by a render and leaves the bed audibly running
-  // over a stopped card for a frame.
-  const setCardPausedNow = useCallback((paused: boolean) => {
-    setCardPaused(paused);
-    const bed = bedRef.current;
-    if (!bed) return;
-    if (paused) bed.pause();
-    else if (soundOn) bed.play().catch(() => {});
-  }, [soundOn]);
-
-  useEffect(() => {
-    const bed = bedRef.current;
-    if (!bed) return;
-    bed.volume = BED_VOLUME;
-    if (soundOn && !cardPaused) {
-      // Never muted, so this is the first thing a browser refuses; route the
-      // refusal into the same fallback a card uses.
-      bed.play().catch(armUnlock);
-    } else {
-      bed.pause();      // pause, never reset — resuming keeps its position
-    }
-  }, [soundOn, cardPaused, armUnlock]);
-
-  // The bed is audio, so a hidden tab usually leaves it alone — but a
-  // backgrounded mobile browser does stop it, and nothing else would restart it.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      const bed = bedRef.current;
-      if (soundOn && !cardPaused && bed?.paused) bed.play().catch(() => {});
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [soundOn, cardPaused]);
+  // NO AMBIENT BED on this branch. The feed used to run /assets/ambient-bed.m4a
+  // under every card at 0.25, because the chapter narrations were pure speech
+  // with real silence in them. The LemoLab films arrive mixed — voice, score,
+  // foley and dafod's own music bed are already in the soundtrack each card
+  // plays through audioSrc — so a second bed here would have been two scores
+  // at once. Each film carries its own sound; the Feed owns none.
+  //
+  // The card's pause still reaches here so a stopped card is reported, but
+  // there is nothing left for the Feed to stop with it.
+  const onCardPaused = useCallback((_paused: boolean) => {}, []);
 
 
   // Intersection Observer to detect active post.
@@ -486,8 +475,9 @@ export default function Feed({
   // activeIndex is the observer's word and arrives at the halfway point of a
   // page. The background has to start turning when the page STARTS, so it
   // follows the pager's aim while a step is in flight and falls back to
-  // activeIndex once the observer catches up — cleared in render, the same
-  // documented adjust-on-change pattern pausedAt uses above, not in an effect.
+  // activeIndex once the observer catches up — cleared in render, React's
+  // documented adjust-on-change pattern (FeedItem uses it too), not in an
+  // effect.
   const [aim, setAim] = useState<number | null>(null);
   const [aimedFrom, setAimedFrom] = useState(activeIndex);
   if (aimedFrom !== activeIndex) {
@@ -659,9 +649,6 @@ export default function Feed({
           .filter((u): u is string => !!u)}
       />
 
-      {/* Continuous ambient bed — one element for the whole feed, outside the
-          card wrappers so scrolling never interrupts it. */}
-      <audio ref={bedRef} src="/assets/ambient-bed.m4a" loop preload="auto" />
     <div
       ref={columnRef}
       className="feed-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
@@ -702,7 +689,7 @@ export default function Feed({
               restartToken={topicId}
               inWindow={index >= activeIndex - BEHIND && index <= activeIndex + AHEAD}
               onAutoplayBlocked={armUnlock}
-              onPausedChange={setCardPausedNow}
+              onPausedChange={onCardPaused}
             />
           </div>
         ))}

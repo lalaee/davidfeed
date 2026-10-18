@@ -1,6 +1,7 @@
 import { chapterPosts, type Post } from "@/data/posts";
 import { shortSubtitles } from "@/data/shorts-subtitles";
 import { webVersePosts } from "@/data/web-verses";
+import { filmPosts } from "@/data/films";
 
 /*
  * Shorts — one spotlighted passage per chapter instead of the whole reading.
@@ -94,11 +95,21 @@ const psalmShortPosts: Post[] = SPANS.map(({ id, verses, seconds, startAt }) => 
 });
 
 /*
- * The feed is these thirteen plus the World English Bible verse cards, which
- * are built the other way round — they declare their own artwork and title
- * instead of borrowing a chapter's. See web-verses.ts for why they cannot be
- * SPANS entries.
+ * The spoken feed: these thirteen plus the World English Bible verse cards,
+ * which are built the other way round — they declare their own artwork and
+ * title instead of borrowing a chapter's. See web-verses.ts for why they
+ * cannot be SPANS entries.
  */
-export const shortPosts: Post[] = [...psalmShortPosts, ...webVersePosts];
+export const spokenPosts: Post[] = [...psalmShortPosts, ...webVersePosts];
+
+/*
+ * THE FEED IS THE FILMS, on this branch. Home, the Library and /library/[id]
+ * all read shortPosts, so pointing it at the eight LemoLab films (films.ts)
+ * swaps the whole product over in one place — and swaps it back the same
+ * way: `[...filmPosts, ...spokenPosts]` puts the films first and keeps the
+ * spoken cards behind them, `spokenPosts` alone restores the old feed. Nothing
+ * about the spoken cards is removed; they are simply not in the list.
+ */
+export const shortPosts: Post[] = filmPosts;
 
 export const overLength = SPANS.filter((s) => s.seconds > MAX_SECONDS);

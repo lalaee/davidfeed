@@ -37,7 +37,9 @@ struct FeedCardView: View {
                 // saw their taps at all. Anything above this layer in the stack
                 // is now hit-tested before it.
                 artwork(size: geo.size)
-                    .overlay { Color.clear.bottomScrim(geo.size.height * 0.42) }
+                    // Just behind the label: the films burn their own captions
+                    // in above it, and the 42% scrim the stills used dimmed them.
+                    .overlay { Color.clear.bottomScrim(72) }
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { location in like(at: location) }
                     // Toggles the PLAYER, not a separate flag. app.soundOn was a
@@ -46,14 +48,6 @@ struct FeedCardView: View {
                     // saying "Tap for sound" over playing narration.
                     .onTapGesture { playback.toggle() }
 
-                // Its own view, deliberately. Reading playback.time from THIS
-                // body made the whole card — artwork included — re-evaluate on
-                // every tick. Scoped here, only the caption redraws.
-                //
-                // And only for the visible card: every realized card that reads
-                // the playhead re-renders 20 times a second, whether or not it
-                // has a caption to show.
-                if isActive { CaptionLayer(post: post) }
                 bottomBar
                 soundBadge
 
@@ -90,7 +84,9 @@ struct FeedCardView: View {
             // doesn't play". The still underneath means nothing flashes black
             // while the loop for a newly-focused card spins up.
             if playsLoop, let loop = post.loopURL {
-                LoopPlayerView(url: loop, isPlaying: true, reflects: isActive)
+                // The film's own soundtrack, on the card in view, when sound is on.
+                LoopPlayerView(url: loop, isPlaying: true, active: isActive,
+                               muted: !(isActive && playback.isPlaying))
             }
         }
         .frame(width: size.width, height: size.height)
@@ -108,19 +104,10 @@ struct FeedCardView: View {
                     .shadow(color: .black.opacity(0.5), radius: 10, y: 2)
                 Spacer(minLength: 16)
                 VStack(spacing: 32) {
-                    // davidfeed shares the card's VIDEO FILE and nothing else —
-                    // shareVideo.ts: "The file goes ALONE, with no text or url
-                    // beside it" — several iOS share extensions refuse or
-                    // flatten a share that mixes media with a string. Nothing
-                    // travels beside the file, which is exactly why the file
-                    // has to be the built share clip and not the card's silent
-                    // loop: everything the reader expects to send with it is
-                    // burned into that clip. Falls back to the loop only if a
-                    // card has no share render yet.
-                    if post.shareURL != nil {
-                        // The item is composed when the sheet asks for it --
-                        // the bundled single pass played twice; see ShareClip.
-                        ShareLink(item: ShareClip(post: post), preview: SharePreview(post.title)) {
+                    // The film is the share: it already carries its voice, score
+                    // and captions, so the file goes alone, as the web's does.
+                    if let film = post.loopURL {
+                        ShareLink(item: film, preview: SharePreview(post.title)) {
                             RailIcon(asset: "Send", tint: DF.ink)
                         }
                         .buttonStyle(.plain)
@@ -175,36 +162,6 @@ struct FeedCardView: View {
         Task {
             try? await Task.sleep(for: .milliseconds(900))
             hearts.removeAll { $0.id == heart.id }
-        }
-    }
-}
-
-/// The spoken line, as it is spoken.
-///
-/// Separate from FeedCardView on purpose: it is the only thing that depends on
-/// the playhead, and SwiftUI invalidates a view when what it READ changes. Kept
-/// in the card's body, a 20Hz time signal redrew the artwork, the rail and the
-/// scrim along with it.
-private struct CaptionLayer: View {
-    let post: Post
-    private var playback: Playback { .shared }
-
-    var body: some View {
-        if let caption = playback.caption(for: post) {
-            VStack {
-                Spacer()
-                Text(caption.text)
-                    .font(DF.caption())
-                    .foregroundStyle(DF.ink)
-                    .multilineTextAlignment(.center)
-                    .shadow(color: .black.opacity(0.6), radius: 8, y: 2)
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, 150)
-                    .transition(.opacity)
-                    .id(caption.id)
-            }
-            .animation(.easeOut(duration: 0.18), value: caption.id)
-            .allowsHitTesting(false)
         }
     }
 }

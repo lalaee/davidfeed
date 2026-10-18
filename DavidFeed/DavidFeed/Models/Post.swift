@@ -24,6 +24,9 @@ struct Post: Codable, Identifiable, Hashable {
     /// Seconds of silence at the head of the narration, measured off the file.
     /// The card seeks here on entry and loops back here.
     let startAt: Double?
+    /// The film's height over its width, measured off the file by the import,
+    /// so the card can be exactly the film's shape.
+    let aspect: Double?
 
     /// The web app stores absolute web paths ("/assets/shorts/x.mp3"); the app
     /// bundle is flat, so only the filename carries over.

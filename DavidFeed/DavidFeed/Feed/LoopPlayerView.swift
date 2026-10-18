@@ -11,14 +11,19 @@ struct LoopPlayerView: UIViewRepresentable {
     let url: URL
     /// Loops are decorative; the card pauses them off-screen to keep scrolling smooth.
     var isPlaying: Bool
-    /// The active card's loop is what the tab bar reflects.
-    var reflects = false
+    /// The card in view: its film starts from the top when it arrives, and it
+    /// is what the tab bar reflects.
+    var active = false
+    /// The films carry their own audio. The card in view plays it; the card
+    /// peeking below stays silent.
+    var muted = true
 
     func makeUIView(context: Context) -> LoopPlayerUIView { LoopPlayerUIView(url: url) }
 
     func updateUIView(_ view: LoopPlayerUIView, context: Context) {
         view.setPlaying(isPlaying)
-        view.setReflecting(reflects)
+        view.setActive(active)
+        view.setMuted(muted)
     }
 
     static func dismantleUIView(_ view: LoopPlayerUIView, coordinator: ()) {
@@ -36,13 +41,17 @@ final class LoopPlayerUIView: UIView {
     /// can still start once it is.
     private var wantsPlaying = false
     private var statusObservation: NSKeyValueObservation?
+    private var isActive = false
 
     init(url: URL) {
         super.init(frame: .zero)
         let item = AVPlayerItem(url: url)
         looper = AVPlayerLooper(player: queuePlayer, templateItem: item)
-        queuePlayer.isMuted = true          // narration is a separate track
+        queuePlayer.isMuted = true          // until the card says otherwise
         queuePlayer.actionAtItemEnd = .advance
+        // The film's audio keeps going when the screen locks; the layer only
+        // stops drawing.
+        queuePlayer.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
         playerLayer.player = queuePlayer
         playerLayer.videoGravity = .resizeAspectFill
         backgroundColor = .clear   // the still artwork shows through until the
@@ -69,8 +78,22 @@ final class LoopPlayerUIView: UIView {
         }
     }
 
-    func setReflecting(_ on: Bool) {
-        if on { ReflectionSampler.shared.attach(queuePlayer) } else { ReflectionSampler.shared.detach(queuePlayer) }
+    func setMuted(_ muted: Bool) {
+        if queuePlayer.isMuted != muted { queuePlayer.isMuted = muted }
+    }
+
+    /// A film has a voice in it, and arriving mid-sentence is wrong: the card
+    /// peeking below has been playing silently, so it starts from the top the
+    /// moment it comes into view.
+    func setActive(_ active: Bool) {
+        guard active != isActive else { return }
+        isActive = active
+        if active {
+            queuePlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
+            ReflectionSampler.shared.attach(queuePlayer)
+        } else {
+            ReflectionSampler.shared.detach(queuePlayer)
+        }
     }
 
     func tearDown() {

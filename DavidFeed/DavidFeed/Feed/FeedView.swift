@@ -42,13 +42,18 @@ struct FeedView: View {
         return posts.indices.contains(i + 1) ? posts[i + 1].id : nil
     }
 
+    /// A card is its film's shape: the screen's width, and the height that
+    /// gives the film at that width. The films are 9:16, so a card ends short
+    /// of the bar and the next one peeks beneath it.
+    private func cardHeight(_ post: Post, width: CGFloat) -> CGFloat {
+        width * CGFloat(post.aspect ?? 16.0 / 9.0)
+    }
+
     var body: some View {
         GeometryReader { geo in
-            // Captured before the scroll view ignores the safe area, so the
-            // header can still clear the status bar.
-            let topInset = geo.safeAreaInsets.top
-            let full = geo.size.height + topInset
-            let cardHeight = max(320, full - DF.cardInsetBottom)
+            // The scroll view runs edge to edge, so its height is the screen's.
+            let viewport = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
+            let lastHeight = posts.last.map { cardHeight($0, width: geo.size.width) } ?? 0
 
             ScrollView(.vertical) {
                 LazyVStack(spacing: DF.cardGap) {
@@ -65,12 +70,14 @@ struct FeedView: View {
                             // silently.
                             playsLoop: activeID == post.id || post.id == nextID
                         )
-                            .frame(height: cardHeight)
+                            .frame(height: cardHeight(post, width: geo.size.width))
                             .id(post.id)
                     }
                 }
                 .scrollTargetLayout()
-                .padding(.bottom, DF.cardInsetBottom)
+                // Room under the last card for its top to reach the top of
+                // the screen, so it snaps like the rest.
+                .padding(.bottom, max(DF.cardInsetBottom, viewport - lastHeight))
             }
             // One card per gesture, and no flinging past one. Plain
             // `.viewAligned` snaps to card edges but lets momentum carry across

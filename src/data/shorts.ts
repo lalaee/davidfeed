@@ -104,7 +104,7 @@ export const spokenPosts: Post[] = [...psalmShortPosts, ...webVersePosts];
 
 /*
  * THE FEED IS THE FILMS, on this branch. Home, the Library and /library/[id]
- * all read shortPosts, so pointing it at the eight LemoLab films (films.ts)
+ * all read shortPosts, so pointing it at the LemoLab films (films.ts)
  * swaps the whole product over in one place — and swaps it back the same
  * way: `[...filmPosts, ...spokenPosts]` puts the films first and keeps the
  * spoken cards behind them, `spokenPosts` alone restores the old feed. Nothing

@@ -71,7 +71,7 @@ function shuffled<T>(items: T[], seed: number): T[] {
  * The same passage never twice in a row.
  *
  * The LemoLab films come three readings to a psalm, and a fair shuffle of
- * eight cards drawn from three psalms puts two of one psalm side by side most
+ * ten cards drawn from four passages puts two of one psalm side by side most
  * of the time — measured over seeds, far more often than not. Reading the same
  * psalm again, in a different style, the moment it ends reads as a repeat, not
  * a feed.
@@ -81,7 +81,7 @@ function shuffled<T>(items: T[], seed: number): T[] {
  * it. Shuffled order is kept wherever it already obeys the rule, so the deal is
  * still the seed's. The one exception is when a passage has more cards left
  * than the others can separate — then it must go next or it will be stranded
- * at the end in a run, so it is taken first. With 3/3/2 that never triggers;
+ * at the end in a run, so it is taken first. With 3/3/3/1 that never triggers;
  * it is there so a lopsided list degrades to the fewest repeats, not to a
  * clump.
  *

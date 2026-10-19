@@ -23,6 +23,10 @@ final class ReflectionSampler {
 
     /// Left to right across the bar. Empty when nothing is attached.
     private(set) var colours: [Color] = []
+    /// Whether the top of the playing film is light: the strip the status bar
+    /// sits on. Switches at 0.62 and back at 0.5, so a frame hovering near the
+    /// middle does not make the clock flicker.
+    private(set) var topIsLight = false
 
     private var player: AVQueuePlayer?
     private var itemObservation: NSKeyValueObservation?
@@ -85,6 +89,7 @@ final class ReflectionSampler {
         smoothed = []
         colours = []
         previousFine = []
+        topIsLight = false
         motion = []
         range = nil
     }
@@ -102,6 +107,10 @@ final class ReflectionSampler {
               let buffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: nil),
               let fineStrip = Self.bottomStrip(of: buffer, samples: Self.samples * Self.fine)
         else { return }
+        if let top = Self.band(of: buffer, from: 0, height: 0.07, samples: 4) {
+            let lum = top.map { $0.x * 0.2126 + $0.y * 0.7152 + $0.z * 0.0722 }.reduce(0, +) / Float(top.count)
+            if !topIsLight, lum > 0.62 { topIsLight = true } else if topIsLight, lum < 0.5 { topIsLight = false }
+        }
         // Colour: the fine bins pooled to the rim's. Motion: the largest
         // frame-to-frame change among each rim bin's fine bins.
         let fineLum = fineStrip.map { $0.x * 0.2126 + $0.y * 0.7152 + $0.z * 0.0722 }
@@ -151,18 +160,24 @@ final class ReflectionSampler {
     /// The bottom quarter of the frame, scaled to `samples` x 1: one colour per
     /// slice of the width, in order.
     nonisolated private static func bottomStrip(of buffer: CVPixelBuffer, samples n: Int) -> [SIMD3<Float>]? {
-        CVPixelBufferLockBaseAddress(buffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
-        guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
-        let width = CVPixelBufferGetWidth(buffer), height = CVPixelBufferGetHeight(buffer)
-        let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
         // The band from 72% to 88% down the frame. The bottom 12% is what
         // sits nearest the bar, but on screen it is under the darkest part
         // of the card's scrim -- the reader cannot see it, so a rim that
         // followed it looked like it followed nothing. This band is the last
         // of the picture the reader actually sees above the bar.
-        let rows = max(1, Int(Float(height) * 0.16))
-        let firstRow = Int(Float(height) * 0.72)
+        band(of: buffer, from: 0.72, height: 0.16, samples: n)
+    }
+
+    /// A horizontal band of the frame, `from` and `height` as fractions of its
+    /// height, scaled to `samples` x 1.
+    nonisolated private static func band(of buffer: CVPixelBuffer, from: Float, height fraction: Float, samples n: Int) -> [SIMD3<Float>]? {
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
+        let width = CVPixelBufferGetWidth(buffer), height = CVPixelBufferGetHeight(buffer)
+        let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
+        let rows = max(1, Int(Float(height) * fraction))
+        let firstRow = Int(Float(height) * from)
         var source = vImage_Buffer(data: base + firstRow * rowBytes,
                                    height: vImagePixelCount(rows), width: vImagePixelCount(width), rowBytes: rowBytes)
         var pixels = [UInt8](repeating: 0, count: n * 4)

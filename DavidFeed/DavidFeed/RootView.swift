@@ -15,6 +15,10 @@ struct RootView: View {
     /// Where the system drew the tab bar's capsule, for the reflector.
     @State private var bar: TabBarPlatterProbe.Bar?
 
+    private var statusBarDark: Bool {
+        screen == .home && ReflectionSampler.shared.topIsLight
+    }
+
     var body: some View {
         TabView(selection: $screen) {
             Tab(value: Screen.home) {
@@ -55,6 +59,12 @@ struct RootView: View {
                   let post = Playback.shared.currentPost
             else { return }
             BibleStore.shared.open(title: post.title)
+        }
+        // The clock and battery go dark over a film whose top is light (the
+        // woodcuts' paper, the watercolour's sky), and back to white over a
+        // dark one. Read off the playing frames, so it follows the film.
+        .onChange(of: statusBarDark, initial: true) { _, dark in
+            StatusBar.set(dark: dark)
         }
         .tabBarNeverMinimizes()
         .tint(DF.ink)

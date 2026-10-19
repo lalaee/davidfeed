@@ -233,9 +233,10 @@ export default function Feed({
   const [refused, setRefused] = useState(false);
 
   const soundOn = userChoice ?? (audioVerdict === "allowed" && !refused);
-  // Only a REFUSAL earns an explanation. Someone who chose silence is left alone.
-  const soundBlocked =
-    userChoice === null && (audioVerdict === "blocked" || refused);
+  // "Tap for sound" whenever the card in view is silent — refused or chosen.
+  // iOS shows it on any muted card, and with a tap now meaning mute, a viewer
+  // who muted needs the same reminder of how to come back.
+  const soundBlocked = !soundOn;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -247,6 +248,12 @@ export default function Feed({
     setUserChoice(true);
     remember(true);
   }, []);
+  // A tap on a film: the iOS mute. Flips the feed-wide sound and remembers it.
+  const toggleSound = useCallback(() => {
+    const next = !soundOn;
+    setUserChoice(next);
+    remember(next);
+  }, [soundOn]);
 
   // "Blessing" — the technique AMP Stories uses, and the reason sound kept
   // dropping out on iOS when swiping to a new card.
@@ -690,6 +697,7 @@ export default function Feed({
               inWindow={index >= activeIndex - BEHIND && index <= activeIndex + AHEAD}
               onAutoplayBlocked={armUnlock}
               onPausedChange={onCardPaused}
+              onToggleSound={toggleSound}
             />
           </div>
         ))}

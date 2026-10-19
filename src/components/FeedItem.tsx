@@ -3,12 +3,12 @@
 import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from "react";
 import HeartAnimation from "./HeartAnimation";
 import VideoSubtitles from "./VideoSubtitles";
-import PlaybackOverlay from "./PlaybackOverlay";
 import IconButton from "./IconButton";
 import { BookmarkIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { savedPostStore } from "@/lib/stores";
 import { useMagneticTilt } from "@/hooks/useMagneticTilt";
+import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import ShareSheet from "./ShareSheet";
 import {
   readCanShareFiles,
@@ -46,6 +46,11 @@ interface FeedItemProps {
   onAutoplayBlocked?: () => void;
   /** Reports a tap-driven pause up to the Feed, which owns the ambient bed. */
   onPausedChange?: (paused: boolean) => void;
+  /**
+   * A tap on the film. As on iOS, it mutes or unmutes — the feed-wide sound,
+   * so the choice carries to the next card — and the picture keeps playing.
+   */
+  onToggleSound?: () => void;
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
   /**
@@ -94,6 +99,7 @@ export default function FeedItem({
   effect,
   onAutoplayBlocked,
   onPausedChange,
+  onToggleSound,
   startAt,
   eagerAudio,
   restartToken,
@@ -527,24 +533,16 @@ export default function FeedItem({
     []
   );
 
-  // Pause/resume this card. One tap stops the artwork and the narration
-  // together and a second starts them together — the card has no separate
-  // sound control, so a tap means exactly one thing.
-  const togglePlayback = useCallback(() => {
-    const next = !userPausedRef.current;
-    userPausedRef.current = next;
-    setUserPaused(next);
-    // The bed lives in the Feed and would otherwise play on under a stopped
-    // card. Notified from the event handler, never from the deactivation
-    // reset below, which runs during render — the Feed clears it there itself.
-    onPausedChange?.(next);
-    [videoRef.current, posterVideoRef.current, audioRef.current].forEach((el) => {
-      if (!el?.getAttribute("src")) return;
-      if (next) el.pause();
-      else el.play().catch(() => {});
-    });
+  // A tap mutes or unmutes; it does not stop the film. This is the iOS feed's
+  // behaviour (FeedCardView: the picture always runs, the tap toggles whether
+  // the card in view is heard), and it suits films better than pausing did:
+  // a film with its score and burned-in captions reads fine silent, and the
+  // choice belongs to the feed, so it carries to the next card the way a
+  // pause never did.
+  const toggleSound = useCallback(() => {
+    onToggleSound?.();
     if (navigator.vibrate) navigator.vibrate(8);
-  }, [onPausedChange]);
+  }, [onToggleSound]);
 
   const handleBackgroundTap = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -558,9 +556,9 @@ export default function FeedItem({
         Math.abs(y - lastPosRef.current.y) < 50;
 
       if (now - lastTapRef.current < 300 && isNearLastTap) {
-        // Second tap: this was a double tap all along. Undo the pause the
-        // first tap applied, then like.
-        togglePlayback();
+        // Second tap: this was a double tap all along. Undo the mute the
+        // first tap toggled, then like.
+        toggleSound();
         handleDoubleTap(x, y);
         lastTapRef.current = 0;
         lastPosRef.current = null;
@@ -573,12 +571,9 @@ export default function FeedItem({
       // instant. Apple's rule: respond on the gesture, not after it.
       lastTapRef.current = now;
       lastPosRef.current = { x, y };
-      // Pausing makes the pair visible on its own, and resuming has to let it
-      // go; a hint here would hold the sound circle on screen after the
-      // playback circle had left.
-      togglePlayback();
+      toggleSound();
     },
-    [handleDoubleTap, togglePlayback]
+    [handleDoubleTap, toggleSound]
   );
 
   const removeHeart = useCallback((id: number) => {
@@ -653,6 +648,18 @@ export default function FeedItem({
     setShareOpen(true);
   }, [canShareFiles, postId, title]);
 
+  // No scrim under the label (as on iOS): the films end on their own caption
+  // bands, some cream, and a dark gradient over cream read as a grey bar. The
+  // label and the rail take the ink the poster's bottom can carry instead —
+  // see lib/posterInk.ts.
+  const inkKind = useSyncExternalStore(
+    posterInkStore.subscribe,
+    () => posterInkStore.read(backgroundImage),
+    () => "dark-bottom" as const,
+  );
+  const ink = INK[inkKind];
+  useEffect(() => { measurePoster(backgroundImage); }, [backgroundImage]);
+
   return (
     /*
      * The tilt goes on the CARD BOX, not on the artwork inside it — the whole
@@ -670,8 +677,12 @@ export default function FeedItem({
      */
     <div
       ref={tiltRef}
-      className="relative w-full h-[calc(100dvh-138px)] min-h-[calc(100svh-138px)] snap-start snap-always flex-shrink-0 mb-[12px]
-                    desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]"
+      // The phone card is the film's 9:16 at the column's width, 24 between
+      // films — iOS's DF.filmGap. The screen and the film are both fixed, so
+      // the tip of the next film is simply what is left (~120px on a 375x812).
+      // Desk keeps its own height-led sizing; aspect-auto hands it back.
+      className="relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[24px]
+                    desk:aspect-auto desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]"
     >
       {/* Tappable Background Area for Double-Tap */}
       <div
@@ -746,7 +757,6 @@ export default function FeedItem({
               <div className="fx-lightsweep" aria-hidden />
             </>
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
         </div>
       </div>
 
@@ -755,7 +765,6 @@ export default function FeedItem({
         <audio ref={audioRef} loop muted preload={eagerAudio ? "auto" : "metadata"} />
       )}
 
-      <PlaybackOverlay paused={userPaused} />
 
       {/* Heart animations from double tap */}
       {hearts.map((heart) => (
@@ -781,7 +790,10 @@ export default function FeedItem({
       )}
 
       {/* Action Icons */}
-      <div className="absolute right-[20px] bottom-[24px] flex flex-col gap-[32px] z-[100]">
+      <div
+        className="absolute right-[20px] bottom-[24px] flex flex-col gap-[32px] z-[100]"
+        style={{ color: ink.ink, filter: `drop-shadow(0 1px 3px ${ink.shadow})` }}
+      >
         <IconButton
           onClick={handleShare}
           label="Share"
@@ -799,7 +811,7 @@ export default function FeedItem({
         >
           {/* #EAC72C is the saved colour from the Figma export; unsaved
               inherits white through currentColor. */}
-          <span className={isSaved ? "text-[#EAC72C]" : "text-white"}>
+          <span className={isSaved ? "text-[#EAC72C]" : undefined}>
             <BookmarkIcon filled={isSaved} className="pointer-events-none block" />
           </span>
         </IconButton>
@@ -807,7 +819,10 @@ export default function FeedItem({
 
       {/* Title */}
       <div className="absolute left-[20px] right-[80px] bottom-[24px] z-10 pointer-events-none">
-        <h1 className="text-[24px] font-semibold text-white tracking-[-0.48px] drop-shadow-lg">
+        <h1
+          className="text-[24px] font-semibold tracking-[-0.48px]"
+          style={{ color: ink.ink, textShadow: `0 1px 3px ${ink.shadow}` }}
+        >
           {title}
         </h1>
       </div>

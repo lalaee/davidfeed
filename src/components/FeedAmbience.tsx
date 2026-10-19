@@ -229,6 +229,12 @@ export default function FeedAmbience({ src, warm = [] }: { src?: string; warm?: 
   const sceneRef = useRef<Scene | null>(null);
   const [desk, setDesk] = useState(false);
   const [drawn, setDrawn] = useState(false);
+  // The covers on screen, oldest first, newest fading in on top. Adjusted
+  // during render — React's adjust-on-change pattern — not in an effect.
+  const [layers, setLayers] = useState<string[]>(src ? [src] : []);
+  if (src && layers[layers.length - 1] !== src) {
+    setLayers([...layers.slice(-1), src]);
+  }
 
   useEffect(() => {
     const mq = matchMedia("(min-width: 1028px)");
@@ -307,14 +313,25 @@ export default function FeedAmbience({ src, warm = [] }: { src?: string; warm?: 
   // later in the document at the same level.
   return (
     <>
-      {src && (
+      {/* The stand-in is also THE PHONE'S AMBIENCE. The swirl is desktop-only,
+          but on the phone the card is the film's 9:16 and the gaps between
+          films, the strip under the next one's tip and the safe areas would
+          otherwise be black. The iOS feed fills them with exactly this — the
+          cover at 1.25x, blur 60, saturate 2.75 (FeedView.swift, FeedAmbience),
+          undimmed, crossfading over 0.5s — so the web does the same. On the
+          phone the canvas never builds, so `drawn` stays false and this simply
+          stays. Each cover is its own keyed layer and fades in over the last,
+          so the ground never jumps; only the newest two are kept. */}
+      {layers.length > 0 && (
         <div
           aria-hidden
-          className="feed-ambience-standin pointer-events-none fixed inset-0 z-0 hidden overflow-hidden desk:block"
+          className="feed-ambience-standin pointer-events-none fixed inset-0 z-0 overflow-hidden"
           data-drawn={drawn ? "" : undefined}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- the cover the card already holds; no optimisation pass wanted between it and the first frame */}
-          <img src={src} alt="" className="h-full w-full object-cover" />
+          {layers.map((url) => (
+            // eslint-disable-next-line @next/next/no-img-element -- the cover the card already holds; no optimisation pass wanted between it and the first frame
+            <img key={url} src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ))}
         </div>
       )}
       <canvas

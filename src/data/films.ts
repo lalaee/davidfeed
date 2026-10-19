@@ -38,6 +38,13 @@ interface Film {
   style: string;
   /** Basename in /assets/films and in the source repo. */
   file: string;
+  /**
+   * The verses the film reads, when it is only part of the chapter. A whole
+   * chapter is named alone ("Psalm 3"); part of one carries its verses
+   * ("Psalm 45:2-8"). The ranges are the films' own briefs, the same ones the
+   * iOS import reads: 23 is 1-6 and 3 is 1-8, both whole; 45 is 2-8 of 17.
+   */
+  verses?: string;
 }
 
 const FILMS: Film[] = [
@@ -47,15 +54,14 @@ const FILMS: Film[] = [
   { id: 301,  psalm: 3,  style: "Shadow puppet",      file: "psalm-3-shadow-puppet" },
   { id: 302,  psalm: 3,  style: "Stained glass",      file: "psalm-3-stained-glass" },
   { id: 303,  psalm: 3,  style: "Woodcut",            file: "psalm-3-woodcut" },
-  { id: 4501, psalm: 45, style: "Art deco",           file: "psalm-45-art-deco" },
-  { id: 4502, psalm: 45, style: "Impasto",            file: "psalm-45-impasto" },
+  { id: 4501, psalm: 45, style: "Art deco",           file: "psalm-45-art-deco", verses: "2-8" },
+  { id: 4502, psalm: 45, style: "Impasto",            file: "psalm-45-impasto",  verses: "2-8" },
 ];
 
-export const filmPosts: Post[] = FILMS.map(({ id, psalm, file }) => ({
+export const filmPosts: Post[] = FILMS.map(({ id, psalm, file, verses }) => ({
   id,
-  // Book and chapter only — each film reads the whole psalm, and the style is
-  // the picture's to show, not the label's to say.
-  title: `Psalm ${psalm}`,
+  // The reference, never the style — the style is the picture's to show.
+  title: verses ? `Psalm ${psalm}:${verses}` : `Psalm ${psalm}`,
   backgroundImage: `/assets/films/${file}.jpg`,
   posterVideoSrc: `/assets/films/${file}.mp4`,
   audioSrc: `/assets/films/${file}.m4a`,

@@ -1558,8 +1558,8 @@ html, body {
     width: calc(var(--desk-card-w) + 2 * var(--desk-lean));
     /* Transparent at desk so the ambience shows in the gaps between cards, in
      * the lean margins and around the peeks — the swirl is meant to surround
-     * the artwork, as it does in Apple's Now Playing. The phone keeps bg-black:
-     * there the column is the whole screen and the black is its safe area. */
+     * the artwork, as it does in Apple's Now Playing. The phone is transparent
+     * too now (see THE AMBIENCE'S STAND-IN): its ambience is the blurred cover. */
     background: transparent;
   }
   .feed-scroll {
@@ -2017,4 +2017,23 @@ html, body {
 .feed-ambience-standin > img {
   transform: scale(1.25);
   filter: blur(60px) saturate(2.75);
+  /* Each new cover arrives over the last on iOS's 0.5s easeInOut. */
+  animation: ambience-in 500ms ease-in-out both;
+}
+.feed-ambience-standin > img:first-child:not(:only-child) {
+  animation: none;
+}
+@keyframes ambience-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feed-ambience-standin > img { animation: none; }
+}
+/* On the phone the column is no longer painted black: the ambience is the
+ * ground between films, as it is on iOS. (Desk sets the same, below, for the
+ * swirl.) The page's own fixed black stays beneath everything for the moment
+ * before the first cover has decoded. */
+.feed-column {
+  background: transparent;
 }

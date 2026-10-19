@@ -17,3 +17,19 @@ enum StatusBar {
         }
     }
 }
+
+/// App Store screenshots, taken from the simulator with the app launched with
+/// `-AppStoreScreenshots`. The status bar is hidden and the cards' top corners
+/// are square, so a capture is the film flush to the top with no clock. The
+/// Dynamic Island is drawn into simulator captures regardless; the capture
+/// script crops its band. Never set in normal use.
+enum ScreenshotMode {
+    static let on = ProcessInfo.processInfo.arguments.contains("-AppStoreScreenshots")
+
+    @MainActor
+    static func apply() {
+        guard on else { return }
+        UIApplication.shared.isStatusBarHidden = true
+    }
+}
+

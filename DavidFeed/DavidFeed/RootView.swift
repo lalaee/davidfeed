@@ -66,6 +66,7 @@ struct RootView: View {
         .onChange(of: statusBarDark, initial: true) { _, dark in
             StatusBar.set(dark: dark)
         }
+        .onAppear { ScreenshotMode.apply() }
         .tabBarNeverMinimizes()
         .tint(DF.ink)
         .background(DF.ground)

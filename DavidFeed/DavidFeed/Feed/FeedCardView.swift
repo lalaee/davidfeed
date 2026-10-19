@@ -58,7 +58,14 @@ struct FeedCardView: View {
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
-            .clipShape(RoundedRectangle(cornerRadius: DF.cardRadius, style: .continuous))
+            // Screenshots square the top corners, so a capture starts flush with
+            // the film; in use the card is rounded all round.
+            .clipShape(UnevenRoundedRectangle(
+                topLeadingRadius: ScreenshotMode.on ? 0 : DF.cardRadius,
+                bottomLeadingRadius: DF.cardRadius,
+                bottomTrailingRadius: DF.cardRadius,
+                topTrailingRadius: ScreenshotMode.on ? 0 : DF.cardRadius,
+                style: .continuous))
         }
         .task(id: isActive) { syncPlayback() }
     }

@@ -62,9 +62,14 @@ for f in "$SRC"/*.mp4; do
   # "psalm-23-woodcut" -> "Psalm 23:1-6": the book and the verses, not the style.
   passage=$(python3 -c "import re,sys; print(re.match(r'[a-z]+-\d+', sys.argv[1]).group(0))" "$stem")
   verses=$(verses_for "$passage")
+  # A whole chapter is named alone ("Psalm 3"); verses only for part of one.
+  # Whole means 1 to the chapter's last verse, counted in the WEB text the app
+  # ships (KJV and ASV agree on these).
   title=$(python3 -c "
-import sys; book, ch = sys.argv[1].rsplit('-', 1); v = sys.argv[2]
-print(book.capitalize() + ' ' + ch + (':' + v if v else ''))" "$passage" "$verses")
+import sys, json; book, ch = sys.argv[1].rsplit('-', 1); v = sys.argv[2]
+verses = json.load(open(sys.argv[3]))['chapters'].get(ch, [])
+whole = v == f'1-{len(verses)}'
+print(book.capitalize() + ' ' + ch + ('' if whole or not v else ':' + v))" "$passage" "$verses" "$RES/bible/web-${passage%-*}s.json")
   n=$((n+1))
   # Ids from 101: the old feed's ids are still in saved state on the phone
   # (a saved "3" would otherwise light up whichever film landed third).

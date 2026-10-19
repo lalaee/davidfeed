@@ -55,10 +55,10 @@ struct FeedView: View {
             let viewport = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
             let lastHeight = posts.last.map { cardHeight($0, width: geo.size.width) } ?? 0
             // The films are shorter than the screen, so at the usual gap ~147pt
-            // of the next one showed. The gap opens instead, so only the old
-            // 48pt tip of it shows at the bottom, over the ambience.
+            // of the next one showed. The gap opens instead, so only a
+            // tip of it (DF.filmTip) shows at the bottom, over the ambience.
             let firstHeight = posts.first.map { cardHeight($0, width: geo.size.width) } ?? viewport
-            let gap = max(DF.cardGap, viewport - firstHeight - DF.cardInsetBottom)
+            let gap = max(DF.cardGap, viewport - firstHeight - DF.filmTip)
 
             ScrollView(.vertical) {
                 LazyVStack(spacing: gap) {

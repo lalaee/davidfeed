@@ -17,6 +17,30 @@ enum ArtworkCache {
         return c
     }()
 
+    private static var lightBottoms: [String: Bool] = [:]
+
+    /// Whether the bottom tenth of the picture is light: the band a card's
+    /// label sits on. Measured once per picture by scaling that band to one
+    /// pixel.
+    static func isLightAtBottom(_ url: URL?) -> Bool {
+        guard let url else { return false }
+        if let hit = lightBottoms[url.path] { return hit }
+        guard let cg = image(url)?.cgImage,
+              let band = cg.cropping(to: CGRect(x: 0, y: Int(Double(cg.height) * 0.9),
+                                                width: cg.width, height: max(1, cg.height / 10))),
+              let ctx = CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return false }
+        ctx.interpolationQuality = .medium
+        ctx.draw(band, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        let px = ctx.data!.bindMemory(to: UInt8.self, capacity: 4)
+        let lum = 0.2126 * Double(px[0]) + 0.7152 * Double(px[1]) + 0.0722 * Double(px[2])
+        let light = lum > 150
+        lightBottoms[url.path] = light
+        return light
+    }
+
     static func image(_ url: URL?) -> UIImage? {
         guard let url else { return nil }
         let key = url.path as NSString

@@ -36,10 +36,10 @@ struct FeedCardView: View {
                 // disambiguate against a single tap -- the rail's buttons never
                 // saw their taps at all. Anything above this layer in the stack
                 // is now hit-tested before it.
+                // No scrim: the films end on their own caption bands, some
+                // cream, and a dark gradient over cream read as a grey bar.
+                // The label takes a colour the film's bottom can carry instead.
                 artwork(size: geo.size)
-                    // Just behind the label: the films burn their own captions
-                    // in above it, and the 42% scrim the stills used dimmed them.
-                    .overlay { Color.clear.bottomScrim(72) }
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { location in like(at: location) }
                     // Toggles the PLAYER, not a separate flag. app.soundOn was a
@@ -64,6 +64,14 @@ struct FeedCardView: View {
     }
 
     // MARK: pieces
+
+    /// Dark label and icons on a light film, white on a dark one, from how
+    /// bright the bottom of the film's poster is.
+    private var chrome: (ink: Color, shadow: Color) {
+        ArtworkCache.isLightAtBottom(post.artworkURL)
+            ? (Color.black.opacity(0.82), Color.white.opacity(0.25))
+            : (DF.ink, Color.black.opacity(0.35))
+    }
 
     @ViewBuilder
     private func artwork(size: CGSize) -> some View {
@@ -100,21 +108,22 @@ struct FeedCardView: View {
                 Text(post.title)
                     .font(.system(size: 24, weight: .semibold))
                     .tracking(-0.48)
-                    .foregroundStyle(DF.ink)
-                    .shadow(color: .black.opacity(0.5), radius: 10, y: 2)
+                    .foregroundStyle(chrome.ink)
+                    .shadow(color: chrome.shadow, radius: 3, y: 1)
                 Spacer(minLength: 16)
                 VStack(spacing: 32) {
                     // The film is the share: it already carries its voice, score
                     // and captions, so the file goes alone, as the web's does.
                     if let film = post.loopURL {
                         ShareLink(item: film, preview: SharePreview(post.title)) {
-                            RailIcon(asset: "Send", tint: DF.ink)
+                            RailIcon(asset: "Send", tint: chrome.ink, shadow: chrome.shadow)
                         }
                         .buttonStyle(.plain)
                     }
                     RailButton(
                         asset: app.isSaved(post) ? "BookmarkActive" : "BookmarkInactive",
-                        tint: app.isSaved(post) ? Color(hex: "#EAC72C") : DF.ink
+                        tint: app.isSaved(post) ? Color(hex: "#EAC72C") : chrome.ink,
+                        shadow: chrome.shadow
                     ) {
                         app.toggleSaved(post)
                         withAnimation(.snappy) { showSavedPop = app.isSaved(post) }
@@ -170,6 +179,7 @@ struct FeedCardView: View {
 private struct RailButton: View {
     let asset: String
     let tint: Color
+    let shadow: Color
     let action: () -> Void
 
     @State private var bumped = false
@@ -187,7 +197,7 @@ private struct RailButton: View {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { bumped = false }
             }
         } label: {
-            RailIcon(asset: asset, tint: tint)
+            RailIcon(asset: asset, tint: tint, shadow: shadow)
                 .scaleEffect(bumped ? 1.25 : 1)
         }
         .buttonStyle(.plain)
@@ -198,6 +208,7 @@ private struct RailButton: View {
 private struct RailIcon: View {
     let asset: String
     let tint: Color
+    let shadow: Color
 
     var body: some View {
         Image(asset)
@@ -206,7 +217,7 @@ private struct RailIcon: View {
             .scaledToFit()
             .frame(width: 40, height: 40)
             .foregroundStyle(tint)
-            .shadow(color: .black.opacity(0.45), radius: 8, y: 2)
+            .shadow(color: shadow, radius: 3, y: 1)
     }
 }
 

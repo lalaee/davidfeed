@@ -7,6 +7,7 @@ import DesktopNav from "./DesktopNav";
 import { HIGHLIGHT_COLOURS } from "./VerseActionBar";
 import { fetchChapterIn, parseTitle, readingTranslation } from "@/data/bible";
 import { shortPosts } from "@/data/shorts";
+import { authSheetStore, authStore } from "@/lib/auth";
 import { highlightStore, readingStore, savedPostStore } from "@/lib/stores";
 import { formatVerseRange } from "@/lib/verseRef";
 
@@ -93,6 +94,7 @@ interface HighlightEntry {
 
 export default function Library() {
   const [tab, setTab] = useState<LibraryTab>("feed");
+  const auth = useSyncExternalStore(authStore.subscribe, authStore.read, authStore.serverSnapshot);
 
   return (
     <>
@@ -117,10 +119,27 @@ export default function Library() {
               active={tab === "verses"}
               onClick={() => setTab("verses")}
             />
+            {/* In the row, after the tabs, rather than pinned beside it: the
+                two pills already take the whole of a 375 screen, and a fixed
+                button would clip the second one. Here it scrolls into reach on
+                a phone and sits at the end of the row wherever there is room. */}
+            {auth.status === "signedIn" && (
+              <AccountButton initial={(auth.reader.name || auth.reader.email || "?").charAt(0)} />
+            )}
           </div>
         </div>
 
-        {tab === "feed" ? <SavedFeed /> : <SavedHighlights />}
+        {/* The Library is the reader's account: signed out there is nothing of
+            theirs to list, only the way in. Nothing at all while the session
+            is still being read, so a signed-in reader never sees the prompt
+            flash past on the way to their grid. */}
+        {auth.status === "signedOut" ? (
+          <SignedOut />
+        ) : auth.status === "signedIn" ? (
+          tab === "feed" ? <SavedFeed /> : <SavedHighlights />
+        ) : (
+          <div className="flex-1" />
+        )}
 
         <DesktopNav activeTab="library" />
       </div>
@@ -407,6 +426,43 @@ function SavedHighlights() {
         </div>
       )}
     </>
+  );
+}
+
+/* The account, as the first letter of the reader's name on the inactive
+   tab pill's #0E0E0E, at the pills' 38 height. Opens the account sheet. */
+function AccountButton({ initial }: { initial: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => authSheetStore.set(true)}
+      aria-label="Your account"
+      className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-full border-none
+                 text-[17px] font-semibold uppercase leading-[22px] text-white press"
+      style={{ backgroundColor: "#0E0E0E" }}
+    >
+      {initial}
+    </button>
+  );
+}
+
+/* Signed out: the empty state's type, and the way in. */
+function SignedOut() {
+  return (
+    <div className="flex flex-1 flex-col items-start gap-[24px] px-[24px] pt-[40px]">
+      <p className="text-[18px] font-normal leading-[27px]" style={{ color: "#999999" }}>
+        Sign in to save films and verses and keep your highlights, on every device.
+      </p>
+      <button
+        type="button"
+        onClick={() => authSheetStore.set(true)}
+        className="rounded-[19.25px] border-none bg-white px-[16px] py-[8px] text-[17px] font-semibold
+                   leading-[22px] text-[#0E0E0E] press"
+        style={{ letterSpacing: "-0.41px" }}
+      >
+        Sign in
+      </button>
+    </div>
   );
 }
 

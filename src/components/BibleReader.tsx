@@ -24,6 +24,7 @@ import {
   savedVerseStore,
   versionsStore,
 } from "@/lib/stores";
+import { gated } from "@/lib/auth";
 import { formatVerseRange } from "@/lib/verseRef";
 import { navHiddenStore } from "@/lib/uiStore";
 
@@ -204,14 +205,9 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
   const setHighlight = useCallback(
     (colour: string | null) => {
       if (!selected.length) return;
-      const next: Record<number, string> = {
-        ...(highlightStore.read()[chapterTitle] ?? EMPTY_CHAPTER),
-      };
-      for (const n of selected) {
-        if (colour) next[n] = colour;
-        else delete next[n];
-      }
-      highlightStore.write({ ...highlightStore.read(), [chapterTitle]: next });
+      // Highlights belong to an account: signed out, this asks the reader to
+      // sign in and applies the colour when they are back.
+      gated({ kind: "highlight", chapter: chapterTitle, verses: selected, colour });
     },
     [chapterTitle, selected],
   );
@@ -259,12 +255,7 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
     if (!selected.length) return;
     const current = savedVerseStore.read()[chapterTitle] ?? EMPTY_CHAPTER;
     const allSaved = selected.every((n) => current[n]);
-    const next: Record<number, true> = { ...current };
-    for (const n of selected) {
-      if (allSaved) delete next[n];
-      else next[n] = true;
-    }
-    savedVerseStore.write({ ...savedVerseStore.read(), [chapterTitle]: next });
+    gated({ kind: "saveVerses", chapter: chapterTitle, verses: selected, on: !allSaved });
   }, [chapterTitle, selected]);
 
   const handleShare = useCallback(() => {

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AgentationWrapper from "@/components/AgentationWrapper";
+import AuthSheet from "@/components/AuthSheet";
 import BottomNav from "@/components/BottomNav";
 
 const inter = Inter({
@@ -56,6 +57,9 @@ export default function RootLayout({
             is what lets the nav's selected pill glide between tabs instead of
             being remounted with each page. See BottomNav. */}
         <BottomNav />
+        {/* Also once, here: it restores the session on every page and is the
+            sheet any save made while signed out opens. See lib/auth.ts. */}
+        <AuthSheet />
         <AgentationWrapper />
       </body>
     </html>

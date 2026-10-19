@@ -6,6 +6,7 @@ import VideoSubtitles from "./VideoSubtitles";
 import IconButton from "./IconButton";
 import { BookmarkIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
+import { gated } from "@/lib/auth";
 import { savedPostStore } from "@/lib/stores";
 import { useMagneticTilt } from "@/hooks/useMagneticTilt";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
@@ -581,11 +582,10 @@ export default function FeedItem({
   }, []);
 
   const handleSave = useCallback(() => {
-    const current = savedPostStore.read();
-    const next = { ...current };
-    if (next[postId]) delete next[postId];
-    else next[postId] = true;
-    savedPostStore.write(next);
+    // Saving needs an account. Signed out, this opens the sign-in sheet and
+    // holds the save until the reader is back; there is no pop for a save
+    // that has not happened.
+    if (!gated({ kind: "savePost", id: postId, on: !savedPostStore.read()[postId] })) return;
     // Drop the class for a frame first. Setting it true when it is already
     // true is not a state change, so React does not re-render and the CSS
     // animation never replays — the second tap would do nothing.

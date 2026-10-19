@@ -108,18 +108,6 @@ struct FeedView: View {
             .ignoresSafeArea()
             .scrollIndicators(.hidden)
             .background { FeedAmbience(post: activePost) }
-            // The reel dissolving under the tab bar: from the screen's bottom
-            // edge to 8pt past the resting card's bottom, covering the gap and
-            // the next card's peek. Pushed down by the inset because an
-            // overlay's frame stops at the safe area even though the content
-            // runs under the bar; .ignoresSafeArea on the child does nothing
-            // there, measured. Light shade, so the ambience still reaches the
-            // tab bar's glass.
-            .overlay(alignment: .bottom) {
-                EdgeDissolve(height: DF.cardInsetBottom + geo.safeAreaInsets.bottom + 8,
-                             shade: 0.45)
-                    .offset(y: geo.safeAreaInsets.bottom)
-            }
             .overlay(alignment: .top) {
                 // Parked with the topics: there is one feed and it has no
                 // name to show. A collection still titles itself, which is why

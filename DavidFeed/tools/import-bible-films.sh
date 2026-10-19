@@ -21,7 +21,8 @@ mkdir -p "$MEDIA"
 # Half the cores and nice'd: a film is a minute of 1080p, and the Mac stays usable.
 THREADS="${THREADS:-$(( $(sysctl -n hw.ncpu) / 2 ))}"; [ "$THREADS" -lt 2 ] && THREADS=2
 
-# The verses each psalm's films cover, from dafod/psalm-*/shared/BRIEF.md in
+# The verses each psalm's films cover, and their translation (NIV, all of
+# them), from dafod/psalm-*/shared/BRIEF.md in
 # lemo-opuscar. The films are the passage, not always the whole psalm:
 # Psalm 45's are verses 2 to 8. (/bin/bash on macOS has no associative arrays.)
 verses_for() {
@@ -67,7 +68,7 @@ print(book.capitalize() + ' ' + ch + (':' + v if v else ''))" "$passage" "$verse
   n=$((n+1))
   # Ids from 101: the old feed's ids are still in saved state on the phone
   # (a saved "3" would otherwise light up whichever film landed third).
-  rows+=("{\"id\": $((100+n)), \"title\": \"$title\", \"backgroundImage\": \"/assets/verses/$stem.jpg\", \"posterVideoSrc\": \"/assets/verses/$stem.mp4\", \"aspect\": $aspect}")
+  rows+=("{\"id\": $((100+n)), \"title\": \"$title\", \"backgroundImage\": \"/assets/verses/$stem.jpg\", \"posterVideoSrc\": \"/assets/verses/$stem.mp4\", \"translation\": \"NIV\", \"aspect\": $aspect}")
   echo "   $n  $title  ${w}x${h}  $(du -h "$out" | cut -f1)"
 done
 

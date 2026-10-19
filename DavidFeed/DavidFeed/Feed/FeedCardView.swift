@@ -97,11 +97,20 @@ struct FeedCardView: View {
         VStack {
             Spacer()
             HStack(alignment: .bottom) {
-                Text(post.title)
-                    .font(.system(size: 24, weight: .semibold))
-                    .tracking(-0.48)
-                    .foregroundStyle(DF.ink)
-                    .shadow(color: .black.opacity(0.5), radius: 10, y: 2)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(post.title)
+                        .font(.system(size: 24, weight: .semibold))
+                        .tracking(-0.48)
+                        .foregroundStyle(DF.ink)
+                    // The publisher's notice, under the reference it covers.
+                    if let credit = post.credit {
+                        Text(credit)
+                            .font(.system(size: 8.5))
+                            .foregroundStyle(DF.ink.opacity(0.7))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .shadow(color: .black.opacity(0.5), radius: 10, y: 2)
                 Spacer(minLength: 16)
                 VStack(spacing: 32) {
                     // The film is the share: it already carries its voice, score

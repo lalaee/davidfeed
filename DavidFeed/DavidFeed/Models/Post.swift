@@ -27,6 +27,19 @@ struct Post: Codable, Identifiable, Hashable {
     /// The film's height over its width, measured off the file by the import,
     /// so the card can be exactly the film's shape.
     let aspect: Double?
+    /// The translation the film quotes. Set by the import from the film's brief.
+    let translation: String?
+
+    /// The notice the translation's publisher requires wherever its text
+    /// appears. The NIV's is Biblica's, quoted as their permissions page gives it.
+    var credit: String? {
+        switch translation {
+        case "NIV":
+            return "Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide."
+        default:
+            return nil
+        }
+    }
 
     /// The web app stores absolute web paths ("/assets/shorts/x.mp3"); the app
     /// bundle is flat, so only the filename carries over.

@@ -58,7 +58,7 @@ struct BibleView: View {
                 .scrollIndicators(.hidden)
                 // iOS 26's own treatment for content passing under the toolbar.
                 // No dissolve at the bottom, by choice: the reader carried the
-                // feed's EdgeDissolve band for a while and it was taken out --
+                // feed's edge blur for a while and it was taken out --
                 // verses under the tab bar stay as they are. The feed keeps it.
                 .softTopEdge()
                 .onChange(of: store.chapter) { proxy.scrollTo("top", anchor: .top) }

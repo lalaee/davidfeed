@@ -22,8 +22,9 @@ enum DF {
     /// alone, which is what the number has to mean once the nav is already gone.
     static let cardInsetBottom: CGFloat = 48
     static let cardGap: CGFloat = 12
-    /// How much of the next film shows below the one in view.
-    static let filmTip: CGFloat = 96
+    /// The gap between films. The film and the screen are fixed, so the tip of
+    /// the next one is what is left: ~135pt on a 17 Pro.
+    static let filmGap: CGFloat = 24
     /// "It has to clear the 53px corner radius to read as a card"
     static let cardRadius: CGFloat = 53
 

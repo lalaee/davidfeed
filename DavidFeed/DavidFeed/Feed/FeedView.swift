@@ -54,14 +54,9 @@ struct FeedView: View {
             // The scroll view runs edge to edge, so its height is the screen's.
             let viewport = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
             let lastHeight = posts.last.map { cardHeight($0, width: geo.size.width) } ?? 0
-            // The films are shorter than the screen, so at the usual gap ~147pt
-            // of the next one showed. The gap opens instead, so only a
-            // tip of it (DF.filmTip) shows at the bottom, over the ambience.
-            let firstHeight = posts.first.map { cardHeight($0, width: geo.size.width) } ?? viewport
-            let gap = max(DF.cardGap, viewport - firstHeight - DF.filmTip)
 
             ScrollView(.vertical) {
-                LazyVStack(spacing: gap) {
+                LazyVStack(spacing: DF.filmGap) {
                     ForEach(posts) { post in
                         FeedCardView(
                             post: post,

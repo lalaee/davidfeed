@@ -146,7 +146,7 @@ final class Playback {
         guard let post = currentPost else { return }
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: post.title,
-            MPMediaItemPropertyArtist: "DavidFeed",
+            MPMediaItemPropertyArtist: "Dafod",
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
         ]
         if duration > 0 { info[MPMediaItemPropertyPlaybackDuration] = duration }

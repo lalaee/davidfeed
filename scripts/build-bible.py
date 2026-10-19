@@ -38,7 +38,9 @@ WHAT IS DROPPED
 The KJV OSIS carries the Apocrypha; only the 66 books the app lists survive.
 Psalm superscriptions ("To the chief Musician...") are <title> in OSIS and are
 not verses, so they are not emitted — the three translations then agree on what
-verse n is, which is what the compare card depends on.
+verse n is, which is what the compare card depends on. Nor are book titles, the
+Book I-V markers or Psalm 119's letter headings: each verse ends at its own end
+marker (see parse_osis).
 """
 
 from __future__ import annotations
@@ -137,18 +139,27 @@ def parse_getbible(raw: bytes) -> dict[int, dict[int, list[str]]]:
 
 
 # <verse osisID="Ps.46.1" sID="..." /> text <verse eID="..." />
-VERSE_START = re.compile(r'<verse osisID="([^"]+)" sID="[^"]*"[^>]*/>')
+VERSE_START = re.compile(r'<verse osisID="([^"]+)" sID="([^"]*)"[^>]*/>')
 TAG = re.compile(r"<[^>]+>")
 
 
 def parse_osis(raw: bytes) -> dict[int, dict[int, list[str]]]:
     """Milestone-form OSIS: verses are empty markers, not containers.
 
-    The text of a verse is everything between its start marker and the next
-    marker of any kind, with the inline tags removed — <transChange> (the KJV's
-    supplied words, which every plain-text KJV keeps), <l>, <lg>, <p>, <q>.
-    <title> is left out with them, which is what drops the psalm
-    superscriptions.
+    The text of a verse is everything between its start marker and ITS OWN
+    end marker (the <verse eID> carrying its sID), with the inline tags
+    removed — <transChange> (the KJV's supplied words, which every plain-text
+    KJV keeps), <l>, <lg>, <p>, <q>.
+
+    It used to run to the next verse's START marker instead, which swallowed
+    whatever sits between two verses: the psalm superscriptions (<title
+    type="psalm">), Psalm 119's ALEPH/BETH headings, the Book I-V markers, and
+    the next book's title (<title type="main">). Removing the tags kept their
+    text, so "A Psalm of David." ended Psalm 23:6 and "The Second Book of
+    Moses, called Exodus" ended Genesis 50:26. Ending each verse at its own
+    end marker leaves all of that out, and keeps what is genuinely inside a
+    verse -- Habakkuk 3:19 ends "To the chief singer on my stringed
+    instruments." in the OSIS itself.
     """
     text = raw.decode("utf-8")
     index = {osis: i + 1 for i, osis in enumerate(OSIS_IDS)}
@@ -156,7 +167,7 @@ def parse_osis(raw: bytes) -> dict[int, dict[int, list[str]]]:
 
     marks = list(VERSE_START.finditer(text))
     for i, m in enumerate(marks):
-        osis_id = m.group(1)
+        osis_id, sid = m.group(1), m.group(2)
         parts = osis_id.split(".")
         if len(parts) != 3:
             continue
@@ -164,7 +175,9 @@ def parse_osis(raw: bytes) -> dict[int, dict[int, list[str]]]:
         nr = index.get(book)
         if nr is None:      # Apocrypha, or a book this app does not list
             continue
-        end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+        nxt = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+        own_end = text.find(f'<verse eID="{sid}"', m.end(), nxt) if sid else -1
+        end = own_end if own_end != -1 else nxt
         body = clean(html.unescape(TAG.sub(" ", text[m.end():end])))
         if not body:
             continue

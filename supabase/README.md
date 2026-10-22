@@ -27,11 +27,14 @@ user created through the local admin API.
 3. **URLs.** Authentication → URL Configuration: Site URL
    `https://www.dafod.app`; Redirect URLs `https://www.dafod.app/**` and
    `https://dafod.app/**`.
-4. **Google.** Google Cloud console → APIs & Services → Credentials → OAuth
-   client ID, type Web application. Authorized JavaScript origin
-   `https://www.dafod.app`; authorized redirect URI
-   `https://<ref>.supabase.co/auth/v1/callback`. Paste the client ID and secret
-   into Supabase → Authentication → Sign In / Providers → Google.
+4. **Google.** Google Cloud project `dafod-512122` → Google Auth Platform →
+   Clients → OAuth client "Dafod web" (Web application). Authorized JavaScript
+   origins `https://www.dafod.app` and `https://dafod.app`; **no redirect URI**:
+   the site signs in with Google's own button (`src/lib/googleSignIn.ts`) and
+   hands Supabase the ID token, so Google names dafod.app, not supabase.co, and
+   supabase.co never becomes an authorised domain (it would fail Google's brand
+   verification). Paste the client ID and secret into Supabase → Authentication
+   → Sign In / Providers → Google, and set `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
 5. **Apple.** Apple Developer → Certificates, IDs & Profiles:
    - an App ID with Sign in with Apple enabled (the iOS app's will do);
    - a Services ID (this is the web client ID), Sign in with Apple enabled,
@@ -45,5 +48,6 @@ user created through the local admin API.
    ```bash
    vercel env add NEXT_PUBLIC_SUPABASE_URL production
    vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
+   vercel env add NEXT_PUBLIC_GOOGLE_CLIENT_ID production
    ```
    then redeploy — `NEXT_PUBLIC_` values are baked in at build time.

@@ -13,8 +13,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DavidFeed",
-  description: "A devotional feed app inspired by Psalms",
+  // The product's name, as the app icon, the iOS app and Google's sign-in
+  // consent screen all give it. Google's brand review checks that the
+  // homepage carries the same name the consent screen does.
+  title: "Dafod",
+  description: "Stop doomscrolling, start hopescrolling: short films of the Bible's verses.",
 };
 
 export const viewport: Viewport = {
@@ -35,22 +38,6 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} h-full antialiased`}
     >
-      <head>
-        {/*
-          The desktop wordmark. Loaded by stylesheet rather than next/font
-          because this Next version's Google-font list does not carry the
-          family — it is on Google Fonts (its weight axis runs 200-900, which is
-          why a 100..900 request 400s), just not in the bundled index. The
-          trade-off is no build-time self-hosting, so it is preconnected and
-          swapped rather than blocking.
-        */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:wght@600&display=swap"
-        />
-      </head>
       <body className="min-h-full flex flex-col">
         {children}
         {/* Once, here, not per page: a layout survives navigation, and that

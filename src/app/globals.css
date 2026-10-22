@@ -13,8 +13,6 @@
   /* The desktop composition is a different layout, not a reflow, and it starts
      at 1028 — Tailwind's own lg is 1024, which is close enough to be wrong. */
   --breakpoint-desk: 1028px;
-  /* The desktop wordmark only. Everything else stays Inter. */
-  --font-wordmark: "Zalando Sans Expanded", var(--font-inter), sans-serif;
 }
 
 body {

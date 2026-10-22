@@ -15,7 +15,8 @@ import LiquidGlass from "./LiquidGlass";
  *
  *   bar       1440x97. The frame's #000000 fill and its 1px #212121 rule
  *             are both gone — see the note on the element.
- *   wordmark  "Dafod" at x=48, Zalando Sans Expanded SemiBold 24.55, -2%
+ *   wordmark  the dafod.app logo (public/brand/dafod-wordmark.svg) at x=48,
+ *             in place of the frame's "Dafod" in Zalando Sans Expanded
  *   pills     170x64 at radius 50, 21 apart, ending 86.27 from the right
  *             (now centred on the card's axis instead, see globals.css) —
  *             now 140x52, with a 26px icon and Inter Medium 16, asked down
@@ -51,12 +52,10 @@ export default function DesktopNav({ activeTab }: { activeTab: TabKey }) {
         className="fixed inset-x-0 top-0 z-[500] hidden h-[97px] items-center justify-between
                    desk-bar desk:flex"
       >
-        <span
-          className="text-[24.55px] leading-none text-white"
-          style={{ fontFamily: "var(--font-wordmark)", fontWeight: 600, letterSpacing: "-0.02em" }}
-        >
-          Dafod
-        </span>
+        {/* The logo as drawn, white on a 70x13 box: the play mark and
+            "dafod.app". An <img> rather than inlined paths, because it is a
+            supplied asset that may be swapped again; the browser caches it. */}
+        <img src="/brand/dafod-wordmark.svg" alt="Dafod" width={70} height={13} className="block h-[24px] w-auto" />
 
         {/* CENTRED ON THE CARD (globals.css, .desk-nav-morph), and it
             SHRINKS ONCE THE FEED HAS LEFT ITS FIRST CARD — the iOS toolbar

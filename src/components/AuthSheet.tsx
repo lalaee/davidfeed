@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { CloseIcon } from "./icons";
 import {
@@ -11,6 +12,7 @@ import {
   signOut,
   startAuth,
 } from "@/lib/auth";
+import { googleButtonAvailable, renderGoogleButton } from "@/lib/googleSignIn";
 
 /*
  * Sign in, or — for a reader already signed in — who they are and the way out.
@@ -27,7 +29,16 @@ import {
  *
  * The provider buttons follow each provider's own rules rather than the app's
  * palette: Apple's is white with its logo and "Continue with Apple" (an
- * allowed title in the HIG), Google's carries the four-colour G.
+ * allowed title in the HIG). Google's is Google's own, drawn by its script
+ * (lib/googleSignIn.ts) so its account chooser names dafod.app rather than the
+ * Supabase callback; it is 40 tall at "large", the tallest Google draws, so
+ * Apple's is cut to 40 to sit with it.
+ *
+ * There is deliberately no redirect fallback for Google. The redirect returns
+ * through the Supabase callback, which made Google list supabase.co as an
+ * authorised domain — one this app can never prove it owns, and so a domain
+ * that would fail Google's brand verification. If Google's script cannot load
+ * (a blocker, no network), a drawn stand-in says so instead.
  */
 export default function AuthSheet() {
   useEffect(() => {
@@ -40,7 +51,7 @@ export default function AuthSheet() {
     authSheetStore.serverSnapshot,
   );
   const auth = useSyncExternalStore(authStore.subscribe, authStore.read, authStore.serverSnapshot);
-  const [busy, setBusy] = useState<"apple" | "google" | "out" | null>(null);
+  const [busy, setBusy] = useState<"apple" | "out" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Escape closes it, as it closes the other sheets.
@@ -61,7 +72,7 @@ export default function AuthSheet() {
     closeAuthSheet();
   };
 
-  const go = async (provider: "apple" | "google") => {
+  const go = async (provider: "apple") => {
     setError(null);
     setBusy(provider);
     try {
@@ -150,24 +161,20 @@ export default function AuthSheet() {
                 type="button"
                 onClick={() => go("apple")}
                 disabled={busy !== null}
-                className="flex h-[52px] w-full items-center justify-center gap-[8px] rounded-full border-none
-                           bg-white text-[17px] font-semibold text-black press disabled:opacity-60"
+                className="flex h-[40px] w-full items-center justify-center gap-[8px] rounded-full border-none
+                           bg-white text-[15px] font-medium text-black press disabled:opacity-60"
               >
                 <AppleLogo />
                 {busy === "apple" ? "Opening Apple…" : "Continue with Apple"}
               </button>
-              <button
-                type="button"
-                onClick={() => go("google")}
-                disabled={busy !== null}
-                className="flex h-[52px] w-full items-center justify-center gap-[10px] rounded-full border-none
-                           text-[17px] font-semibold text-white press disabled:opacity-60"
-                style={{ backgroundColor: "#212121" }}
-              >
-                <GoogleLogo />
-                {busy === "google" ? "Opening Google…" : "Continue with Google"}
-              </button>
+              <GoogleButton onError={setError} />
             </div>
+            <p className="text-[13px] font-medium leading-[18px]" style={{ color: "#999999" }}>
+              We keep only your name, email and Library.{" "}
+              <Link href="/privacy" onClick={close} className="text-white underline">
+                Privacy
+              </Link>
+            </p>
             {error && (
               <p role="alert" className="text-[15px] font-medium leading-[18px] text-[#FF6B6B]">
                 {error}
@@ -178,6 +185,38 @@ export default function AuthSheet() {
       </div>
     </>
   );
+}
+
+/* Google's own button. The 40px box is held while the script loads, so the
+   sheet does not jump when it lands. When the script cannot load, a drawn
+   button in its place explains rather than doing nothing. */
+function GoogleButton({ onError }: { onError: (message: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [failed, setFailed] = useState(!googleButtonAvailable);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || failed) return;
+    renderGoogleButton(el, el.clientWidth, onError).catch(() => setFailed(true));
+  }, [failed, onError]);
+
+  if (failed) {
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          onError("Google sign-in couldn't load here. Allow accounts.google.com, or continue with Apple.")
+        }
+        className="flex h-[40px] w-full items-center justify-center gap-[10px] rounded-full border-none
+                   text-[15px] font-medium text-white press"
+        style={{ backgroundColor: "#212121" }}
+      >
+        <GoogleLogo />
+        Continue with Google
+      </button>
+    );
+  }
+  return <div ref={ref} className="flex h-[40px] w-full justify-center overflow-hidden rounded-full" />;
 }
 
 function AppleLogo() {

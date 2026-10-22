@@ -47,8 +47,8 @@ const HOPE_FACES = ["/motion/hero/hope-smiling-hearts.json"];
  * to the top right, a column of marketing copy appears on the left, and the
  * feed sits right of centre with paging buttons beside it.
  *
- *   top bar    1440x97, black with a #212121 rule along the bottom. Wordmark
- *              "Dafod" at x=48 in Zalando Sans Expanded SemiBold 24.55, -2%.
+ *   top bar    1440x97, black with a #212121 rule along the bottom. Wordmark:
+ *              the dafod.app logo at x=48 (see DesktopNav).
  *   nav        THREE separate 170x64 pills at radius 50, 21 apart, ending
  *              86.27 from the right. Icon and label sit side by side with a 6
  *              gap inside 16/12 padding — 32px icon, Inter Medium 18 at 2%.
@@ -184,6 +184,18 @@ export default function DesktopChrome({
           around a theme
         </p>
       </section>
+
+      {/* The privacy policy, under the copy on its left edge. Google's brand
+          review reads the homepage for a link to it, and accounts made it a
+          page worth finding. In the markup at every width, shown with the
+          copy. */}
+      <Link
+        href="/privacy"
+        className="desk-copy fixed bottom-[32px] z-[500] hidden !w-fit text-[15px] font-medium text-white/60
+                   no-underline hover:text-white desk:block"
+      >
+        Privacy
+      </Link>
 
       {collectionLabel ? (
         /* A collection names itself and offers the way back. Same slot, same

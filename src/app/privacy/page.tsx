@@ -18,7 +18,7 @@ export const metadata: Metadata = {
  * Regular 18/150% body in #999999, white for emphasis.
  */
 const UPDATED = "21 October 2026";
-const CONTACT = "olalekanisaaccb@gmail.com";
+const CONTACT = "lakesofmotion@gmail.com";
 
 export default function PrivacyPage() {
   return (

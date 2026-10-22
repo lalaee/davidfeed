@@ -6,7 +6,6 @@ import AppStrip from "@/components/AppStrip";
 import AuthSheet from "@/components/AuthSheet";
 import BottomNav from "@/components/BottomNav";
 import RouteTrail from "@/components/RouteTrail";
-import { APP_STRIP_KEY } from "@/lib/appStrip";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -39,21 +38,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      // has-app-strip: the phone's app strip shows unless the inline script
-      // below finds it was closed on this device (AppStrip.tsx).
-      className={`${inter.variable} has-app-strip h-full antialiased`}
-      // That script edits this class before React hydrates.
-      suppressHydrationWarning
+      className={`${inter.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          // Before first paint, so a reader who closed the strip never sees
-          // the page laid out around it and then jump.
-          dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem(${JSON.stringify(APP_STRIP_KEY)})==="closed")document.documentElement.classList.remove("has-app-strip")}catch(e){}`,
-          }}
-        />
-      </head>
       <body className="min-h-full flex flex-col">
         <AppStrip />
         {children}

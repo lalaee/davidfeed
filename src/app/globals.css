@@ -2125,9 +2125,9 @@ html, body {
 
 /* THE APP STRIP (components/AppStrip.tsx).
  * --strip-h is the room it takes at the top, and --app-h what is left for a
- * page shell. Both are 0 / 100dvh unless the strip is showing: phone widths,
- * with html.has-app-strip. The top safe-area inset is the strip's to pad, so
- * an installed or full-screen page keeps it clear of the status bar. */
+ * page shell: 0 and 100dvh at desk, where there is no strip. The top
+ * safe-area inset is the strip's to pad, so an installed or full-screen page
+ * keeps it clear of the status bar. */
 :root {
   --strip-h: 0px;
   --app-h: calc(100dvh - var(--strip-h));
@@ -2136,32 +2136,21 @@ html, body {
   display: none;
 }
 @media (max-width: 1027px) {
-  html.has-app-strip {
+  :root {
     --strip-h: calc(56px + env(safe-area-inset-top, 0px));
   }
-  html.has-app-strip .app-strip {
+  .app-strip {
     display: flex;
     flex-shrink: 0;
     align-items: center;
     gap: 10px;
     height: var(--strip-h);
-    padding: env(safe-area-inset-top, 0px) 16px 0 8px;
+    padding: env(safe-area-inset-top, 0px) 16px 0;
     background: #0e0e0e;
     border-bottom: 1px solid #212121;
     position: relative;
     z-index: 10002;
   }
-}
-.app-strip-close {
-  display: flex;
-  height: 28px;
-  width: 28px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: #8a8a8a;
 }
 .app-strip-icon {
   height: 36px;

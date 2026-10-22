@@ -2070,3 +2070,18 @@ html, body {
 .feed-column {
   background: transparent;
 }
+/* THE PHONE CARD FITS THE SCREEN.
+ * A 9:16 card at the column's width is 693 tall on a 390-wide phone, and a
+ * browser with its toolbars up leaves ~660: the title and the bookmark went
+ * under the nav and nothing of the next film showed. So the card's height is
+ * capped at what is left once the nav (8 + 75 + the home-indicator inset), the
+ * 24 gap and a 24 tip of the next film are taken off, and the width follows
+ * at 9:16 — narrowed, never cropped, because the films' captions sit at their
+ * top and bottom. The ambience fills the sides. Where the screen is tall
+ * enough, min() picks the full width and nothing changes. */
+@media (max-width: 1027px) {
+  .feed-card {
+    width: min(100%, calc((100dvh - 131px - env(safe-area-inset-bottom)) * 9 / 16));
+    margin-inline: auto;
+  }
+}

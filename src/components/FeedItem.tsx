@@ -647,11 +647,11 @@ export default function FeedItem({
      * --desk-lean room it needed (globals.css), so nothing shifts.
      */
     <div
-      // The phone card is the film's 9:16 at the column's width, 24 between
-      // films — iOS's DF.filmGap. The screen and the film are both fixed, so
-      // the tip of the next film is simply what is left (~120px on a 375x812).
+      // The phone card is the film's 9:16, 24 between films — iOS's
+      // DF.filmGap — at the column's width unless the screen is too short to
+      // show its foot above the nav; then .feed-card narrows it (globals.css).
       // Desk keeps its own height-led sizing; aspect-auto hands it back.
-      className="relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[24px]
+      className="feed-card relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[24px]
                     desk:aspect-auto desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]"
     >
       {/* Tappable Background Area for Double-Tap */}

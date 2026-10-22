@@ -1,4 +1,4 @@
-import type { CoverEffect } from "@/components/FeedItem";
+import type { CaptionsAt, CoverEffect } from "@/components/FeedItem";
 import { psalm91Subtitles, type Subtitle } from "@/data/psalm91-subtitles";
 import { chapterSubtitles } from "@/data/chapter-subtitles";
 
@@ -18,6 +18,11 @@ export interface Post {
    * well after this point, so they are unaffected.
    */
   startAt?: number;
+  /**
+   * Where a film's burned-in words sit, so a phone card too short for the
+   * whole film crops away from them (FeedItem). Unset, it crops evenly.
+   */
+  captionsAt?: CaptionsAt;
 }
 
 // ARTWORK NO LONGER MATCHES ITS FILENAME. The covers were reassigned to the

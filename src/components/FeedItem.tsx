@@ -14,6 +14,17 @@ import ShareSheet from "./ShareSheet";
 /** A/B-testable cover-art life effects — each feed card can carry one. */
 export type CoverEffect = "kenburns" | "breathe" | "grain" | "parallax";
 
+/** Where a film's burned-in words sit: the edge a crop has to keep. */
+export type CaptionsAt = "top" | "bottom" | "both";
+
+// object-position for each: a crop takes from the side away from the words,
+// and "both" (or a cover with no words) takes evenly from each end.
+const KEEP_EDGE: Record<CaptionsAt, string> = {
+  top: "object-top",
+  bottom: "object-bottom",
+  both: "object-center",
+};
+
 interface FeedItemProps {
   /**
    * The psalm number. The bookmark is stored against it rather than against
@@ -47,6 +58,12 @@ interface FeedItemProps {
   onToggleSound?: () => void;
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
+  /**
+   * Where the film's burned-in captions sit. On a phone too short for the
+   * whole 9:16, the card is cropped (globals.css, .feed-card), and this keeps
+   * the captioned edge in view.
+   */
+  captionsAt?: CaptionsAt;
   /**
    * Seconds of dead air at the head of the narration. The card starts here
    * instead of 0 and loops back here, so the reader is audible the moment the
@@ -91,6 +108,7 @@ export default function FeedItem({
   subtitles,
   soundOn = false,
   effect,
+  captionsAt,
   onAutoplayBlocked,
   onPausedChange,
   onToggleSound,
@@ -639,6 +657,10 @@ export default function FeedItem({
   const ink = INK[inkKind];
   useEffect(() => { measurePoster(backgroundImage); }, [backgroundImage]);
 
+  // The edge a short card's crop keeps; every layer of the picture takes it,
+  // so the still and the film it hands over to crop identically.
+  const keep = captionsAt ? KEEP_EDGE[captionsAt] : "object-center";
+
   return (
     /*
      * No magnetic tilt: the card used to lean toward the pointer on desktop
@@ -670,7 +692,7 @@ export default function FeedItem({
               muted
               playsInline
               preload="metadata"
-              className="absolute inset-0 w-full h-full object-cover"
+              className={`absolute inset-0 w-full h-full object-cover ${keep}`}
             />
           )}
           {/* Background image as fallback */}
@@ -678,7 +700,7 @@ export default function FeedItem({
             src={backgroundImage}
             alt={title}
             data-active={isActive || undefined}
-            className={`absolute inset-0 w-full h-full object-cover ${
+            className={`absolute inset-0 w-full h-full object-cover ${keep} ${
               effect === "kenburns"
                 ? "fx-kenburns"
                 : effect === "breathe"
@@ -717,7 +739,7 @@ export default function FeedItem({
                * loop was rendered FROM this still, so the swap is invisible.
                */
               poster={backgroundImage}
-              className="absolute inset-0 w-full h-full object-cover"
+              className={`absolute inset-0 w-full h-full object-cover ${keep}`}
             />
           )}
           {/* Cover-art life overlays */}

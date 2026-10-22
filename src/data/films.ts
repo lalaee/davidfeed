@@ -1,3 +1,4 @@
+import type { CaptionsAt } from "@/components/FeedItem";
 import type { Post } from "@/data/posts";
 
 /*
@@ -20,6 +21,12 @@ import type { Post } from "@/data/posts";
  *                    decodes and fed to the ambience behind the column.
  *   subtitles        none. The captions are burned into the picture; drawing
  *                    the feed's own over them would double every line.
+ *   captionsAt       where those burned-in words sit. A phone too short for
+ *                    the whole film crops it, and this says which edge to
+ *                    keep. Read off frames sampled across each film: most
+ *                    caption at the foot; shadow puppet's banner is at the
+ *                    head; impasto moves between the two, 7-15% from the top
+ *                    and 85-94%, so it is cropped evenly, which keeps both.
  *
  * Video and audio are the same length and start together on activation, so
  * they stay in step across a loop within a frame or two.
@@ -53,26 +60,29 @@ interface Film {
    * Isaiah 41 is 10-13, as its file is named.
    */
   verses?: string;
+  /** Defaults to the bottom, where most of the films caption. */
+  captionsAt?: CaptionsAt;
 }
 
 const FILMS: Film[] = [
   { id: 2301,  chapter: 23, style: "Paper-cut lightbox", file: "psalm-23-paper-cut-lightbox" },
   { id: 2302,  chapter: 23, style: "Watercolor",         file: "psalm-23-watercolor" },
   { id: 2303,  chapter: 23, style: "Woodcut",            file: "psalm-23-woodcut" },
-  { id: 301,   chapter: 3,  style: "Shadow puppet",      file: "psalm-3-shadow-puppet" },
+  { id: 301,   chapter: 3,  style: "Shadow puppet",      file: "psalm-3-shadow-puppet", captionsAt: "top" },
   { id: 302,   chapter: 3,  style: "Stained glass",      file: "psalm-3-stained-glass" },
   { id: 303,   chapter: 3,  style: "Woodcut",            file: "psalm-3-woodcut" },
   { id: 4501,  chapter: 45, style: "Art deco",           file: "psalm-45-art-deco",  verses: "2-8" },
-  { id: 4502,  chapter: 45, style: "Impasto",            file: "psalm-45-impasto",   verses: "2-8" },
+  { id: 4502,  chapter: 45, style: "Impasto",            file: "psalm-45-impasto",   verses: "2-8", captionsAt: "both" },
   { id: 4503,  chapter: 45, style: "Engraving",          file: "psalm-45-engraving", verses: "2-8" },
   { id: 41001, book: "Isaiah", chapter: 41, style: "Ink wash", file: "isaiah-41-10-13-ink-wash", verses: "10-13" },
 ];
 
-export const filmPosts: Post[] = FILMS.map(({ id, book = "Psalm", chapter, file, verses }) => ({
+export const filmPosts: Post[] = FILMS.map(({ id, book = "Psalm", chapter, file, verses, captionsAt = "bottom" }) => ({
   id,
   // The reference, never the style — the style is the picture's to show.
   title: verses ? `${book} ${chapter}:${verses}` : `${book} ${chapter}`,
   backgroundImage: `${DIR}/${file}.jpg`,
   posterVideoSrc: `${DIR}/${file}.mp4`,
   audioSrc: `${DIR}/${file}.m4a`,
+  captionsAt,
 }));

@@ -100,8 +100,9 @@ interface HighlightEntry {
  * one scrolling column, as iOS's account pages are:
  *
  *   you        who is signed in — the initial in a 56 circle on #212121, the
- *              name in Inter Regular 18 white, the email in Medium 15 #999999 —
- *              or, signed out, the way in.
+ *              name in Inter Regular 18 white, the email in Medium 15 #999999.
+ *              Signed out there is no one to show: Account opens the page and
+ *              the way in sits under it.
  *   Saved      the Library as it was: the films bookmarked in the feed and the
  *              verses highlighted in the Bible, under the same pills (renamed
  *              "Films" and "Highlights" now that a "Saved" heading sits above
@@ -131,7 +132,6 @@ export default function Library() {
           {/* Nothing while the session is still being read, so a signed-in
               reader never sees the sign-in prompt flash past. */}
           {auth.status === "signedIn" && <Profile reader={auth.reader} />}
-          {auth.status === "signedOut" && <SignedOut />}
 
           {auth.status === "signedIn" && (
             <section className="mt-[40px]">
@@ -147,11 +147,15 @@ export default function Library() {
           )}
 
           {auth.status !== "loading" && (
-            <section className="mt-[48px]">
+            // Signed out there is no reader above it, so Account opens the page.
+            <section className={auth.status === "signedIn" ? "mt-[48px]" : undefined}>
               <SectionTitle>Account</SectionTitle>
               <AccountRows signedIn={auth.status === "signedIn"} />
             </section>
           )}
+
+          {/* Signed out, the way in sits under Account rather than above it. */}
+          {auth.status === "signedOut" && <SignedOut />}
         </div>
 
         <DesktopNav activeTab="you" />
@@ -541,7 +545,7 @@ function SavedHighlights() {
 /* Signed out: the empty state's type, and the way in. */
 function SignedOut() {
   return (
-    <section className="flex flex-col items-start gap-[24px] px-[24px]">
+    <section className="mt-[40px] flex flex-col items-start gap-[24px] px-[24px]">
       <p className="text-[18px] font-normal leading-[27px]" style={{ color: "#999999" }}>
         Sign in to save films and verses and keep your highlights, on every device.
       </p>

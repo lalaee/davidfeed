@@ -4,6 +4,7 @@ import "./globals.css";
 import AgentationWrapper from "@/components/AgentationWrapper";
 import AuthSheet from "@/components/AuthSheet";
 import BottomNav from "@/components/BottomNav";
+import RouteTrail from "@/components/RouteTrail";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -47,6 +48,7 @@ export default function RootLayout({
         {/* Also once, here: it restores the session on every page and is the
             sheet any save made while signed out opens. See lib/auth.ts. */}
         <AuthSheet />
+        <RouteTrail />
         <AgentationWrapper />
       </body>
     </html>

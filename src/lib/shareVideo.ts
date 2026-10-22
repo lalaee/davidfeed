@@ -1,27 +1,15 @@
 /*
  * Sharing the clip itself.
  *
- * There are two worlds and they want opposite things.
+ * What is shared is the video: /assets/share/<post id>.mp4. For the LemoLab
+ * films that is the film as LemoLab delivered it with the dafod ending ("See
+ * more at: Dafod.app", from lemo-opuscar's Bible/outro), re-encoded for the
+ * web with its sound — the feed's own copies are silent and end without it.
  *
- * On a phone the operating system already has the menu the reader wants —
- * WhatsApp Status, Instagram Feed, Instagram Story, Messages, Save to Photos —
- * populated from what they actually have installed. Putting our own menu in
- * front of that is a tap in the way of the thing they were reaching for, so the
- * share button goes straight to the system sheet with the video attached.
- *
- * On a desktop browser there is usually no such sheet, and no way to hand over
- * a file at all. That is the only place our own menu earns its place, and there
- * it offers what the platform genuinely can do: save the video, or copy a link.
- *
- * The line between them is the pointer, not only canShareFiles: Chrome and
- * Safari on a Mac now accept files too, but a desktop reader gets our menu of
- * apps (FeedItem's handleShare). canShareFiles is asked of the browser rather
- * than guessed from the user agent, and a phone whose share fails falls back
- * to the menu.
- *
- * The files live at /assets/share/<post id>.mp4. The films' are their web
- * encode with the soundtrack muxed back in (ffmpeg -c copy), since the feed's
- * copies are silent and carry their sound beside them.
+ * ShareSheet.tsx is the one way in, on every device. It fetches the file while
+ * it is up (fetchShareFile, with progress) and its tiles hand that file to the
+ * system share sheet where the browser has one (canShareFiles, asked of the
+ * browser rather than guessed from the user agent), or download it.
  */
 
 /** The verdict never changes after load, so there is nothing to subscribe to. */
@@ -51,10 +39,31 @@ export const serverCanShareFiles = () => true;
 export const shareFileName = (title: string) =>
   `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-dafod.mp4`;
 
-export async function fetchShareFile(postId: number, title: string): Promise<File> {
-  const res = await fetch(`/assets/share/${postId}.mp4`);
+export async function fetchShareFile(
+  postId: number,
+  title: string,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<File> {
+  const res = await fetch(`/assets/share/${postId}.mp4`, { signal });
   if (!res.ok) throw new Error(`share asset ${postId}: ${res.status}`);
-  return new File([await res.blob()], shareFileName(title), { type: "video/mp4" });
+  const total = Number(res.headers.get("content-length")) || 0;
+  // Read it in chunks when we can say how far along it is: the films' share
+  // files are tens of megabytes, and the sheet shows the wait.
+  if (!onProgress || !total || !res.body) {
+    return new File([await res.blob()], shareFileName(title), { type: "video/mp4" });
+  }
+  const reader = res.body.getReader();
+  const parts: Uint8Array[] = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    got += value.length;
+    onProgress(Math.min(1, got / total));
+  }
+  return new File(parts as BlobPart[], shareFileName(title), { type: "video/mp4" });
 }
 
 /**

@@ -5,29 +5,36 @@ import { createPortal } from "react-dom";
 
 import { navHiddenStore } from "@/lib/uiStore";
 import { SOCIAL_PATHS } from "@/lib/socialIcons";
-import { fetchShareFile, shareFileName } from "@/lib/shareVideo";
+import { fetchShareFile, readCanShareFiles, shareFileName } from "@/lib/shareVideo";
 
 /*
- * The desktop share menu.
+ * The share menu, on every device. What is shared is THE VIDEO: the film with
+ * its sound and the "See more at Dafod.app" ending, from /assets/share/<id>.mp4
+ * — not a link, which arrives as a bare card (the user saw exactly that on a
+ * WhatsApp Status and asked for the film instead).
  *
- * This never opens on a phone. Where the browser can hand a file to the system
- * sheet, the share button goes straight there — that sheet already lists
- * WhatsApp Status, Instagram Feed and Story from what the reader has installed,
- * and a menu of ours in front of it is only a tap in the way. See
- * lib/shareVideo.ts for the split.
+ * A web page cannot post a file into another app by itself. What it can do,
+ * and what each tile does:
  *
- * On a desktop there is no system sheet, so this is it: one row of round
- * app tiles, as share menus have (the user's reference), scrolling sideways.
- * Copy link and Download first, then the apps.
+ *   With a system share sheet (phones; Safari and Chrome on a Mac) every app
+ *   tile hands the video to that sheet, where WhatsApp Status, Instagram
+ *   Stories and Reels, TikTok and the rest are listed from what the reader has
+ *   installed. A page cannot pre-pick the app in that sheet — the OS decides,
+ *   by design — so the reader taps it once more there.
  *
- * ONLY APPS A PAGE CAN ACTUALLY POST TO. Each app tile opens that app's own
- * public share address in a new tab with the link and a line of text filled
- * in: WhatsApp, X, Facebook, Telegram, Threads and Reddit all take one, and
- * Email is a mailto. Instagram and TikTok are not here because they take
- * nothing from the web — no share address exists, and their own links read
- * from a native-app pasteboard no page can write to. A tile for them could
- * only pretend. What they do take is a video file, so Download sits up front,
- * and the line under the row says that is the way to them.
+ *   Without one (most desktop browsers) the tile downloads the video and opens
+ *   that app's website in a new tab, and the sheet says to attach the file
+ *   there. That is the only way a file reaches those apps from a browser.
+ *
+ * The file is fetched as soon as the sheet opens, with the progress shown, and
+ * the tiles wait for it. That order is not cosmetic: a share sheet will only
+ * open from a tap made moments before, so the file has to be in hand when the
+ * tile is tapped, not fetched after it.
+ *
+ * Copy link stays, last, for the reader who does want the link.
+ *
+ * Rendered into <body> over the page, which recedes behind it like the other
+ * sheets, because the feed column is masked and clipped (see the note below).
  */
 
 interface App {
@@ -36,11 +43,9 @@ interface App {
   /** The tile's fill: the app's own brand colour. */
   bg: string;
   icon: React.ReactNode;
-  /** The app's share address for this link and text. */
-  href: (url: string, text: string) => string;
+  /** Where to attach the downloaded video, when there is no share sheet. */
+  site: string;
 }
-
-const e = encodeURIComponent;
 
 function Mark({ d }: { d: string }) {
   return (
@@ -51,26 +56,12 @@ function Mark({ d }: { d: string }) {
 }
 
 const APPS: App[] = [
-  { id: "whatsapp", label: "WhatsApp", bg: "#25D366", icon: <Mark d={SOCIAL_PATHS.whatsapp} />,
-    href: (url, text) => `https://wa.me/?text=${e(`${text} ${url}`)}` },
-  { id: "x", label: "X", bg: "#000000", icon: <Mark d={SOCIAL_PATHS.x} />,
-    href: (url, text) => `https://x.com/intent/tweet?text=${e(text)}&url=${e(url)}` },
-  { id: "facebook", label: "Facebook", bg: "#0866FF", icon: <Mark d={SOCIAL_PATHS.facebook} />,
-    href: (url) => `https://www.facebook.com/sharer/sharer.php?u=${e(url)}` },
-  { id: "telegram", label: "Telegram", bg: "#26A5E4", icon: <Mark d={SOCIAL_PATHS.telegram} />,
-    href: (url, text) => `https://t.me/share/url?url=${e(url)}&text=${e(text)}` },
-  { id: "threads", label: "Threads", bg: "#000000", icon: <Mark d={SOCIAL_PATHS.threads} />,
-    href: (url, text) => `https://www.threads.net/intent/post?text=${e(`${text} ${url}`)}` },
-  { id: "reddit", label: "Reddit", bg: "#FF4500", icon: <Mark d={SOCIAL_PATHS.reddit} />,
-    href: (url, text) => `https://www.reddit.com/submit?url=${e(url)}&title=${e(text)}` },
-  { id: "email", label: "Email", bg: "#3A3A3C",
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect x="3" y="5.5" width="18" height="13" rx="2.5" stroke="#FFFFFF" strokeWidth="1.8" />
-        <path d="M4 7.5l8 5.5 8-5.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    href: (url, text) => `mailto:?subject=${e(text)}&body=${e(`${text}\n\n${url}`)}` },
+  { id: "whatsapp", label: "WhatsApp", bg: "#25D366", icon: <Mark d={SOCIAL_PATHS.whatsapp} />, site: "https://web.whatsapp.com/" },
+  { id: "instagram", label: "Instagram", bg: "#E4405F", icon: <Mark d={SOCIAL_PATHS.instagram} />, site: "https://www.instagram.com/" },
+  { id: "tiktok", label: "TikTok", bg: "#000000", icon: <Mark d={SOCIAL_PATHS.tiktok} />, site: "https://www.tiktok.com/upload" },
+  { id: "x", label: "X", bg: "#000000", icon: <Mark d={SOCIAL_PATHS.x} />, site: "https://x.com/compose/post" },
+  { id: "facebook", label: "Facebook", bg: "#0866FF", icon: <Mark d={SOCIAL_PATHS.facebook} />, site: "https://www.facebook.com/" },
+  { id: "telegram", label: "Telegram", bg: "#26A5E4", icon: <Mark d={SOCIAL_PATHS.telegram} />, site: "https://web.telegram.org/" },
 ];
 
 interface ShareSheetProps {
@@ -80,13 +71,15 @@ interface ShareSheetProps {
 }
 
 export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) {
-  const [busy, setBusy] = useState<null | "save" | "copy">(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Asked once: whether this browser has a share sheet that takes a file.
+  const [systemSheet] = useState(() => readCanShareFiles());
 
-  // The nav floats in the same slot and outranks this at z-[9999], so it steps
-  // aside while the sheet is up — the same handshake the reader's sheets use.
-  // And the page recedes behind it, as it does under the sign-in sheet and
-  // the compare card (globals.css, html.sheet-receded).
+  // The page recedes and the nav steps aside, as under the other sheets.
   useEffect(() => {
     const root = document.documentElement;
     root.classList.add("sheet-receded");
@@ -97,59 +90,80 @@ export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) 
     };
   }, []);
 
+  // Fetch the video now, so it is in hand when a tile is tapped.
+  useEffect(() => {
+    const ac = new AbortController();
+    fetchShareFile(postId, title, setProgress, ac.signal)
+      .then(setFile)
+      .catch(() => {
+        if (!ac.signal.aborted) setFailed(true);
+      });
+    return () => ac.abort();
+  }, [postId, title]);
 
   const pageUrl =
     typeof window === "undefined" ? "" : `${window.location.origin}/library/${postId}`;
 
-  const saveVideo = useCallback(async () => {
-    setBusy("save");
-    try {
-      const file = await fetchShareFile(postId, title);
-      const href = URL.createObjectURL(file);
-      const a = document.createElement("a");
-      a.href = href;
-      a.download = shareFileName(title);
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // Revoked later; revoking synchronously races the download the click
-      // has only just started.
-      setTimeout(() => URL.revokeObjectURL(href), 10_000);
-    } finally {
-      setBusy(null);
-      onClose();
-    }
-  }, [postId, title, onClose]);
+  const download = useCallback((video: File) => {
+    const href = URL.createObjectURL(video);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = shareFileName(title);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoked later; revoking synchronously races the download just started.
+    setTimeout(() => URL.revokeObjectURL(href), 10_000);
+  }, [title]);
 
-  const copyLink = useCallback(async () => {
-    setBusy("copy");
+  /* The system sheet with the video. Called straight from a tap. */
+  const shareVideo = useCallback(async (video: File) => {
+    try {
+      await navigator.share({ files: [video] });
+      onClose();
+    } catch (err) {
+      // Dismissing the sheet is the reader answering, not a failure.
+      if ((err as Error)?.name !== "AbortError") setNote("Couldn't open the share sheet. Download the video instead.");
+    }
+  }, [onClose]);
+
+  const sendTo = (app: App) => {
+    if (!file) return;
+    if (systemSheet) {
+      void shareVideo(file);
+      return;
+    }
+    download(file);
+    window.open(app.site, "_blank", "noopener,noreferrer");
+    setNote(`Video downloaded. Attach it in ${app.label} to post it.`);
+  };
+
+  const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(pageUrl);
       setCopied(true);
       setTimeout(onClose, 700);
     } catch {
       onClose();
-    } finally {
-      setBusy(null);
     }
-  }, [pageUrl, onClose]);
-
-  const shareText = `${title} — a short film on Dafod`;
-  const openApp = (app: App) => {
-    const href = app.href(pageUrl, shareText);
-    if (href.startsWith("mailto:")) window.location.assign(href);
-    else window.open(href, "_blank", "noopener,noreferrer");
-    onClose();
   };
+
+  const ready = file !== null;
+  const status = failed
+    ? "Couldn't load the video. Copy the link instead."
+    : !ready
+      ? `Preparing the video… ${Math.round(progress * 100)}%`
+      : note ??
+        (systemSheet
+          ? "Pick an app, then choose it again in your share sheet. Your device decides which apps appear."
+          : "Pick an app: the video downloads and the app opens, ready to attach it.");
 
   /*
    * Rendered into <body>, not where the card is. The card lives inside the
    * feed column, and on desktop that column is masked (.feed-mask fades its
    * top and bottom edges) and clipped, which makes it the box a fixed child
-   * is painted in: the sheet opened, but only as a sliver at the card's edge,
-   * faded by the mask, with its backdrop blurring the column alone — "the
-   * share icon does nothing". A portal puts it over the whole page, above the
-   * desktop chrome (z-500), as the sign-in sheet sits.
+   * is painted in: the sheet opened, but only as a sliver at the card's edge.
+   * A portal puts it over the whole page, above the desktop chrome (z-500).
    */
   return createPortal(
     <>
@@ -160,7 +174,7 @@ export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) 
         role="dialog"
         aria-label={`Share ${title}`}
         className="animate-slide-up fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[10001]
-                   flex w-[calc(100%-42px)] -translate-x-1/2 flex-col gap-[24px] md:max-w-[348px] sheet-column
+                   flex w-[calc(100%-42px)] -translate-x-1/2 flex-col gap-[20px] md:max-w-[348px] sheet-column
                    rounded-[18.8333px] px-[16px] pb-[24px] pt-[20px] desk:px-[24px]"
         style={{ backgroundColor: "#0E0E0E" }}
       >
@@ -182,30 +196,51 @@ export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) 
         </div>
 
         {/* One row of 60 tiles, 8 apart, scrolling sideways where it runs out.
-            The label sits under each in 12/16 at 80% white. */}
+            The video's own tiles come first; Copy link, the one that does not
+            carry the film, comes last. */}
         <div className="scrollbar-hide -mx-[16px] flex gap-[8px] overflow-x-auto px-[16px] desk:-mx-[24px] desk:px-[24px]">
-          <Tile label={copied ? "Copied" : "Copy link"} bg="#2C7BE5" onClick={copyLink} disabled={busy !== null}>
-            <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden>
-              <path d="M8 12a3 3 0 004.24 0l2.83-2.83a3 3 0 10-4.24-4.24l-.7.7M12 8a3 3 0 00-4.24 0L4.93 10.83a3 3 0 104.24 4.24l.7-.7"
-                    stroke="white" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Tile>
-          <Tile label={busy === "save" ? "Preparing…" : "Download"} bg="#3A3A3C" onClick={saveVideo} disabled={busy !== null}>
+          {systemSheet && (
+            <Tile label="Share video" bg="#2C7BE5" onClick={() => file && void shareVideo(file)} disabled={!ready}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M12 3v12m0-12L8 7m4-4l4 4M5 12v6.5A2.5 2.5 0 007.5 21h9a2.5 2.5 0 002.5-2.5V12"
+                      stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Tile>
+          )}
+          <Tile label="Download" bg="#3A3A3C" onClick={() => file && download(file)} disabled={!ready}>
             <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden>
               <path d="M10 3v10m0 0l-4-4m4 4l4-4M3 16h14" stroke="white" strokeWidth="1.8"
                     strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </Tile>
           {APPS.map((app) => (
-            <Tile key={app.id} label={app.label} bg={app.bg} onClick={() => openApp(app)} disabled={busy !== null}>
+            <Tile key={app.id} label={app.label} bg={app.bg} onClick={() => sendTo(app)} disabled={!ready}>
               {app.icon}
             </Tile>
           ))}
+          <Tile label={copied ? "Copied" : "Copy link"} bg="#3A3A3C" onClick={copyLink}>
+            <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden>
+              <path d="M8 12a3 3 0 004.24 0l2.83-2.83a3 3 0 10-4.24-4.24l-.7.7M12 8a3 3 0 00-4.24 0L4.93 10.83a3 3 0 104.24 4.24l.7-.7"
+                    stroke="white" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Tile>
         </div>
 
-        <p className="text-[13px] font-medium leading-[18px]" style={{ color: "#8A8A8A" }}>
-          For Instagram or TikTok, download the video and post it from the app.
-        </p>
+        {/* The wait, then how the tiles work here. A thin bar under the row
+            while the video arrives. */}
+        <div className="flex flex-col gap-[10px]">
+          {!ready && !failed && (
+            <div className="h-[3px] w-full overflow-hidden rounded-full" style={{ backgroundColor: "#212121" }}>
+              <div
+                className="h-full rounded-full bg-white"
+                style={{ width: `${Math.round(progress * 100)}%`, transition: "width 200ms linear" }}
+              />
+            </div>
+          )}
+          <p role="status" className="text-[13px] font-medium leading-[18px]" style={{ color: "#8A8A8A" }}>
+            {status}
+          </p>
+        </div>
       </div>
     </>,
     document.body,
@@ -235,7 +270,7 @@ function Tile({
     >
       <span
         className="flex h-[60px] w-[60px] items-center justify-center rounded-full"
-        // A black tile (X, Threads) would vanish into the sheet; a hairline
+        // A black tile (X, TikTok) would vanish into the sheet; a hairline
         // ring gives it an edge without changing its colour.
         style={{ backgroundColor: bg, boxShadow: bg === "#000000" ? "inset 0 0 0 1px #333333" : undefined }}
       >

@@ -189,6 +189,52 @@ Always `git add` explicit paths.
 - The title and rail colour come from `src/lib/posterInk.ts`. It measures the
   bottom tenth of the poster: bright posters get dark ink, dark posters get
   white ink.
+- **Save and share icons** grow to 1.2× on hover (`.icon-press:hover`,
+  pointer devices only).
+
+### Sharing (what the share button sends)
+**The film itself, never a link.** The user saw a link arrive on a WhatsApp
+Status as a bare card and asked for the video.
+
+**The share file:** `public/assets/share/<post id>.mp4`, made by
+`scripts/build-film-share.sh`.
+- **Source:** the film as LemoLab delivered it *with* the dafod ending ("See
+  more at: Dafod.app"), from lemo-opuscar's `Bible/outro`.
+- **Picture:** the whole 1080×1920 film, uncropped, with its bottom corners
+  rounded.
+- **Strip:** a white strip under the film holding the Dafod icon and
+  "Dafod.app", for the whole video, ending included. No title on the film.
+- **Size:** 1080×2132 overall, 10–27MB per film.
+- **Where the design comes from:** Figma "Dafod Reels" › **New Feed UI**
+  (`2753:935`), applied as the user directed: keep the whole film, no title,
+  strip throughout.
+- **The overlay:** strip and corners are one PNG exported from that frame at
+  2.88×, `scripts/assets/share/strip-overlay.png`.
+- **The Figma plugin quirk:** the export came out via the Sunnyside plugin
+  (`use_figma` + `exportAsync`). A boolean subtract's result defaults to grey
+  `#D9D9D9`, so set its fill explicitly.
+
+**The menu:** `src/components/ShareSheet.tsx`, on every device.
+- **Rendering:** it renders into `<body>` through a portal. Inside the feed
+  column it was masked and clipped to a sliver, which made the button look
+  dead.
+- **Loading:** it fetches the share file as soon as it opens, with a progress
+  bar (`fetchShareFile` in `lib/shareVideo.ts`), and the tiles wait for it.
+  The order matters: a system share sheet only opens straight after a tap, so
+  the file must already be in hand.
+- **Tiles, in order:**
+  - Share video: only where the browser can share files;
+  - Download;
+  - WhatsApp, Instagram, TikTok, X, Facebook, Telegram;
+  - Copy link, last.
+- **What an app tile does** (a web page cannot post a file into another app):
+  - **With a system share sheet** (phones; Safari or Chrome on a Mac): it
+    opens that sheet with the video, and the reader picks the app there. A
+    page can't pre-pick the app.
+  - **Without one:** it downloads the video and opens that app's website to
+    attach it.
+- **Logos:** from Simple Icons 16.32.0 (CC0), in `src/lib/socialIcons.ts`.
+  LinkedIn is absent because its owner had it removed from the set.
 
 ### Desktop
 These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
@@ -199,7 +245,7 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
   container, because masking the scroller cost about 8fps.
 - **Paging:** `src/hooks/useCardPager.ts` moves one card per gesture with a
   620ms tween on the house curve (`lib/easing.ts`).
-- **Magnetic lean:** `src/hooks/useMagneticTilt.ts`, ported from dafod-2.
+- **Magnetic lean:** removed from the card (see Header below).
 - **Ambience:** `src/components/FeedAmbience.tsx` is an Apple Music "Now
   Playing" style background.
   - Desktop: a Pixi.js scene.
@@ -212,6 +258,21 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
   - the nav shrinks once the feed scrolls;
   - a "Privacy" link sits bottom-left under the hero copy (Google's review
     looks for it).
+- **Hero copy:** the subtitle reads "Experience a collection of short verses
+  that brings hope.", then a white **Download app** pill with the Apple mark.
+  - There is no App Store listing yet.
+  - The pill links to `NEXT_PUBLIC_APP_STORE_URL` once that's set in Vercel;
+    until then it goes nowhere and says "Coming soon" on hover.
+- **The Hopescrolling face** (the teal "o") keeps 3:1 contrast against the
+  ambience. That is WCAG's ratio for an icon.
+  - `src/lib/heroContrast.ts` estimates the wash from the active poster's
+    average colour, run through the ambience's saturation 2.75 and 32% dim.
+  - The teal pales first and deepens only on pale washes, because a dark face
+    inside white words reads as a hole.
+  - `Feed.tsx` passes `ambienceSrc` to `DesktopChrome`.
+- **The magnetic tilt is off,** at the user's request. `useMagneticTilt.ts`
+  remains, unused, and the `--desk-lean` room in the layout stays so nothing
+  shifts.
 
 ---
 
@@ -264,6 +325,24 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 - **No sync on the callback page.** `lib/auth.ts` skips syncing on `/auth/*`
   so a held save isn't applied there and then lost to the redirect; the page
   the reader returns to does the sync.
+
+**Sign-in runs in a new tab** (`AuthSheet.go`).
+- **Opening it:** the sheet opens a blank tab in the click, before anything is
+  awaited, or it's blocked as a popup. It then sends that tab to Google, or to
+  Apple via `signInWithOAuth` with `skipBrowserRedirect`.
+- **Where it returns:**
+  - Google comes back to `/auth/google`.
+  - Apple comes back to the new `/auth/done`, where the client's
+    `detectSessionInUrl` trades the PKCE code.
+- **Finishing:** both pages use `src/app/auth/AuthReturn.tsx`, which closes
+  the tab when it has an opener.
+- **The original tab:** it gets the session through Supabase's BroadcastChannel
+  between tabs; lib/auth then closes the sheet and applies the held save.
+- **Why localStorage:** Google's nonce and state are kept there, since a new
+  tab doesn't share the opener's sessionStorage.
+- **Fallback:** if a tab can't be opened, sign-in runs in place, as before. The
+  built-in browser pane blocks new tabs, so only the fallback was seen
+  working. **The new-tab path is unverified.**
 
 **`src/components/AuthSheet.tsx`**
 - Mounted once in `app/layout.tsx`. It only ever signs in; the account itself
@@ -478,10 +557,23 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 8. **The Agentation feedback toolbar** (`AgentationWrapper`) appears on the
    live site at desktop widths. Confirm with the user whether it should be
    dev-only.
-9. **Saved verses have no list** (§5). Add them to You → Saved if the user
+9. **Twelve more LemoLab films** are in lemo-opuscar `Bible/outro`, not yet in
+   the feed: Isaiah 41 woodcut, Jeremiah 29, John 3, Joshua 1, Matthew 6,
+   Philippians 4, Proverbs 3, Psalm 121, Psalm 91 ×2, Romans 8 and 12.
+   - `Bible/outro` has every film; check `Bible/no-outro` for which have a
+     feed (no-ending) cut.
+   - Adding one takes three things: an encode into
+     `public/assets/films/no-outro/`, an entry in `src/data/films.ts`, and a
+     share file built with `scripts/build-film-share.sh`.
+10. **The App Store link** for Download app (`NEXT_PUBLIC_APP_STORE_URL`), once
+    the iOS app is listed.
+11. **Not yet confirmed by the user:**
+    - the share flow on a phone and on a Mac's share sheet;
+    - sign-in in a new tab.
+12. **Saved verses have no list** (§5). Add them to You → Saved if the user
    wants them.
-10. **iOS has drifted from the web** on tab names and accounts (§2a).
-11. **Old lint warnings:** unused `TOPICS`, `_paused`, `onPausedChange`, and
+13. **iOS has drifted from the web** on tab names and accounts (§2a).
+14. **Old lint warnings:** unused `TOPICS`, `_paused`, `onPausedChange`, and
    `<img>` warnings. They don't block the build.
 
 ---
@@ -509,3 +601,12 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
    into `auth` (`28172b8`). See §2a.
 9. The tabs became Watch, Read, You, and the Library became You, the account
    centre, at `/you` (§5).
+10. The sign-in sheet became the YouVersion-style prompt (grabber, bold
+    promise, checklist, Google pill, Apple link). Google moved to our own
+    button through `/auth/google`. Also the Download app pill, no tilt, and
+    icon hover (`93ea0a9`).
+11. Sign-in in a new tab, the share menu as a row of apps, and the Hope face
+    keeping contrast (`637875f`).
+12. Share files for the films (`e764e20`), then remade as the film with its
+    sound, the Dafod ending and the Figma strip under it. The share menu now
+    shares the video on every device (§4, Sharing).

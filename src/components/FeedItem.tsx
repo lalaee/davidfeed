@@ -10,12 +10,6 @@ import { gated } from "@/lib/auth";
 import { savedPostStore } from "@/lib/stores";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import ShareSheet from "./ShareSheet";
-import {
-  readCanShareFiles,
-  serverCanShareFiles,
-  shareVideoFile,
-  subscribeNever as shareSubscribeNever,
-} from "@/lib/shareVideo";
 
 /** A/B-testable cover-art life effects — each feed card can carry one. */
 export type CoverEffect = "kenburns" | "breathe" | "grain" | "parallax";
@@ -600,23 +594,9 @@ export default function FeedItem({
   }, [postId]);
 
   /*
-   * Two different buttons wearing one icon.
-   *
-   * Where the phone can take a file, the share button IS the system sheet —
-   * straight there, video attached, no menu of ours in between. That sheet is
-   * already the list the reader wants: WhatsApp Status, Instagram Feed and
-   * Story, Messages, Save to Photos, built from what they actually have.
-   * Anything we put in front of it is a tap in the way.
-   *
-   * Where it cannot — a desktop browser, mostly — there is nothing to fall
-   * through to, so our own sheet opens instead and offers what that platform
-   * genuinely can do.
+   * The share button opens our sheet on every device (ShareSheet.tsx), which
+   * shares the film itself — sound and the Dafod ending — not a link.
    */
-  const canShareFiles = useSyncExternalStore(
-    shareSubscribeNever,
-    readCanShareFiles,
-    serverCanShareFiles,
-  );
   const [shareOpen, setShareOpen] = useState(false);
   // A sheet belongs to the card that opened it. Scroll away and the card is no
   // longer the one on screen, so its sheet has to go with it — otherwise two
@@ -638,21 +618,14 @@ export default function FeedItem({
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
-    // A desktop gets our menu, whatever the browser can do: Chrome and Safari
-    // on a Mac will take a file now, but their sheet is a short system list,
-    // and the reader on a desktop is asking for the apps. A phone goes
-    // straight to its own sheet with the video, and if that fails for any
-    // reason (no share file, the browser refusing) our menu opens instead —
-    // a share button that silently does nothing is what this replaced.
-    const desktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    if (canShareFiles && !desktop) {
-      void shareVideoFile(postId, title).then((shared) => {
-        if (!shared) setShareOpen(true);
-      });
-      return;
-    }
+    // Every device opens our menu now (ShareSheet.tsx). It fetches the
+    // film's share video — sound and the Dafod ending — while it is up, and
+    // its tiles hand that file to the system sheet or download it. Going
+    // straight to the system sheet from here, as phones used to, had to fetch
+    // tens of megabytes between the tap and the sheet, and a sheet opened
+    // that long after a tap is refused.
     setShareOpen(true);
-  }, [canShareFiles, postId, title]);
+  }, []);
 
   // No scrim under the label (as on iOS): the films end on their own caption
   // bands, some cream, and a dark gradient over cream read as a grey bar. The

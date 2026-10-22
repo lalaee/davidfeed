@@ -1,0 +1,66 @@
+[
+ {
+  "id": "pressure",
+  "label": "Pressure",
+  "ids": [
+   27,
+   3,
+   20,
+   91,
+   7
+  ]
+ },
+ {
+  "id": "anxiety",
+  "label": "Anxiety",
+  "ids": [
+   23,
+   4,
+   16
+  ]
+ },
+ {
+  "id": "uncertainty",
+  "label": "Uncertainty",
+  "ids": [
+   25,
+   5,
+   16
+  ]
+ },
+ {
+  "id": "guilt",
+  "label": "Guilt",
+  "ids": [
+   51,
+   44,
+   45
+  ]
+ },
+ {
+  "id": "fear",
+  "label": "Fear",
+  "ids": [
+   18,
+   62,
+   46,
+   61,
+   28,
+   1001,
+   1002,
+   1003,
+   1004,
+   1005,
+   1006,
+   1007,
+   1008,
+   1009,
+   1010
+  ]
+ },
+ {
+  "id": "all",
+  "label": "Anything",
+  "ids": null
+ }
+]

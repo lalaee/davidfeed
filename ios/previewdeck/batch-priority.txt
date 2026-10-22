@@ -1,0 +1,58 @@
+# --- iOS 26 headliners & curated demos ---
+iOS-26-by-Examples
+FabBar/FabBarExample
+GlassExplorer
+LiquidGlass-Handbook
+LiquidGlassSwiftUI/LiquidGlassExample
+LiquidGlassTabBars/LiquidGlassDemo
+open-swiftui-animations/OpenSwiftUIAnimations
+my-toybox/MyToybox
+FabulaItemsProvider/FabulaPlus
+swiftui-new-metal-shaders/SUIMetal
+swiftui-animations-examples/SwiftUIAnimations
+MatchedGeometryExamples
+Animatable/Demo
+Theseus/TheseusDemoSwiftUI
+SwiftUI_New_API/iOS18_New_API
+MeloX
+# --- SwiftUI-experiments: designer interaction studies ---
+SwiftUI-experiments/blob animation
+SwiftUI-experiments/bouncy grid
+SwiftUI-experiments/drag transform
+SwiftUI-experiments/drag to delete
+SwiftUI-experiments/dots interaction
+SwiftUI-experiments/draggable slider
+SwiftUI-experiments/particle text
+SwiftUI-experiments/particle slider
+SwiftUI-experiments/pixel animation menu
+SwiftUI-experiments/pull to search
+SwiftUI-experiments/radial menu
+SwiftUI-experiments/photo slingshot
+SwiftUI-experiments/tilt grid
+SwiftUI-experiments/wave pattern
+SwiftUI-experiments/text scroll interaction
+SwiftUI-experiments/swipe interaction
+# --- SwiftUI_Demos: motion set ---
+SwiftUI_Demos/GlassMorphismCardView
+SwiftUI_Demos/MorphingFAB
+SwiftUI_Demos/HeroEffect
+SwiftUI_Demos/ZoomTransitions
+SwiftUI_Demos/RippleTransitions
+SwiftUI_Demos/ShapeMorphingAnimationView
+SwiftUI_Demos/NewSymbolEffect
+SwiftUI_Demos/MetalWallpaper
+SwiftUI_Demos/ShaderDemo
+SwiftUI_Demos/LiquidSwipeAnimationView
+SwiftUI_Demos/ElasticScrollView
+SwiftUI_Demos/ParticleView
+SwiftUI_Demos/FloatingTabBar
+SwiftUI_Demos/3DMorphingDotSphere
+SwiftUI_Demos/AlarmKitExample
+# --- kavsoft ---
+kavsoft-animation/LiquidIntro
+kavsoft-animation/LiquidTransition
+kavsoft-animation/AppleWalletScroll
+kavsoft-animation/CustomTransition
+kavsoft-animation/PinchtoZoom
+# --- big production apps (may fail; worth one attempt) ---
+IceCubesApp

@@ -105,22 +105,94 @@ interface HighlightEntry {
  *              name in Inter Regular 18 white, the email in Medium 15 #999999.
  *              Signed out there is no one to show: the account's rows come
  *              first and the way in sits under them.
- *   Saved      the Library as it was: the films bookmarked in the feed and the
- *              verses highlighted in the Bible, under the same pills (renamed
- *              "Films" and "Highlights" now that a "Saved" heading sits above
- *              them, and short enough that a 375 screen holds both).
- *   rows       the rest of being an account: the privacy policy, deleting the
- *              account, signing out. Rows on the sheets' #0E0E0E card, under
- *              the page's title rather than a heading of their own.
+ *   rows       everything else, as rows on the sheets' #0E0E0E card under the
+ *              page's title: Saved (signed in), the privacy policy, deleting
+ *              the account, signing out.
  *
- * Section headings are the sheets' title type, Inter Semi Bold 17 white, so
- * the page reads as the same family as the reader's cards. The column, its
- * 24 side padding and the desk geometry are the Library's, unchanged.
+ * Saved is a page of its own, /you/saved (SavedLibrary below), opened from
+ * its row as Privacy is: the Library as it was, the films bookmarked in the
+ * feed and the verses highlighted in the Bible under the same pills ("Films"
+ * and "Highlights", short enough that a 375 screen holds both). The column,
+ * its 24 side padding and the desk geometry are the Library's, unchanged.
  */
 export default function Library() {
+  const auth = useSyncExternalStore(authStore.subscribe, authStore.read, authStore.serverSnapshot);
+
+  return (
+    <YouColumn>
+      {/* Nothing while the session is still being read, so a signed-in reader
+          never sees the sign-in prompt flash past. */}
+      {auth.status !== "loading" && <PageTitle>Account</PageTitle>}
+
+      {auth.status === "signedIn" && (
+        <>
+          <Profile reader={auth.reader} />
+          <div className="mt-[32px]">
+            <AccountRows signedIn />
+          </div>
+        </>
+      )}
+
+      {/* Signed out there is no reader to show and nothing saved: the rows
+          open the page and the way in sits under them. */}
+      {auth.status === "signedOut" && (
+        <>
+          <AccountRows signedIn={false} />
+          <SignedOut />
+        </>
+      )}
+    </YouColumn>
+  );
+}
+
+/*
+ * SAVED — /you/saved, opened from its row on Account.
+ *
+ * What the Library was: the films bookmarked in the feed and the verses
+ * highlighted in the Bible, under the same two pills. A page of its own, as
+ * Privacy is, with the same way back above its title.
+ */
+export function SavedLibrary() {
   const [tab, setTab] = useState<LibraryTab>("feed");
   const auth = useSyncExternalStore(authStore.subscribe, authStore.read, authStore.serverSnapshot);
 
+  return (
+    <YouColumn>
+      <div className="px-[24px]">
+        <Link
+          href="/you"
+          className="mb-[24px] inline-flex items-center gap-[2px] text-[17px] font-medium text-white/70
+                     no-underline press hover:text-white"
+        >
+          <span className="-ml-[6px] flex rotate-90">
+            <ChevronIcon size={28} />
+          </span>
+          Account
+        </Link>
+      </div>
+      <PageTitle>Saved</PageTitle>
+
+      {auth.status === "signedIn" && (
+        <section>
+          {/* Scrolls rather than clips, the verse action bar's answer to a
+              row that may not fit; at these lengths it never needs to. */}
+          <div className="scrollbar-hide flex gap-[12px] overflow-x-auto px-[24px]">
+            <TabPill label="Films" active={tab === "feed"} onClick={() => setTab("feed")} />
+            <TabPill label="Highlights" active={tab === "verses"} onClick={() => setTab("verses")} />
+          </div>
+          {tab === "feed" ? <SavedFeed /> : <SavedHighlights />}
+        </section>
+      )}
+
+      {/* Reached signed out by its address alone, since the row only shows
+          signed in. */}
+      {auth.status === "signedOut" && <SignedOut />}
+    </YouColumn>
+  );
+}
+
+/* The column both You pages sit in: the Library's, unchanged. */
+function YouColumn({ children }: { children: React.ReactNode }) {
   return (
     <>
       <div className="fixed inset-0 z-[-1] bg-black" />
@@ -132,44 +204,7 @@ export default function Library() {
             (globals.css), so the column carries its own. The bottom padding
             clears the phone's nav. */}
         <div className="scrollbar-hide h-full overflow-y-auto pb-[140px] pt-[40px] desk:pb-[64px] desk:pt-[121px]">
-          {/* Nothing while the session is still being read, so a signed-in
-              reader never sees the sign-in prompt flash past. */}
-          {/* The page's title, in the privacy page's title type. Its rows
-              used to sit under a section heading of the same name; with the
-              page called Account, they no longer need one. */}
-          {auth.status !== "loading" && (
-            <h1
-              className="mb-[24px] px-[24px] text-[28px] font-semibold leading-[34px] text-white"
-              style={{ letterSpacing: "-0.5px" }}
-            >
-              Account
-            </h1>
-          )}
-
-          {auth.status === "signedIn" && <Profile reader={auth.reader} />}
-
-          {auth.status === "signedIn" && (
-            <section className="mt-[40px]">
-              <SectionTitle>Saved</SectionTitle>
-              {/* Scrolls rather than clips, the verse action bar's answer to a
-                  row that may not fit; at these lengths it never needs to. */}
-              <div className="scrollbar-hide flex gap-[12px] overflow-x-auto px-[24px]">
-                <TabPill label="Films" active={tab === "feed"} onClick={() => setTab("feed")} />
-                <TabPill label="Highlights" active={tab === "verses"} onClick={() => setTab("verses")} />
-              </div>
-              {tab === "feed" ? <SavedFeed /> : <SavedHighlights />}
-            </section>
-          )}
-
-          {auth.status !== "loading" && (
-            // Signed out there is no reader above them, so the rows open the page.
-            <section className={auth.status === "signedIn" ? "mt-[48px]" : undefined}>
-              <AccountRows signedIn={auth.status === "signedIn"} />
-            </section>
-          )}
-
-          {/* Signed out, the way in sits under Account rather than above it. */}
-          {auth.status === "signedOut" && <SignedOut />}
+          {children}
         </div>
 
         <DesktopNav activeTab="you" />
@@ -178,11 +213,15 @@ export default function Library() {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+/* A page's title, in the privacy page's title type. */
+function PageTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-[16px] px-[24px] text-[17px] font-semibold leading-[25.5px] text-white">
+    <h1
+      className="mb-[24px] px-[24px] text-[28px] font-semibold leading-[34px] text-white"
+      style={{ letterSpacing: "-0.5px" }}
+    >
       {children}
-    </h2>
+    </h1>
   );
 }
 
@@ -239,6 +278,15 @@ function AccountRows({ signedIn }: { signedIn: boolean }) {
   return (
     <div className="px-[24px]">
       <div className="overflow-hidden rounded-[18.8333px]" style={{ backgroundColor: "#0E0E0E" }}>
+        {signedIn && (
+          <>
+            <Link href="/you/saved" className={rowClass}>
+              Saved
+              <Onward />
+            </Link>
+            <Hairline />
+          </>
+        )}
         <Link href="/privacy" className={rowClass}>
           Privacy
           <Onward />

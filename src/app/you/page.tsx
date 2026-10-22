@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   title: "You — Dafod",
 };
 
-/* The account centre: your account, what you saved, and the rest. The
-   component keeps its old name, Library, because Saved is still most of it. */
+/* The account centre: who you are, and rows for Saved (its own page, at
+   /you/saved), privacy and the account. The component keeps its old name,
+   Library, from when this page was the saved grid. */
 export default function YouPage() {
   return (
     <main className="h-[100dvh] bg-black">

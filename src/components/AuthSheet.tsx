@@ -215,9 +215,8 @@ export default function AuthSheet() {
 
         <SignInStatus waiting={waiting} error={error} />
 
-        <p className="mt-[12px] text-center text-[13px] font-medium leading-[18px]" style={{ color: "#8A8A8A" }}>
-          We keep only your name, email and what you save.{" "}
-          <Link href="/privacy" onClick={close} className="text-white underline">
+        <p className="mt-[12px] text-center text-[13px] font-medium leading-[18px]">
+          <Link href="/privacy" onClick={close} className="underline" style={{ color: "#8A8A8A" }}>
             Privacy
           </Link>
         </p>

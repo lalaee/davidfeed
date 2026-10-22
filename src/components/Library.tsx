@@ -102,14 +102,14 @@ interface HighlightEntry {
  * one scrolling column, as iOS's account pages are:
  *
  *   Account    the page's title, in the privacy page's title type (Semi Bold
- *              28), signed in or out.
+ *              28).
  *   you        who is signed in — the initial in a 56 circle on #212121, the
  *              name in Inter Regular 18 white, the email in Medium 15 #999999.
- *              Signed out there is no one to show: the account's rows come
- *              first and the way in sits under them.
- *   rows       everything else, as rows on the sheets' #0E0E0E card under the
- *              page's title: Saved (signed in), the privacy policy, deleting
- *              the account, signing out.
+ *
+ * Signed out there is no account to title: the page is the way in alone
+ * (SignedOut), with Privacy as a small link under it.
+ *   rows       everything else, as rows on the sheets' #0E0E0E card: Saved,
+ *              the privacy policy, deleting the account, signing out.
  *
  * Saved is a page of its own, /you/saved (SavedLibrary below), opened from
  * its row as Privacy is: the Library as it was, the films bookmarked in the
@@ -124,24 +124,22 @@ export default function Library() {
     <YouColumn>
       {/* Nothing while the session is still being read, so a signed-in reader
           never sees the sign-in prompt flash past. */}
-      {auth.status !== "loading" && <PageTitle>Account</PageTitle>}
-
       {auth.status === "signedIn" && (
         <>
+          <PageTitle>Account</PageTitle>
           <Profile reader={auth.reader} />
           <div className="mt-[32px]">
-            <AccountRows signedIn />
+            <AccountRows />
           </div>
         </>
       )}
 
-      {/* Signed out there is no reader to show and nothing saved: the rows
-          open the page and the way in sits under them. */}
+      {/* Signed out there is no account to title and nothing saved: the page
+          is the way in alone, with Privacy as a link under it. */}
       {auth.status === "signedOut" && (
-        <>
-          <AccountRows signedIn={false} />
+        <div className="pt-[24px]">
           <SignedOut />
-        </>
+        </div>
       )}
     </YouColumn>
   );
@@ -188,7 +186,11 @@ export function SavedLibrary() {
 
       {/* Reached signed out by its address alone, since the row only shows
           signed in. */}
-      {auth.status === "signedOut" && <SignedOut />}
+      {auth.status === "signedOut" && (
+        <div className="mt-[16px]">
+          <SignedOut />
+        </div>
+      )}
     </YouColumn>
   );
 }
@@ -266,7 +268,7 @@ function Profile({ reader }: { reader: Reader }) {
  */
 const CONTACT = "lakesofmotion@gmail.com";
 
-function AccountRows({ signedIn }: { signedIn: boolean }) {
+function AccountRows() {
   const [leaving, setLeaving] = useState(false);
   const leave = async () => {
     setLeaving(true);
@@ -280,35 +282,27 @@ function AccountRows({ signedIn }: { signedIn: boolean }) {
   return (
     <div className="px-[24px]">
       <div className="overflow-hidden rounded-[18.8333px]" style={{ backgroundColor: "#0E0E0E" }}>
-        {signedIn && (
-          <>
-            <Link href="/you/saved" className={rowClass}>
-              Saved
-              <Onward />
-            </Link>
-            <Hairline />
-          </>
-        )}
+        <Link href="/you/saved" className={rowClass}>
+          Saved
+          <Onward />
+        </Link>
+        <Hairline />
         <Link href="/privacy" className={rowClass}>
           Privacy
           <Onward />
         </Link>
-        {signedIn && (
-          <>
-            <Hairline />
-            <a
-              href={`mailto:${CONTACT}?subject=${encodeURIComponent("Delete my Dafod account")}`}
-              className={rowClass}
-            >
-              Delete account
-              <Onward />
-            </a>
-            <Hairline />
-            <button type="button" onClick={leave} disabled={leaving} className={`${rowClass} disabled:opacity-60`}>
-              {leaving ? "Signing out…" : "Sign out"}
-            </button>
-          </>
-        )}
+        <Hairline />
+        <a
+          href={`mailto:${CONTACT}?subject=${encodeURIComponent("Delete my Dafod account")}`}
+          className={rowClass}
+        >
+          Delete account
+          <Onward />
+        </a>
+        <Hairline />
+        <button type="button" onClick={leave} disabled={leaving} className={`${rowClass} disabled:opacity-60`}>
+          {leaving ? "Signing out…" : "Sign out"}
+        </button>
       </div>
     </div>
   );
@@ -624,7 +618,7 @@ function SignedOut() {
     "font-semibold press disabled:opacity-60";
 
   return (
-    <section className="mt-[48px] flex flex-col items-center px-[24px] text-center">
+    <section className="flex flex-col items-center px-[24px] text-center">
       <h2
         className="text-[32px] font-bold leading-[1.1] text-white [text-wrap:balance]"
         style={{ letterSpacing: "-0.8px" }}
@@ -664,6 +658,14 @@ function SignedOut() {
         </button>
       </div>
       <SignInStatus waiting={waiting} error={error} />
+
+      <Link
+        href="/privacy"
+        className="mt-[20px] text-[13px] font-medium leading-[18px] underline"
+        style={{ color: "#8A8A8A" }}
+      >
+        Privacy
+      </Link>
     </section>
   );
 }

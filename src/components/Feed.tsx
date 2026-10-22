@@ -721,6 +721,7 @@ export default function Feed({
         onNext={() => goToCard(1)}
         canPrev={activeIndex > 0}
         canNext={activeIndex < posts.length - 1}
+        ambienceSrc={posts[ambienceIndex]?.backgroundImage}
       />
 
       <SoundBadge visible={soundBlocked} onEnable={enableSound} />

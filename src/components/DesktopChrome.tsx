@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import DesktopNav from "./DesktopNav";
 import LiquidGlass from "./LiquidGlass";
@@ -10,6 +10,7 @@ import { ChevronIcon } from "./icons";
 import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
 import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
 import HeroLottie from "./HeroLottie";
+import { hopeColourStore } from "@/lib/heroContrast";
 
 /*
  * The iOS app's App Store page. Dafod is not on the App Store yet (see
@@ -97,6 +98,8 @@ interface DesktopChromeProps {
   onNext: () => void;
   canPrev: boolean;
   canNext: boolean;
+  /** The poster the ambience is drawn from, so the hero can keep contrast. */
+  ambienceSrc?: string;
 }
 
 export default function DesktopChrome({
@@ -109,7 +112,19 @@ export default function DesktopChrome({
   onNext,
   canPrev,
   canNext,
+  ambienceSrc,
 }: DesktopChromeProps) {
+  // The Hopescrolling face's colour, kept at 4.5:1 against the ambience
+  // behind it (lib/heroContrast.ts). Brand teal until a poster is measured.
+  const hopeColour = useSyncExternalStore(
+    hopeColourStore.subscribe,
+    () => hopeColourStore.read(ambienceSrc),
+    () => hopeColourStore.read(undefined),
+  );
+  useEffect(() => {
+    if (ambienceSrc) hopeColourStore.measure(ambienceSrc);
+  }, [ambienceSrc]);
+
   // Its own menu rather than reaching into FeedHeader's. FeedHeader is the
   // phone's control and is hidden at this width; sharing one open-state across
   // two triggers would mean lifting it for the benefit of whichever is not on
@@ -184,7 +199,13 @@ export default function DesktopChrome({
             />mscrolling
           </span>
           <span className="text-white">
-            Start H<HeroLottie sources={HOPE_FACES} style={{ color: "#76EEE8" }} />pescrolling
+            {/* The colour eases with the ambience's own 500ms crossfade. */}
+            Start H
+            <HeroLottie
+              sources={HOPE_FACES}
+              style={{ color: hopeColour, transition: "color 500ms cubic-bezier(0.32, 0.72, 0, 1)" }}
+            />
+            pescrolling
           </span>
         </h1>
         <p className="text-[24px] font-medium leading-[150%]" style={{ color: "rgba(255, 255, 255, 0.9)" }}>

@@ -52,6 +52,7 @@ export default function AuthSheet() {
   const auth = useSyncExternalStore(authStore.subscribe, authStore.read, authStore.serverSnapshot);
   const [busy, setBusy] = useState<"apple" | "google" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
   const [drag, setDrag] = useState(0);
   const [dragging, setDragging] = useState(false);
   const dragFrom = useRef<number | null>(null);
@@ -88,20 +89,38 @@ export default function AuthSheet() {
   const close = () => {
     setError(null);
     setBusy(null);
+    setWaiting(false);
     setDrag(0);
     closeAuthSheet();
   };
 
+  /*
+   * Sign-in runs in a NEW TAB, so this page — the film, the verse, the save
+   * the reader was making — stays put behind it. The tab is opened here, in
+   * the click, before anything is awaited: a tab opened after an await is a
+   * popup the browser blocks. It starts blank and is sent on once the sign-in
+   * address is ready. When it finishes it closes itself, Supabase hands this
+   * tab the session, and lib/auth.ts closes the sheet and applies the save.
+   * If the browser refuses the tab, sign-in runs in this one, as before.
+   */
   const go = async (provider: "apple" | "google") => {
     setError(null);
     setBusy(provider);
+    const tab = window.open("", "_blank");
+    if (tab) {
+      tab.document.title = "Signing in — Dafod";
+      tab.document.body.style.background = "#000";
+    }
     try {
-      // Leaves the page on success, so there is nothing to reset after.
-      if (provider === "google") await startGoogleSignIn();
-      else await signIn(provider);
+      if (provider === "google") await startGoogleSignIn(tab);
+      else await signIn(provider, tab);
+      // With a tab, this page waits; say where the sign-in went.
+      if (tab) setWaiting(true);
     } catch {
-      setBusy(null);
+      tab?.close();
       setError("Couldn't reach sign-in. Try again in a moment.");
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -223,6 +242,11 @@ export default function AuthSheet() {
           </button>
         </div>
 
+        {waiting && !error && (
+          <p role="status" className="mt-[8px] text-center text-[15px] font-medium leading-[20px] text-white">
+            Finish signing in in the new tab. This page will update when you&apos;re done.
+          </p>
+        )}
         {error && (
           <p role="alert" className="mt-[8px] text-center text-[15px] font-medium leading-[18px] text-[#FF6B6B]">
             {error}

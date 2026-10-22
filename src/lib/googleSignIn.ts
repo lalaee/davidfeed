@@ -21,9 +21,11 @@ import { supabase } from "./supabase";
  * The nonce: Google is given the SHA-256 of a random string and bakes it into
  * the token; Supabase is given the string itself and checks the two agree, so
  * a token lifted from somewhere else cannot be replayed here. The state guards
- * the return trip the same way. Both wait in sessionStorage, which survives
- * the round trip in the same tab, beside the save the reader was making
- * (lib/auth.ts).
+ * the return trip the same way. Both wait in localStorage, because the trip
+ * normally runs in a NEW TAB (the sheet opens one), and a new tab does not
+ * share this one's sessionStorage. The callback signs in there and closes;
+ * Supabase broadcasts the session back to this tab, where the held save is
+ * applied (lib/auth.ts).
  *
  * Google's branding rules allow a button of our own: the standard four-colour
  * G, unaltered, and "Continue with Google". On the light theme it sits on
@@ -51,15 +53,18 @@ async function sha256Hex(text: string) {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Leaves the page for Google's account chooser. */
-export async function startGoogleSignIn() {
+/**
+ * Sends `tab` (opened by the sheet in the click) to Google's account chooser,
+ * or this page if the browser refused a tab.
+ */
+export async function startGoogleSignIn(tab: Window | null) {
   if (!CLIENT_ID) throw new Error("Google sign-in is not configured.");
   const pending: Pending = {
     nonce: random(),
     state: random(),
     returnTo: window.location.pathname + window.location.search,
   };
-  sessionStorage.setItem(KEY, JSON.stringify(pending));
+  localStorage.setItem(KEY, JSON.stringify(pending));
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: window.location.origin + GOOGLE_CALLBACK_PATH,
@@ -69,7 +74,9 @@ export async function startGoogleSignIn() {
     state: pending.state,
     prompt: "select_account",
   });
-  window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  if (tab && !tab.closed) tab.location.href = url;
+  else window.location.assign(url);
 }
 
 /**
@@ -80,8 +87,8 @@ export async function startGoogleSignIn() {
 export async function finishGoogleSignIn(): Promise<string> {
   let pending: Pending | null = null;
   try {
-    pending = JSON.parse(sessionStorage.getItem(KEY) ?? "null") as Pending | null;
-    sessionStorage.removeItem(KEY);
+    pending = JSON.parse(localStorage.getItem(KEY) ?? "null") as Pending | null;
+    localStorage.removeItem(KEY);
   } catch {}
   const returned = new URLSearchParams(window.location.hash.slice(1));
   // Take the token out of the address bar and the history entry at once.

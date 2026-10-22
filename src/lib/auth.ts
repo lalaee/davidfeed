@@ -164,14 +164,27 @@ function applyPending() {
 
 /* ── Signing in and out ──────────────────────────────────────────────────── */
 
-export async function signIn(provider: "apple" | "google") {
+/**
+ * Apple, through Supabase. `tab` is a new tab the sign-in sheet opened in the
+ * click (it must be opened there, before any await, or the browser blocks
+ * it): Apple runs in it and comes back to /auth/done, which finishes and
+ * closes it, while this page waits with the save held. The session reaches
+ * this tab on its own — Supabase broadcasts sign-ins between tabs — and the
+ * auth listener below applies the save. With no tab (the browser refused
+ * one), this page goes to Apple itself and comes back to where it was.
+ */
+export async function signIn(provider: "apple", tab: Window | null) {
   const sb = supabase();
   if (!sb) throw new Error("Sign-in is not configured.");
-  // Back to the page they were on, so the save they tapped is applied where
-  // they tapped it. The pending intent is already in sessionStorage.
-  const redirectTo = window.location.origin + window.location.pathname + window.location.search;
-  const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo } });
-  if (error) throw error;
+  const here = window.location.origin + window.location.pathname + window.location.search;
+  const redirectTo = tab ? `${window.location.origin}/auth/done` : here;
+  const { data, error } = await sb.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+  if (error || !data.url) throw error ?? new Error("No sign-in address.");
+  if (tab && !tab.closed) tab.location.href = data.url;
+  else window.location.assign(data.url);
 }
 
 export async function signOut() {

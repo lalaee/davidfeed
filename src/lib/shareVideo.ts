@@ -13,8 +13,15 @@
  * a file at all. That is the only place our own menu earns its place, and there
  * it offers what the platform genuinely can do: save the video, or copy a link.
  *
- * canShareFiles is the line between them, and it is asked of the browser rather
- * than guessed from the user agent.
+ * The line between them is the pointer, not only canShareFiles: Chrome and
+ * Safari on a Mac now accept files too, but a desktop reader gets our menu of
+ * apps (FeedItem's handleShare). canShareFiles is asked of the browser rather
+ * than guessed from the user agent, and a phone whose share fails falls back
+ * to the menu.
+ *
+ * The files live at /assets/share/<post id>.mp4. The films' are their web
+ * encode with the soundtrack muxed back in (ffmpeg -c copy), since the feed's
+ * copies are silent and carry their sound beside them.
  */
 
 /** The verdict never changes after load, so there is nothing to subscribe to. */

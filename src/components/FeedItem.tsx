@@ -638,8 +638,17 @@ export default function FeedItem({
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
-    if (canShareFiles) {
-      void shareVideoFile(postId, title);
+    // A desktop gets our menu, whatever the browser can do: Chrome and Safari
+    // on a Mac will take a file now, but their sheet is a short system list,
+    // and the reader on a desktop is asking for the apps. A phone goes
+    // straight to its own sheet with the video, and if that fails for any
+    // reason (no share file, the browser refusing) our menu opens instead —
+    // a share button that silently does nothing is what this replaced.
+    const desktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (canShareFiles && !desktop) {
+      void shareVideoFile(postId, title).then((shared) => {
+        if (!shared) setShareOpen(true);
+      });
       return;
     }
     setShareOpen(true);

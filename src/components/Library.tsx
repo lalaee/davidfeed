@@ -604,22 +604,70 @@ function SavedHighlights() {
   );
 }
 
-/* Signed out: the empty state's type, and the way in. */
+/*
+ * Signed out: the way in, after YouVersion's "Access the full experience"
+ * (the reader sent it as the reference) with Dafod's own content. A fan of
+ * three cards — their portraits are our films' posters — a bold centred
+ * promise, what an account actually does here, and two pills.
+ *
+ * Only the claims that are true of this app: an account saves films and
+ * verses, keeps highlights and follows the reader between devices, and there
+ * is nothing to buy. Both pills open the same sheet, because with Apple and
+ * Google the first sign-in IS the account; they are two doors because people
+ * look for the one that names what they think they are doing.
+ */
+const FAN = [
+  // [poster, width, rotation, left offset from centre, top] — back to front.
+  ["/assets/films/no-outro/psalm-23-woodcut.jpg", 94, -8, -136, 20],
+  ["/assets/films/no-outro/psalm-45-engraving.jpg", 102, 0, -56, 8],
+  ["/assets/films/no-outro/psalm-3-shadow-puppet.jpg", 110, 7, 20, 0],
+] as const;
+
 function SignedOut() {
+  const open = () => authSheetStore.set(true);
+  const pill =
+    "flex h-[56px] w-full items-center justify-center rounded-full border-none text-[17px] font-semibold press";
+
   return (
-    <section className="mt-[40px] flex flex-col items-start gap-[24px] px-[24px]">
-      <p className="text-[18px] font-normal leading-[27px]" style={{ color: "#999999" }}>
-        Sign in to save films and verses and keep your highlights, on every device.
-      </p>
-      <button
-        type="button"
-        onClick={() => authSheetStore.set(true)}
-        className="rounded-[19.25px] border-none bg-white px-[16px] py-[8px] text-[17px] font-semibold
-                   leading-[22px] text-[#0E0E0E] press"
-        style={{ letterSpacing: "-0.41px" }}
+    <section className="mt-[40px] flex flex-col items-center px-[24px] text-center">
+      <div aria-hidden className="relative h-[176px] w-full">
+        {FAN.map(([src, w, deg, dx, top]) => (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            className="absolute rounded-[12px] object-cover"
+            style={{
+              width: w,
+              height: w * 1.5,
+              top,
+              left: `calc(50% + ${dx}px)`,
+              rotate: `${deg}deg`,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            }}
+          />
+        ))}
+      </div>
+
+      <h2
+        className="mt-[28px] text-[32px] font-bold leading-[1.1] text-white [text-wrap:balance]"
+        style={{ letterSpacing: "-0.8px" }}
       >
-        Sign in
-      </button>
+        Keep what speaks to you
+      </h2>
+      <p className="mt-[16px] text-[17px] font-normal leading-[25px] [text-wrap:balance]" style={{ color: "rgba(255,255,255,0.85)" }}>
+        Create a free account to save films and verses, keep your highlights, and find them all on
+        every device. No ads or purchases, ever.
+      </p>
+
+      <div className="mt-[28px] flex w-full flex-col gap-[12px]">
+        <button type="button" onClick={open} className={`${pill} text-[#111111]`} style={{ backgroundColor: "#EDEDED" }}>
+          Create an account
+        </button>
+        <button type="button" onClick={open} className={`${pill} text-white`} style={{ backgroundColor: "#2C2C2C" }}>
+          Sign in
+        </button>
+      </div>
     </section>
   );
 }

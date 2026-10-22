@@ -116,28 +116,27 @@ import { useScrolledDown } from "@/hooks/useScrolledDown";
  */
 
 /*
- * Watch, Read, You. Named for what the reader does there rather than for what
- * the screen holds: the feed is watched, the Bible is read, and You is the
- * account centre — the reader's own things, Saved among them (Library.tsx).
- * The Bible keeps its /bible address; You lives at /you, and the old /library
- * redirects there (next.config.ts).
+ * Home, Bible, You. (Briefly Watch and Read; the user brought the first two
+ * back.) You is the account centre — the reader's own things, Saved among
+ * them (Library.tsx). The Bible keeps its /bible address; You lives at /you,
+ * and the old /library redirects there (next.config.ts).
  */
-export type TabKey = "watch" | "read" | "you";
+export type TabKey = "home" | "bible" | "you";
 
 export const TABS = [
-  { key: "watch", href: "/", label: "Watch", Icon: NavHomeIcon },
-  { key: "read", href: "/bible", label: "Read", Icon: NavBibleIcon },
+  { key: "home", href: "/", label: "Home", Icon: NavHomeIcon },
+  { key: "bible", href: "/bible", label: "Bible", Icon: NavBibleIcon },
   { key: "you", href: "/you", label: "You", Icon: NavYouIcon },
 ] as const;
 
 /**
- * /bible and /bible/psalms/46 are both Read. /you is You, and so is
+ * /bible and /bible/psalms/46 are both the Bible. /you is You, and so is
  * /library/27 — a saved set playing as a feed, opened from You's Saved.
  */
 export function tabForPath(pathname: string): TabKey {
-  if (pathname.startsWith("/bible")) return "read";
+  if (pathname.startsWith("/bible")) return "bible";
   if (pathname.startsWith("/you") || pathname.startsWith("/library")) return "you";
-  return "watch";
+  return "home";
 }
 
 /** One tab pitch: item width plus the gap. */

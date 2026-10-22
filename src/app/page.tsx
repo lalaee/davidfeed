@@ -13,7 +13,7 @@ import { shortPosts } from "@/data/shorts";
 export default function Home() {
   return (
     <main className="h-[100dvh] bg-black">
-      <Feed posts={shortPosts} activeTab="watch" />
+      <Feed posts={shortPosts} activeTab="home" />
     </main>
   );
 }

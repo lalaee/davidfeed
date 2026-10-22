@@ -103,7 +103,7 @@ interface DesktopChromeProps {
 }
 
 export default function DesktopChrome({
-  activeTab = "watch",
+  activeTab = "home",
   topicId,
   onSelectTopic,
   collectionLabel,

@@ -22,7 +22,8 @@ from the one you know.
     Apple Music style ambience;
   - the Bible reader;
   - **You**, the account centre (it was the Library).
-  - The nav tabs are **Watch, Read, You** (they were Home, Bible, Library).
+  - The nav tabs are **Home, Bible, You** (Library became You; for a while
+    they were Watch, Read, You).
   - Saving films and verses and highlighting need an account. Sign-in is Apple
     or Google, through Supabase.
 - **Not yet confirmed by a real person:** a full sign-in round trip on
@@ -76,7 +77,7 @@ from the one you know.
     were identical, so nothing needed redeploying.
 - **Web and iOS have drifted:**
   - Tab names: the app's tabs still read Home, Bible, Library
-    (`ios/DavidFeed/DavidFeed/RootView.swift`); the web's are Watch, Read, You.
+    (`ios/DavidFeed/DavidFeed/RootView.swift`); the web's are Home, Bible, You.
   - Accounts: the app has none; the web has sign-in and You.
   - Bring the app across only when the user asks.
 
@@ -368,10 +369,10 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 
 **The You tab**
 - **Files and addresses:**
-  - The nav tabs are Watch (`/`), Read (`/bible`) and You (`/you`), defined in
+  - The nav tabs are Home (`/`), Bible (`/bible`) and You (`/you`), defined in
     `TABS` and `tabForPath` in `src/components/BottomNav.tsx`.
   - `DesktopNav` reuses those tabs.
-  - The tab keys are `"watch" | "read" | "you"`.
+  - The tab keys are `"home" | "bible" | "you"`.
   - You has a new icon, `NavYouIcon` in `icons.tsx`, drawn to sit with the
     Iconly set.
   - `/library` redirects to `/you` (`next.config.ts`, temporary).
@@ -609,4 +610,5 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
     keeping contrast (`637875f`).
 12. Share files for the films (`e764e20`), then remade as the film with its
     sound, the Dafod ending and the Figma strip under it. The share menu now
-    shares the video on every device (§4, Sharing).
+    shares the video on every device (§4, Sharing) (`4bb2466`).
+13. The tabs went back to Home and Bible; You stays.

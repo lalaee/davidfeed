@@ -627,9 +627,9 @@ export default function FeedItem({
     setShareOpen(true);
   }, []);
 
-  // No scrim under the label (as on iOS): the films end on their own caption
+  // No scrim under the buttons (as on iOS): the films end on their own caption
   // bands, some cream, and a dark gradient over cream read as a grey bar. The
-  // label and the rail take the ink the poster's bottom can carry instead —
+  // buttons take the ink the poster's bottom can carry instead —
   // see lib/posterInk.ts.
   const inkKind = useSyncExternalStore(
     posterInkStore.subscribe,
@@ -788,15 +788,8 @@ export default function FeedItem({
         </IconButton>
       </div>
 
-      {/* Title */}
-      <div className="absolute left-[20px] right-[80px] bottom-[24px] z-10 pointer-events-none">
-        <h1
-          className="text-[24px] font-semibold tracking-[-0.48px]"
-          style={{ color: ink.ink, textShadow: `0 1px 3px ${ink.shadow}` }}
-        >
-          {title}
-        </h1>
-      </div>
+      {/* No title on the card: it was asked off. The passage still names the
+          film for screen readers (the cover's alt) and in the share sheet. */}
     </div>
   );
 }

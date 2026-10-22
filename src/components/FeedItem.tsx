@@ -388,6 +388,97 @@ export default function FeedItem({
     };
   }, []);
 
+  // ...and locked to its clock, not only to whether it runs.
+  //
+  // A film's sound is its own soundtrack, lifted out (data/films.ts), so the
+  // picture and the narration share one timeline — but they play in two
+  // elements, and nothing ties two elements' clocks together. Each was simply
+  // started and left: the picture landed late while it buffered, the phone
+  // held the sound back until a tap, one stalled while the other ran on, and
+  // the two files loop a few hundredths apart. Every one of those left the
+  // voice ahead of or behind the mouth for the rest of the card.
+  //
+  // So the picture is the clock and the sound follows it: held while the
+  // picture waits for data, brought to its time when it resumes, and pulled
+  // back whenever the two part by more than an audible margin. The sound is
+  // the one moved because an audio seek is cheap and a video seek has to find
+  // a keyframe and rebuffer.
+  //
+  // Films only. The older spoken shorts carry a startAt and a narration of a
+  // different length from their loop, so they have no shared clock to keep.
+  useEffect(() => {
+    if (!posterVideoSrc || !audioSrc || startAt) return;
+    const art = posterVideoRef.current;
+    const sound = audioRef.current;
+    if (!art || !sound) return;
+
+    // Past ~a tenth of a second words visibly leave the mouths; under it a
+    // seek costs more (a click, a moment of rebuffer) than it fixes.
+    const TOLERANCE = 0.12;
+    // A seek takes a moment to land, during which the sound reads as behind
+    // again; without a pause between corrections it would chase itself.
+    const SETTLE_MS = 1500;
+    let lastFix = 0;
+
+    const drift = () => {
+      const length = art.duration;
+      if (!Number.isFinite(length) || length <= 0) return 0;
+      // Around the loop the two files wrap a few hundredths apart, so 0.01
+      // against 92.04 is 0.03 apart, not 92 seconds.
+      let d = (sound.currentTime - art.currentTime) % length;
+      if (d > length / 2) d -= length;
+      if (d < -length / 2) d += length;
+      return d;
+    };
+
+    const bringSound = () => {
+      if (art.currentTime < sound.duration || !Number.isFinite(sound.duration)) {
+        sound.currentTime = art.currentTime;
+        lastFix = performance.now();
+      }
+    };
+
+    const onTime = () => {
+      if (!isActiveRef.current || sound.paused || art.paused) return;
+      if (art.seeking || sound.seeking) return;
+      if (performance.now() - lastFix < SETTLE_MS) return;
+      if (Math.abs(drift()) > TOLERANCE) bringSound();
+    };
+
+    // The picture ran out of data: hold the voice until it can go on.
+    const onWaiting = () => {
+      if (!sound.paused) sound.pause();
+    };
+
+    // The picture is moving again (first frame, end of a stall): start the
+    // voice from where the picture is, not from where it was left.
+    const onPlaying = () => {
+      if (!isActiveRef.current || userPausedRef.current) return;
+      if (!sound.getAttribute("src")) return;
+      if (Math.abs(drift()) > TOLERANCE) bringSound();
+      if (sound.paused) sound.play().catch(() => {});
+    };
+
+    // The card starts both at once, and the voice usually wins: it is a few
+    // hundred KB against a film still loading. Measured with the picture 3s
+    // late, the voice ran over the still for those 3s. Hold it until the
+    // picture can move; onPlaying above starts it, from the picture's time.
+    const onSoundPlaying = () => {
+      if (art.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) sound.pause();
+    };
+
+    art.addEventListener("timeupdate", onTime);
+    art.addEventListener("waiting", onWaiting);
+    art.addEventListener("playing", onPlaying);
+    sound.addEventListener("playing", onSoundPlaying);
+    return () => {
+      art.removeEventListener("timeupdate", onTime);
+      art.removeEventListener("waiting", onWaiting);
+      art.removeEventListener("playing", onPlaying);
+      sound.removeEventListener("playing", onSoundPlaying);
+    };
+  }, [posterVideoSrc, audioSrc, startAt]);
+
   // Track playing state (of the sound-bearing element) for subtitles
   useEffect(() => {
     const el = soundRef.current;

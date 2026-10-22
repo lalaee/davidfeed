@@ -14,16 +14,12 @@ import ShareSheet from "./ShareSheet";
 /** A/B-testable cover-art life effects — each feed card can carry one. */
 export type CoverEffect = "kenburns" | "breathe" | "grain" | "parallax";
 
-/** Where a film's burned-in words sit: the edge a crop has to keep. */
-export type CaptionsAt = "top" | "bottom" | "both";
-
-// object-position for each: a crop takes from the side away from the words,
-// and "both" (or a cover with no words) takes evenly from each end.
-const KEEP_EDGE: Record<CaptionsAt, string> = {
-  top: "object-top",
-  bottom: "object-bottom",
-  both: "object-center",
-};
+/**
+ * The span a film's burned-in words occupy, as fractions of its height from
+ * the top: [highest, lowest]. A phone card too short for the whole film crops
+ * outside it (globals.css, .feed-card).
+ */
+export type CaptionSpan = readonly [top: number, bottom: number];
 
 interface FeedItemProps {
   /**
@@ -59,11 +55,10 @@ interface FeedItemProps {
   /** Optional life effect applied to the static cover art. */
   effect?: CoverEffect;
   /**
-   * Where the film's burned-in captions sit. On a phone too short for the
-   * whole 9:16, the card is cropped (globals.css, .feed-card), and this keeps
-   * the captioned edge in view.
+   * Where the film's burned-in words sit. On a phone too short for the whole
+   * 9:16, the card is cropped around them (globals.css, .feed-card).
    */
-  captionsAt?: CaptionsAt;
+  captions?: CaptionSpan;
   /**
    * Seconds of dead air at the head of the narration. The card starts here
    * instead of 0 and loops back here, so the reader is audible the moment the
@@ -108,7 +103,7 @@ export default function FeedItem({
   subtitles,
   soundOn = false,
   effect,
-  captionsAt,
+  captions,
   onAutoplayBlocked,
   onPausedChange,
   onToggleSound,
@@ -657,10 +652,6 @@ export default function FeedItem({
   const ink = INK[inkKind];
   useEffect(() => { measurePoster(backgroundImage); }, [backgroundImage]);
 
-  // The edge a short card's crop keeps; every layer of the picture takes it,
-  // so the still and the film it hands over to crop identically.
-  const keep = captionsAt ? KEEP_EDGE[captionsAt] : "object-center";
-
   return (
     /*
      * No magnetic tilt: the card used to lean toward the pointer on desktop
@@ -671,9 +662,14 @@ export default function FeedItem({
     <div
       // The phone card is the film's 9:16 at the column's width, 12 between
       // films (iOS's DF.filmGap is 24; the web was asked for more film). Where
-      // the screen is too short to show its foot above the nav, .feed-card
-      // caps the height and the film is cropped to fit (globals.css).
+      // the screen is too short for all of it, .feed-card (globals.css) crops
+      // around the film's words, which it reads from these two properties.
       // Desk keeps its own height-led sizing; aspect-auto hands it back.
+      style={
+        captions
+          ? ({ "--cap-top": captions[0], "--cap-bottom": captions[1] } as React.CSSProperties)
+          : undefined
+      }
       className="feed-card relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[12px]
                     desk:aspect-auto desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]"
     >
@@ -692,7 +688,7 @@ export default function FeedItem({
               muted
               playsInline
               preload="metadata"
-              className={`absolute inset-0 w-full h-full object-cover ${keep}`}
+              className="absolute inset-0 w-full h-full object-cover film-layer"
             />
           )}
           {/* Background image as fallback */}
@@ -700,7 +696,7 @@ export default function FeedItem({
             src={backgroundImage}
             alt={title}
             data-active={isActive || undefined}
-            className={`absolute inset-0 w-full h-full object-cover ${keep} ${
+            className={`absolute inset-0 w-full h-full object-cover film-layer ${
               effect === "kenburns"
                 ? "fx-kenburns"
                 : effect === "breathe"
@@ -739,7 +735,7 @@ export default function FeedItem({
                * loop was rendered FROM this still, so the swap is invisible.
                */
               poster={backgroundImage}
-              className={`absolute inset-0 w-full h-full object-cover ${keep}`}
+              className="absolute inset-0 w-full h-full object-cover film-layer"
             />
           )}
           {/* Cover-art life overlays */}

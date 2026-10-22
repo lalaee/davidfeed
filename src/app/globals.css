@@ -2070,20 +2070,53 @@ html, body {
 .feed-column {
   background: transparent;
 }
-/* THE PHONE CARD FITS THE SCREEN.
- * A 9:16 card at the column's width is 693 tall on a 390-wide phone, and a
- * browser with its toolbars up leaves ~660: the title and the bookmark went
- * under the nav and nothing of the next film showed. So the card's height is
- * capped so that the next film, 12 below it, starts about halfway down the
- * nav pill (8 + 75 / 2 above the home-indicator inset): its tip sits behind
- * the nav rather than above it, as asked. The width stays the
- * column's — side gutters were asked off — so on a short screen the film is
- * cropped top and bottom by its object-cover. Where the screen is tall
- * enough the cap never bites and the card is the film's own 9:16. The width is
- * definite (w-full), so max-height clamps the height aspect-ratio derives and
- * never transfers back to narrow the width. */
+/* THE PHONE CARD FITS THE SCREEN, AND KEEPS ITS WORDS.
+ *
+ * A film at the column's width is 699 tall on a 393-wide phone; a browser with
+ * its toolbars up shows ~666, and the nav floats over the last ~77 of that. So
+ * on a short screen something of the film has to go, and what matters is that
+ * it is never the words: the films burn in a title near the head, captions
+ * near the foot, or both (data/films.ts measures each one).
+ *
+ * Each card carries its words' span as fractions of the film's height,
+ * --cap-top and --cap-bottom (FeedItem sets them). From those:
+ *
+ *   --crop-top  how much comes off the head: just enough that the lowest word
+ *               clears the nav, and never more than the highest word allows.
+ *               Where both cannot hold, clamp keeps the head's.
+ *   height      as tall as the screen allows — down to a sliver of the next
+ *               film, 12 below, just above the floor — but never past the
+ *               film's own foot; the rest comes off the bottom, under the
+ *               words. Where the screen is tall enough, it is simply the
+ *               film's 9:16 and nothing is cropped.
+ *
+ * The width stays the column's (side gutters were asked off). Plain CSS, not
+ * layered, so it beats the card's aspect-[9/16] utility below the desk. */
 @media (max-width: 1027px) {
   .feed-card {
-    max-height: calc(100dvh - 58px - env(safe-area-inset-bottom));
+    --col-w: 100vw;
+    --nav-floor: max(2px, env(safe-area-inset-bottom));
+    --film-h: calc(var(--col-w) * 16 / 9);
+    /* Screen above the nav: the bar is 75 tall on --nav-floor (BottomNav). */
+    --clear: calc(100dvh - var(--nav-floor) - 75px);
+    --crop-top: clamp(
+      0px,
+      calc(var(--cap-bottom, 1) * var(--film-h) - var(--clear)),
+      calc(var(--cap-top, 0) * var(--film-h))
+    );
+    height: min(
+      calc(100dvh - var(--nav-floor) - 18px),
+      calc(var(--film-h) - var(--crop-top))
+    );
+  }
+  /* Every layer of the picture — the still, the film over it — crops alike. */
+  .feed-card .film-layer {
+    object-position: 50% calc(-1 * var(--crop-top));
   }
 }
+@media (min-width: 768px) and (max-width: 1027px) {
+  .feed-card {
+    --col-w: 375px;
+  }
+}
+

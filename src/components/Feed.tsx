@@ -691,7 +691,7 @@ export default function Feed({
               subtitles={post.subtitles}
               soundOn={soundOn}
               effect={post.effect}
-              captionsAt={post.captionsAt}
+              captions={post.captions}
               startAt={post.startAt}
               eagerAudio={index === 0}
               restartToken={topicId}

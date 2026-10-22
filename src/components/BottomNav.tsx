@@ -184,7 +184,10 @@ export default function BottomNav() {
       data-bottom-nav
       data-scrolled={scrolledDown ? "" : undefined}
       aria-label="Main"
-      className="fixed bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[9999] flex h-[75px] w-fit
+      // Low as it can sit: on the home indicator's inset where there is one,
+      // 2px off the edge where a browser's own toolbar is the floor. Every px
+      // it gives up goes to the film in view (globals.css, .feed-card).
+      className="fixed bottom-[max(2px,env(safe-area-inset-bottom))] left-1/2 z-[9999] flex h-[75px] w-fit
                  -translate-x-1/2 items-start justify-center gap-[47.619px] rounded-[47.619px]
                  px-[30.381px] py-[4.762px] desk:hidden"
       style={{ backgroundColor: "#0E0E0E" }}

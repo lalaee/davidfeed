@@ -1,0 +1,25 @@
+# ── Third-party clones ────────────────────────────────────────────────────
+# 5.7 GB of other people's repositories, each with its own .git. They are
+# reproducible from previewdeck/repos.tsv via bin/clone.sh, and nesting them
+# here would either bloat this repo or silently become broken submodules.
+previewdeck/repos/
+
+# ── Build output ──────────────────────────────────────────────────────────
+previewdeck/.dd*/
+previewdeck/.thumbs/
+DerivedData/
+build/
+*.xcuserdatad/
+xcuserdata/
+
+# ── Generated captures and reports ────────────────────────────────────────
+# 75 MB of screenshots and screen recordings, all regenerable with
+# `deck shot` / `deck record` / `grab.sh`.
+previewdeck/shots/
+previewdeck/logs/
+# Rebuilt from results.json + shots by `deck gallery`; 2 MB of embedded images.
+previewdeck/gallery.html
+
+# ── Local machine state ───────────────────────────────────────────────────
+.DS_Store
+*.xcresult

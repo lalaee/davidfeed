@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "previewdeck-gallery",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8731",
+        "--directory",
+        "previewdeck"
+      ],
+      "port": 8731
+    },
+    {
+      "name": "davidfeed",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "/Users/olalekanisaac/Downloads/Code/davidfeed"
+      ],
+      "port": 3000
+    }
+  ]
+}

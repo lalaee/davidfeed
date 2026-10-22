@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ChevronIcon } from "@/components/icons";
+
 export const metadata: Metadata = {
   title: "Privacy — Dafod",
   description: "What Dafod keeps about you, why, and how to have it deleted.",
@@ -24,7 +26,27 @@ export default function PrivacyPage() {
   return (
     <>
       <div className="fixed inset-0 z-[-1] bg-black" />
+      {/* The page scrolls itself. html and body are overflow:hidden for the
+          whole app (globals.css, so iOS cannot drag the fixed nav with the
+          document), which is why every page is a 100dvh shell with its own
+          scroller, as the Library and the Bible reader are. */}
+      <div className="h-[100dvh] w-full overflow-y-auto overscroll-contain">
       <main className="mx-auto w-full max-w-[782px] px-[24px] pb-[140px] pt-[40px] text-[18px] leading-[27px] desk:pt-[121px]">
+        {/* The way back. The phone has the bottom nav for this, but the desktop
+            has no header on this page, so without it a reader who arrived from
+            the sign-in sheet or the homepage footer had nowhere to go. The
+            chevron is the collection header's back arrow (DesktopChrome),
+            turned the same way. */}
+        <Link
+          href="/"
+          className="mb-[24px] inline-flex items-center gap-[2px] text-[17px] font-medium text-white/70
+                     no-underline press hover:text-white"
+        >
+          <span className="-ml-[6px] flex rotate-90">
+            <ChevronIcon size={28} />
+          </span>
+          Home
+        </Link>
         <h1 className="text-[28px] font-semibold leading-[34px] text-white" style={{ letterSpacing: "-0.5px" }}>
           Privacy
         </h1>
@@ -101,8 +123,7 @@ export default function PrivacyPage() {
         <Section title="Keeping and deleting it">
           We keep your account and Library for as long as you have an account. To delete them, email{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a> from the address
-          you signed in with, and we will delete both within 30 days. You can also ask us for a copy
-          of what we hold.
+          you signed in with, and we will delete both within 30 days.
         </Section>
 
         <Section title="Children">
@@ -113,6 +134,7 @@ export default function PrivacyPage() {
           If this policy changes, we will update this page and the date at the top.
         </Section>
       </main>
+      </div>
     </>
   );
 }

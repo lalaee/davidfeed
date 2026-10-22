@@ -99,16 +99,19 @@ interface HighlightEntry {
  * It was the Library: two tabs and a grid. Now it is the reader's own page, in
  * one scrolling column, as iOS's account pages are:
  *
+ *   Account    the page's title, in the privacy page's title type (Semi Bold
+ *              28), signed in or out.
  *   you        who is signed in — the initial in a 56 circle on #212121, the
  *              name in Inter Regular 18 white, the email in Medium 15 #999999.
- *              Signed out there is no one to show: Account opens the page and
- *              the way in sits under it.
+ *              Signed out there is no one to show: the account's rows come
+ *              first and the way in sits under them.
  *   Saved      the Library as it was: the films bookmarked in the feed and the
  *              verses highlighted in the Bible, under the same pills (renamed
  *              "Films" and "Highlights" now that a "Saved" heading sits above
  *              them, and short enough that a 375 screen holds both).
- *   Account    the rest of being an account: the privacy policy, deleting the
- *              account, signing out. Rows on the sheets' #0E0E0E card.
+ *   rows       the rest of being an account: the privacy policy, deleting the
+ *              account, signing out. Rows on the sheets' #0E0E0E card, under
+ *              the page's title rather than a heading of their own.
  *
  * Section headings are the sheets' title type, Inter Semi Bold 17 white, so
  * the page reads as the same family as the reader's cards. The column, its
@@ -131,6 +134,18 @@ export default function Library() {
         <div className="scrollbar-hide h-full overflow-y-auto pb-[140px] pt-[40px] desk:pb-[64px] desk:pt-[121px]">
           {/* Nothing while the session is still being read, so a signed-in
               reader never sees the sign-in prompt flash past. */}
+          {/* The page's title, in the privacy page's title type. Its rows
+              used to sit under a section heading of the same name; with the
+              page called Account, they no longer need one. */}
+          {auth.status !== "loading" && (
+            <h1
+              className="mb-[24px] px-[24px] text-[28px] font-semibold leading-[34px] text-white"
+              style={{ letterSpacing: "-0.5px" }}
+            >
+              Account
+            </h1>
+          )}
+
           {auth.status === "signedIn" && <Profile reader={auth.reader} />}
 
           {auth.status === "signedIn" && (
@@ -147,9 +162,8 @@ export default function Library() {
           )}
 
           {auth.status !== "loading" && (
-            // Signed out there is no reader above it, so Account opens the page.
+            // Signed out there is no reader above them, so the rows open the page.
             <section className={auth.status === "signedIn" ? "mt-[48px]" : undefined}>
-              <SectionTitle>Account</SectionTitle>
               <AccountRows signedIn={auth.status === "signedIn"} />
             </section>
           )}

@@ -4,9 +4,12 @@ import type { Post } from "@/data/posts";
 /*
  * THE LEMOLAB FILMS — the feed, on this branch.
  *
- * Ten short films made in code from github.com/lalaee/lemo-opuscar/Bible:
- * three readings each of Psalm 23, Psalm 3 and Psalm 45, and one of Isaiah
- * 41:10-13, each in a different LemoLab style. They arrive as finished films —
+ * Nine short films made in code from github.com/lalaee/lemo-opuscar/Bible:
+ * three readings each of Psalm 23 and Psalm 3, two of Psalm 45 and one of
+ * Isaiah 41:10-13, each in a different LemoLab style. Psalm 45's impasto
+ * reading (4502) was taken off the feed: its words sit at both ends of the
+ * frame and a short phone could not keep both clear of the nav. Its files
+ * stay in /assets/films/no-outro. They arrive as finished films —
  * voice, score, burned-in captions and credits — so a card here is wired
  * differently from a short:
  *
@@ -76,9 +79,6 @@ const FILMS: Film[] = [
   // the whole film, so the title gives up its top few px: 0.105.
   { id: 303,   chapter: 3,  style: "Woodcut",            file: "psalm-3-woodcut",             captions: [0.105, 0.95] },
   { id: 4501,  chapter: 45, style: "Art deco",           file: "psalm-45-art-deco",  verses: "2-8", captions: [0.84, 0.95] },
-  // Words at both ends, 0.05-0.18 and 0.82-0.93: on a short screen the span
-  // is taller than the room above the nav, and the head's are kept.
-  { id: 4502,  chapter: 45, style: "Impasto",            file: "psalm-45-impasto",   verses: "2-8", captions: [0.05, 0.93] },
   { id: 4503,  chapter: 45, style: "Engraving",          file: "psalm-45-engraving", verses: "2-8", captions: [0.87, 0.94] },
   { id: 41001, book: "Isaiah", chapter: 41, style: "Ink wash", file: "isaiah-41-10-13-ink-wash", verses: "10-13", captions: [0.20, 0.89] },
 ];

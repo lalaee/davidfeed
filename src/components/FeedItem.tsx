@@ -648,8 +648,9 @@ export default function FeedItem({
      */
     <div
       // The phone card is the film's 9:16, 24 between films — iOS's
-      // DF.filmGap — at the column's width unless the screen is too short to
-      // show its foot above the nav; then .feed-card narrows it (globals.css).
+      // DF.filmGap — at the column's width. Where the screen is too short to
+      // show its foot above the nav, .feed-card caps the height and the film
+      // is cropped to fit (globals.css).
       // Desk keeps its own height-led sizing; aspect-auto hands it back.
       className="feed-card relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[24px]
                     desk:aspect-auto desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]"

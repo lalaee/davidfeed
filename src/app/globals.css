@@ -2075,14 +2075,14 @@ html, body {
  * browser with its toolbars up leaves ~660: the title and the bookmark went
  * under the nav and nothing of the next film showed. So the card's height is
  * capped at what is left once the nav (8 + 75 + the home-indicator inset), the
- * 24 gap and a 10 tip of the next film (the desk's peek) are taken off. The
- * width stays the column's — side gutters were asked off — so on a short screen the
- * film is cropped top and bottom by its object-cover. Where the screen is tall
+ * 12 gap and a 4 tip of the next film are taken off. The width stays the
+ * column's — side gutters were asked off — so on a short screen the film is
+ * cropped top and bottom by its object-cover. Where the screen is tall
  * enough the cap never bites and the card is the film's own 9:16. The width is
  * definite (w-full), so max-height clamps the height aspect-ratio derives and
  * never transfers back to narrow the width. */
 @media (max-width: 1027px) {
   .feed-card {
-    max-height: calc(100dvh - 117px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 99px - env(safe-area-inset-bottom));
   }
 }

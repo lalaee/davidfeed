@@ -391,7 +391,7 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
       {/* Fixed background for Safari safe area */}
       <div className="fixed inset-0 bg-black z-[-1]" />
 
-      <DesktopNav activeTab="bible" />
+      <DesktopNav activeTab="read" />
 
       <div className={`app-shell relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
                        md:max-w-[390px] reader-column ${recede}`}>

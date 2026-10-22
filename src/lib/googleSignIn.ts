@@ -1,63 +1,49 @@
 import { supabase } from "./supabase";
 
 /*
- * Google sign-in through Google's own button, not a redirect via Supabase.
+ * Google sign-in from our own button, through a dafod.app return address.
  *
- * The redirect flow sends the reader to Google with Supabase's callback as the
- * return address, and Google names that address on its account chooser —
- * "to continue to ulmptivzgvcpbygpkkfv.supabase.co", which reads like a
- * phishing page. Google Identity Services instead runs on this page: Google
- * returns an ID token here, names this site ("dafod.app", or "Dafod" once the
- * brand is verified), and Supabase is handed the token directly with
- * signInWithIdToken. No round trip, so a held save is applied on the spot.
+ * Two things this has to avoid. The Supabase redirect flow returns through
+ * Supabase's callback, and Google names that address on its account chooser
+ * — "to continue to ulmptivzgvcpbygpkkfv.supabase.co" — and lists supabase.co
+ * as an authorised domain, which fails Google's brand verification. Google's
+ * own rendered button (Identity Services) fixed that, but it is an iframe we
+ * cannot style: its dark theme sits the G in a white disc, and it cannot be
+ * made the sheet's primary, white button.
  *
- * Google's terms require its own rendered button for this flow, which is why
- * the sheet shows Google's pill rather than one drawn to match Apple's.
+ * So the button is ours, and it sends the reader to Google's OpenID Connect
+ * endpoint asking for an ID token straight back to /auth/google on this site
+ * (response_type=id_token). Google names dafod.app — "Dafod", with the brand
+ * verified — and the callback page hands the token to Supabase with
+ * signInWithIdToken. No secret is involved: an ID token is verified by its
+ * signature, the audience (our client ID) and the nonce.
  *
  * The nonce: Google is given the SHA-256 of a random string and bakes it into
  * the token; Supabase is given the string itself and checks the two agree, so
- * a token lifted from somewhere else cannot be replayed here.
+ * a token lifted from somewhere else cannot be replayed here. The state guards
+ * the return trip the same way. Both wait in sessionStorage, which survives
+ * the round trip in the same tab, beside the save the reader was making
+ * (lib/auth.ts).
+ *
+ * Google's branding rules allow a button of our own: the standard four-colour
+ * G, unaltered, and "Continue with Google". On the light theme it sits on
+ * white with no container of its own.
  */
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+const KEY = "dafod.googleSignIn";
+/** Where Google sends the reader back to. Registered on the OAuth client. */
+export const GOOGLE_CALLBACK_PATH = "/auth/google";
 
-interface GoogleId {
-  initialize(config: {
-    client_id: string;
-    callback: (response: { credential: string }) => void;
-    nonce?: string;
-    ux_mode?: "popup" | "redirect";
-    use_fedcm_for_button?: boolean;
-    itp_support?: boolean;
-  }): void;
-  renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
+export const googleSignInAvailable = Boolean(CLIENT_ID);
+
+interface Pending {
+  nonce: string;
+  state: string;
+  returnTo: string;
 }
 
-declare global {
-  interface Window {
-    google?: { accounts: { id: GoogleId } };
-  }
-}
-
-export const googleButtonAvailable = Boolean(CLIENT_ID);
-
-let loading: Promise<GoogleId> | null = null;
-
-function loadGis(): Promise<GoogleId> {
-  loading ??= new Promise<GoogleId>((resolve, reject) => {
-    if (window.google?.accounts?.id) return resolve(window.google.accounts.id);
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.onload = () =>
-      window.google?.accounts?.id ? resolve(window.google.accounts.id) : reject(new Error("GIS missing"));
-    script.onerror = () => reject(new Error("GIS failed to load"));
-    document.head.appendChild(script);
-  }).catch((error) => {
-    // Let the next sheet try again rather than caching the failure.
-    loading = null;
-    throw error;
-  });
-  return loading;
+function random() {
+  return `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
 }
 
 async function sha256Hex(text: string) {
@@ -65,43 +51,48 @@ async function sha256Hex(text: string) {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/**
- * Draws Google's button into `parent`. Resolves once it is drawn; rejects if
- * Google's script cannot load, so the caller can fall back to the redirect.
- * `onError` reports a sign-in that Google completed but Supabase refused.
- */
-export async function renderGoogleButton(
-  parent: HTMLElement,
-  width: number,
-  onError: (message: string) => void,
-) {
-  const sb = supabase();
-  if (!CLIENT_ID || !sb) throw new Error("Google sign-in is not configured.");
-  const id = await loadGis();
-  const raw = `${crypto.randomUUID()}${crypto.randomUUID()}`;
-  const hashed = await sha256Hex(raw);
-  id.initialize({
+/** Leaves the page for Google's account chooser. */
+export async function startGoogleSignIn() {
+  if (!CLIENT_ID) throw new Error("Google sign-in is not configured.");
+  const pending: Pending = {
+    nonce: random(),
+    state: random(),
+    returnTo: window.location.pathname + window.location.search,
+  };
+  sessionStorage.setItem(KEY, JSON.stringify(pending));
+  const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    nonce: hashed,
-    ux_mode: "popup",
-    use_fedcm_for_button: true,
-    itp_support: true,
-    callback: async ({ credential }) => {
-      const { error } = await sb.auth.signInWithIdToken({ provider: "google", token: credential, nonce: raw });
-      // Success needs no handling here: the session change reaches
-      // lib/auth.ts, which closes the sheet and applies the held save.
-      if (error) onError("Google sign-in didn't go through. Try again.");
-    },
+    redirect_uri: window.location.origin + GOOGLE_CALLBACK_PATH,
+    response_type: "id_token",
+    scope: "openid email profile",
+    nonce: await sha256Hex(pending.nonce),
+    state: pending.state,
+    prompt: "select_account",
   });
-  parent.replaceChildren();
-  id.renderButton(parent, {
-    type: "standard",
-    theme: "filled_black",
-    size: "large",
-    shape: "pill",
-    text: "continue_with",
-    logo_alignment: "center",
-    // Google caps the width at 400.
-    width: Math.min(400, Math.round(width)),
-  });
+  window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+}
+
+/**
+ * On /auth/google: trades the returned ID token for a Supabase session and
+ * says where to send the reader. Throws if the trip did not start here, was
+ * cancelled at Google, or Supabase refused the token.
+ */
+export async function finishGoogleSignIn(): Promise<string> {
+  let pending: Pending | null = null;
+  try {
+    pending = JSON.parse(sessionStorage.getItem(KEY) ?? "null") as Pending | null;
+    sessionStorage.removeItem(KEY);
+  } catch {}
+  const returned = new URLSearchParams(window.location.hash.slice(1));
+  // Take the token out of the address bar and the history entry at once.
+  window.history.replaceState(null, "", window.location.pathname);
+
+  if (!pending || returned.get("state") !== pending.state) throw new Error("This sign-in did not start here.");
+  const token = returned.get("id_token");
+  if (!token) throw new Error(returned.get("error") ?? "Google did not return a token.");
+  const sb = supabase();
+  if (!sb) throw new Error("Sign-in is not configured.");
+  const { error } = await sb.auth.signInWithIdToken({ provider: "google", token, nonce: pending.nonce });
+  if (error) throw error;
+  return pending.returnTo || "/";
 }

@@ -281,6 +281,29 @@ export function NavLibraryIcon({ active, size = 24, className }: IconProps & { a
   );
 }
 
+/*
+ * You — a person, drawn to sit with the Iconly Curved nav set beside it: the
+ * same 20 box, 1.25 stroke with round ends, and a filled form when active.
+ */
+export function NavYouIcon({ active, size = 24, className }: IconProps & { active: boolean }) {
+  const body = "M3.75 16.9c0-2.75 2.8-4.4 6.25-4.4s6.25 1.65 6.25 4.4c0 .7-.5 1.1-1.25 1.1H5c-.75 0-1.25-.4-1.25-1.1Z";
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
+      {active ? (
+        <>
+          <circle cx="10" cy="6.25" r="3.9" fill="currentColor" />
+          <path d={body} fill="currentColor" />
+        </>
+      ) : (
+        <>
+          <circle cx="10" cy="6.25" r="3.4" stroke="currentColor" strokeWidth="1.25" />
+          <path d={body} stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 /* The compare card's close button — Figma 2646:2256, exported verbatim. */
 export function CloseIcon({ size = 20, className }: IconProps) {
   return (

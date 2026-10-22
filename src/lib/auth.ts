@@ -357,6 +357,11 @@ export function startAuth() {
       if (current.status !== "signedIn" || current.reader.id !== reader.id) {
         authStore.set({ status: "signedIn", reader });
       }
+      // The Google callback page (/auth/google) is only passed through: it
+      // signs in and moves straight on to the page the reader came from. A
+      // sync started there would apply the held save and then lose its push
+      // to the navigation, so the page they return to does the sync instead.
+      if (window.location.pathname.startsWith("/auth/")) return;
       // SIGNED_IN fires again on token refresh and tab refocus; one sync per
       // reader per page is enough, the focus handler covers the rest.
       if (syncedFor !== reader.id) {

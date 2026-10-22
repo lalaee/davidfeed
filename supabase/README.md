@@ -29,11 +29,14 @@ user created through the local admin API.
    `https://dafod.app/**`.
 4. **Google.** Google Cloud project `dafod-512122` → Google Auth Platform →
    Clients → OAuth client "Dafod web" (Web application). Authorized JavaScript
-   origins `https://www.dafod.app` and `https://dafod.app`; **no redirect URI**:
-   the site signs in with Google's own button (`src/lib/googleSignIn.ts`) and
-   hands Supabase the ID token, so Google names dafod.app, not supabase.co, and
-   supabase.co never becomes an authorised domain (it would fail Google's brand
-   verification). Paste the client ID and secret into Supabase → Authentication
+   origins `https://www.dafod.app` and `https://dafod.app`; redirect URIs
+   `https://www.dafod.app/auth/google` and `https://dafod.app/auth/google`.
+   The site's own button sends the reader to Google for an ID token, which
+   comes back to `/auth/google` and is handed to Supabase
+   (`src/lib/googleSignIn.ts`). That way Google names dafod.app, not
+   supabase.co, and supabase.co never becomes an authorised domain, which
+   would fail Google's brand verification. Never add the Supabase callback
+   here. Paste the client ID and secret into Supabase → Authentication
    → Sign In / Providers → Google, and set `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
 5. **Apple.** Apple Developer → Certificates, IDs & Profiles:
    - an App ID with Sign in with Apple enabled (the iOS app's will do);

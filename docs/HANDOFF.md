@@ -10,20 +10,24 @@ from the one you know.
 ## 1. Where things stand
 
 - **Live:** https://www.dafod.app (and dafod.app). It runs exactly `main`.
-- **Branches:** `main` == `auth` == `ab52008`. `match-ios` is an older ancestor
-  of both and has no unmerged work.
-- **Remote:** https://github.com/lalaee/davidfeed (`origin`).
+- **Branches:** `main` and `auth` point at the same commit. Check with
+  `git log -1 origin/main origin/auth`. `match-ios` is an older ancestor of
+  both and has no unmerged work.
+- **Remote:** https://github.com/lalaee/davidfeed (`origin`). **The repo is
+  public.** Never commit a secret; IDs are fine.
+- **The repo now holds the iOS app too,** under `ios/` (see §2a).
 - **The live product:**
   - a feed of ten LemoLab Bible films;
   - a desktop layout with soft edges, one-card paging, a magnetic lean and an
     Apple Music style ambience;
   - the Bible reader;
-  - a Library.
+  - **You**, the account centre (it was the Library).
+  - The nav tabs are **Watch, Read, You** (they were Home, Bible, Library).
   - Saving films and verses and highlighting need an account. Sign-in is Apple
     or Google, through Supabase.
 - **Not yet confirmed by a real person:** a full sign-in round trip on
   dafod.app. The user was asked to sign in with Google or Apple, bookmark a film
-  and check it shows in the Library. See §9.
+  and check it shows under You → Saved. See §9.
 
 ---
 
@@ -40,9 +44,41 @@ from the one you know.
   It uploads the working tree and builds on Vercel, then aliases to
   www.dafod.app. That means **uncommitted changes go live too**. Check
   `git status` before deploying.
+- **Other sessions push to `main`,** the iOS one included. Run
+  `git fetch origin` before pushing. If `git push origin <branch>:main` is
+  rejected, merge `origin/main` into your branch (never force), push the
+  branch, then fast-forward `main`. That happened on 22 October; see §2a.
 - **Building locally while the dev server runs corrupts the dev server.** Stop
   the preview first. If `preview_start` reports "reused" after a build, restart
   it. After a local build, `rm -rf .next` before running dev again.
+
+### 2a. The iOS app lives here now (`ios/`)
+- **How it arrived:** on 22 October 2026 another session merged the native app
+  ("Dafod", bundle `com.davidfeed.ios`) into this repo under `ios/`, with
+  `git subtree` and its full history (52 commits).
+  - The merge commits are `b20da42` (the subtree add) and `9cbbdad` (handoff
+    and ignores).
+  - The old standalone copy at `~/Downloads/Code/davidfeed-ios` is retired.
+    Work in `ios/`.
+- **Read `ios/HANDOFF.md` before touching the app.** It covers how the user
+  tests on their phone, building and running, the film pipeline, App Store
+  readiness and the iOS gotchas. Its §2 points back to §3 here for the user's
+  standing rules.
+- **Keeping it out of the website:**
+  - `.vercelignore` lists `ios/`, so `vercel --prod` doesn't upload the Xcode
+    project and its roughly 200MB of films.
+  - `eslint.config.mjs` ignores `ios/**`.
+  - Neither touches the site.
+- **The race on 22 October:** this web session's push to `main` was rejected
+  because the iOS merge had landed first. `origin/main` was merged into
+  `auth` (`28172b8`) and `main` was fast-forwarded.
+  - The deploy just before ran from the tree without `ios/`. The site files
+    were identical, so nothing needed redeploying.
+- **Web and iOS have drifted:**
+  - Tab names: the app's tabs still read Home, Bible, Library
+    (`ios/DavidFeed/DavidFeed/RootView.swift`); the web's are Watch, Read, You.
+  - Accounts: the app has none; the web has sign-in and You.
+  - Bring the app across only when the user asks.
 
 ### The dev server
 - `.claude/launch.json` has an entry named `davidfeed-dev` (`npm run dev`, port
@@ -179,7 +215,7 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 
 ---
 
-## 5. Accounts and the Library
+## 5. Accounts, and You (the account centre)
 
 ### What is gated
 - Saving a film (the bookmark), saving verses and highlighting need a signed-in
@@ -214,22 +250,69 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 - **Sign-out** clears the local cache. A visitor's old saves are kept until
   they sign in.
 
-**`src/lib/googleSignIn.ts`**
-- Draws Google's own button with Google Identity Services and passes the ID
-  token to `signInWithIdToken`. Google is given a SHA-256 nonce and Supabase
-  the raw one.
-- There is **deliberately no redirect fallback for Google**: see §6.
+**`src/lib/googleSignIn.ts`** and **`src/app/auth/google/page.tsx`**
+- **The button is ours,** not Google's Identity Services iframe. That iframe
+  sat the G in a white disc, and it couldn't be the white primary button.
+- **The flow:**
+  1. `startGoogleSignIn()` sends the reader to Google's OpenID Connect endpoint
+     with `response_type=id_token`, a SHA-256 nonce and a state.
+  2. Google returns them to **`/auth/google` on dafod.app**.
+  3. That page hands the token to `signInWithIdToken`, giving Supabase the raw
+     nonce, then sends the reader back to the page they came from.
+- **Why it returns to dafod.app:** Google's chooser names Dafod, and
+  supabase.co never becomes an authorised domain (see §6).
+- **No sync on the callback page.** `lib/auth.ts` skips syncing on `/auth/*`
+  so a held save isn't applied there and then lost to the redirect; the page
+  the reader returns to does the sync.
 
 **`src/components/AuthSheet.tsx`**
-- Mounted once in `app/layout.tsx`.
-- Signed out: Continue with Apple (redirect via Supabase) and Google's button.
-  Signed in: name, email and Sign out.
-- Links to `/privacy`.
+- Mounted once in `app/layout.tsx`. It only ever signs in; the account itself
+  lives on You.
+- **Layout,** modelled on YouVersion's account prompt (the user sent it as the
+  reference):
+  - a grabber;
+  - the headline "Save the verses that speak to you. 100% free.", then "No ads
+    or purchases";
+  - a ruled checklist with green check rings;
+  - a light pill, **Continue with Google** (the primary);
+  - a white text link, **Continue with Apple** (redirects through Supabase);
+  - a privacy line.
+- The reference's row of provider tiles was left out, because two providers
+  don't need both a row and buttons.
+- **Closing:** drag the grabber down (past 80px it closes, short of that it
+  springs back), tap the grabber, tap outside, or press Escape.
+- **Container:** the compare card's, `.sheet-column`, 740 wide at desk.
+- **The page behind recedes,** as under the compare card:
+  - AuthSheet puts `sheet-receded` on `<html>`;
+  - `globals.css` scales `body > main`;
+  - the bottom nav steps aside.
 
-**`src/components/Library.tsx`**
-- Signed out: a sign-in prompt.
-- Signed in: the grids, plus an initial-letter account button at the end of
-  the tab row. On a 375px phone you swipe the tab row to reach it.
+**The You tab**
+- **Files and addresses:**
+  - The nav tabs are Watch (`/`), Read (`/bible`) and You (`/you`), defined in
+    `TABS` and `tabForPath` in `src/components/BottomNav.tsx`.
+  - `DesktopNav` reuses those tabs.
+  - The tab keys are `"watch" | "read" | "you"`.
+  - You has a new icon, `NavYouIcon` in `icons.tsx`, drawn to sit with the
+    Iconly set.
+  - `/library` redirects to `/you` (`next.config.ts`, temporary).
+  - A saved set still plays at `/library/[id]`, which counts as You.
+- **The page:** `src/app/you/page.tsx` renders `src/components/Library.tsx`.
+  The component kept its old name. It is one scrolling column:
+  - **the reader:** an initial in a 56px circle, the name and the email.
+    Signed out, this is the sign-in prompt instead.
+  - **Saved:** the old Library, pills "Films" and "Highlights" (they were
+    "Saved Feed" and "Highlighted Verses"), with the grid and the colour-filtered
+    highlights.
+  - **Account:** rows on the sheets' `#0E0E0E` card.
+    - Privacy (`/privacy`).
+    - Delete account: a `mailto:lakesofmotion@gmail.com` request. There is no
+      self-serve deletion.
+    - Sign out.
+    - Signed out, only Privacy shows.
+- **What's gone:** the old account button in the tab row. `AuthSheet`'s
+  signed-in "Your account" view is now unreachable, because nothing opens the
+  sheet while you are signed in. It can go.
 
 **`src/app/privacy/page.tsx`**
 - The privacy policy, with contact lakesofmotion@gmail.com. It is written
@@ -250,7 +333,10 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 ### Not covered
 - `/library/[psalm]` (playing your saved set as a feed) reads the local cache
   and is not separately gated.
-- The iOS app (`~/Downloads/Code/davidfeed-ios`) has no accounts yet. It still
+- **Saved verses are stored and synced but never listed.** The Bible reader's
+  Save writes `saved_verses`, and nothing shows them: You → Saved lists films
+  and highlights only. This was true of the old Library as well.
+- The iOS app (`ios/`) has no accounts yet. It still
   keeps saves in UserDefaults. `com.davidfeed.ios` is already listed as an Apple
   client ID in Supabase, ready for native Sign in with Apple later.
 
@@ -272,7 +358,9 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 - OAuth client "Dafod web":
   - type: Web application;
   - JavaScript origins: `https://dafod.app` and `https://www.dafod.app`;
-  - **no redirect URIs.**
+  - redirect URIs: `https://www.dafod.app/auth/google` and
+    `https://dafod.app/auth/google`, our own callback. **Never** the Supabase
+    callback.
 - Consent screen:
   - External, **In production**;
   - home page `https://www.dafod.app`, privacy policy
@@ -362,16 +450,17 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 - `overflow-clip-margin` does nothing on scroll containers.
 
 **Google sign-in**
-- Google Identity Services needs the page's origin in the client's JavaScript
-  origins. `localhost` is **not** listed, so locally Google's button draws but
-  can't complete a sign-in. Test on dafod.app.
+- The Google client's redirect URIs list only dafod.app's `/auth/google`.
+  Locally, Continue with Google reaches Google but comes back with
+  `redirect_uri_mismatch`, and local Supabase has no Google provider anyway.
+  Test it on dafod.app.
 
 ---
 
 ## 9. Open items
 
 1. **Have the user do a real sign-in on dafod.app:** Google and Apple, then
-   bookmark, check the Library, sign out and sign in again. Nothing has
+   bookmark, check You → Saved, sign out and sign in again. Nothing has
    exercised this end to end with a real account.
 2. **The phone ambience crossfade and scroll fps were never measured,** because
    the pane was hidden. They are worth checking on a real phone.
@@ -389,7 +478,10 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 8. **The Agentation feedback toolbar** (`AgentationWrapper`) appears on the
    live site at desktop widths. Confirm with the user whether it should be
    dev-only.
-9. **Old lint warnings:** unused `TOPICS`, `_paused`, `onPausedChange`, and
+9. **Saved verses have no list** (§5). Add them to You → Saved if the user
+   wants them.
+10. **iOS has drifted from the web** on tab names and accounts (§2a).
+11. **Old lint warnings:** unused `TOPICS`, `_paused`, `onPausedChange`, and
    `<img>` warnings. They don't block the build.
 
 ---
@@ -411,3 +503,9 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
    new favicon and logo; Google brand verification (Search Console DNS
    verification, logo, verify and publish) (`fb5e25b`, `ab52008`).
 6. `main` fast-forwarded to `auth`, deployed and live.
+7. The privacy page got its own scroller (the document never scrolls here), a
+   "Home" link, and lost the copy-of-your-data line (`9b622d6`).
+8. The iOS app arrived in `ios/` from another session; `origin/main` was merged
+   into `auth` (`28172b8`). See §2a.
+9. The tabs became Watch, Read, You, and the Library became You, the account
+   centre, at `/you` (§5).

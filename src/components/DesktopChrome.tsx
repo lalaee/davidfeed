@@ -12,6 +12,14 @@ import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
 import HeroLottie from "./HeroLottie";
 
 /*
+ * The iOS app's App Store page. Dafod is not on the App Store yet (see
+ * ios/HANDOFF.md). Until NEXT_PUBLIC_APP_STORE_URL is set, the button shows
+ * but goes nowhere and says why on hover, rather than linking to a store
+ * search that finds nothing (apps.apple.com's search returns a 404).
+ */
+const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || undefined;
+
+/*
  * The animated glyphs, four per line, cycling.
  *
  * The o's of Doomscrolling take the four "doom" faces, each slot playing one
@@ -92,7 +100,7 @@ interface DesktopChromeProps {
 }
 
 export default function DesktopChrome({
-  activeTab = "home",
+  activeTab = "watch",
   topicId,
   onSelectTopic,
   collectionLabel,
@@ -141,11 +149,11 @@ export default function DesktopChrome({
        * carried entirely by colour — #999999 against #FFFFFF — not by weight,
        * which is why the light/extrabold pair that used to sit here was wrong.
        *
-       * There is no button. The frame does contain a "Download app" child, but
-       * it is laid out at y=250 inside a container only 189 tall, so it falls
-       * outside the bounds and does not render — the frame's own PNG shows two
-       * headline lines and the subtitle, and nothing else. It is scaffolding
-       * left in the file, not part of the design. */}
+       * The "Download app" button is now asked for. The frame always carried
+       * one — laid out at y=250 inside a container only 189 tall, so it fell
+       * outside the bounds and never rendered — and it is restored here as the
+       * page's primary call to action: the house white pill with the Apple
+       * mark, 32 below the subtitle like the frame's other blocks. */}
       <section className="pointer-events-none desk-copy fixed top-1/2 z-[500] hidden -translate-y-1/2 flex-col gap-[32px] desk:flex">
         {/* The o's are ANIMATED icons — eight Iconly Lotties, four cycling in
          *  the o's of Doomscrolling and four in the o of Hopescrolling. They
@@ -180,9 +188,23 @@ export default function DesktopChrome({
           </span>
         </h1>
         <p className="text-[24px] font-medium leading-[150%]" style={{ color: "rgba(255, 255, 255, 0.9)" }}>
-          Experience a collection of short verses that brings hope centered
-          around a theme
+          Experience a collection of short verses that brings hope.
         </p>
+        {/* The section ignores the pointer so the feed behind stays reachable;
+            the button takes it back. */}
+        <a
+          href={APP_STORE_URL}
+          title={APP_STORE_URL ? undefined : "Coming soon to the App Store"}
+          aria-disabled={APP_STORE_URL ? undefined : true}
+          className="pointer-events-auto flex h-[56px] w-fit items-center gap-[10px] rounded-full bg-white px-[28px]
+                     text-[18px] font-semibold text-[#0E0E0E] no-underline press"
+          style={{ letterSpacing: "-0.3px" }}
+        >
+          <svg width="18" height="21" viewBox="0 0 17 20" aria-hidden fill="currentColor">
+            <path d="M14.06 10.62c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.88-1.28 1.24-2.52 1.26-2.59-.03-.01-2.41-.93-2.43-3.65ZM11.78 3.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.09 1.76-.96 2.79 1.02.08 2.06-.52 2.69-1.27Z" />
+          </svg>
+          Download app
+        </a>
       </section>
 
       {/* The privacy policy, under the copy on its left edge. Google's brand
@@ -206,7 +228,7 @@ export default function DesktopChrome({
           {collectionBackHref && (
             <Link
               href={collectionBackHref}
-              aria-label="Back to Library"
+              aria-label="Back to You"
               className="flex h-[41px] w-[41px] items-center justify-center text-white no-underline
                          press"
             >

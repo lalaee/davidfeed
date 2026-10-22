@@ -155,7 +155,7 @@ interface FeedProps {
 
 export default function Feed({
   posts: allPosts = chapterPosts,
-  activeTab = "home",
+  activeTab = "watch",
   collectionLabel,
   collectionBackHref,
   initialPostId,

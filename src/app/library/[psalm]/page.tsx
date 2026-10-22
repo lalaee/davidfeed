@@ -51,9 +51,9 @@ export default function SavedFeedPage() {
     <main className="h-[100dvh] bg-black">
       <Feed
         posts={posts}
-        activeTab="library"
+        activeTab="you"
         collectionLabel="Saved"
-        collectionBackHref="/library"
+        collectionBackHref="/you"
         initialPostId={psalm}
       />
     </main>

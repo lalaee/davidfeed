@@ -8,7 +8,6 @@ import { BookmarkIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { gated } from "@/lib/auth";
 import { savedPostStore } from "@/lib/stores";
-import { useMagneticTilt } from "@/hooks/useMagneticTilt";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import ShareSheet from "./ShareSheet";
 import {
@@ -613,8 +612,6 @@ export default function FeedItem({
    * through to, so our own sheet opens instead and offers what that platform
    * genuinely can do.
    */
-  const tiltRef = useMagneticTilt<HTMLDivElement>(!!isActive);
-
   const canShareFiles = useSyncExternalStore(
     shareSubscribeNever,
     readCanShareFiles,
@@ -662,21 +659,12 @@ export default function FeedItem({
 
   return (
     /*
-     * The tilt goes on the CARD BOX, not on the artwork inside it — the whole
-     * object leans, corners, label and buttons together, the way dafod-2 tilts
-     * its cover. Tilting the image alone would slide a picture around inside a
-     * frame that stayed put, which reads as a bug.
-     *
-     * Only the active card answers. The neighbours are 10px peeks at this
-     * width, and a sliver that tips when the pointer crosses it on the way to
-     * the card is noise; the size guard inside the hook is about width, which a
-     * peek still has. Off on the phone too, where there is no hover to give.
-     *
-     * Transforms do not move layout, so offsetTop is unchanged and the pager
-     * still lands this card on the rest line while it is leaning.
+     * No magnetic tilt: the card used to lean toward the pointer on desktop
+     * (hooks/useMagneticTilt.ts, dafod-2's), and it was asked off. The hook
+     * is kept, unused, if it is wanted back; the column still carries the
+     * --desk-lean room it needed (globals.css), so nothing shifts.
      */
     <div
-      ref={tiltRef}
       // The phone card is the film's 9:16 at the column's width, 24 between
       // films — iOS's DF.filmGap. The screen and the film are both fixed, so
       // the tip of the next film is simply what is left (~120px on a 375x812).

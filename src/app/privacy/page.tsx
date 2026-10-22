@@ -19,7 +19,7 @@ export const metadata: Metadata = {
  * Set in the Library's type on its #000 column: Inter Semi Bold 17 headings,
  * Regular 18/150% body in #999999, white for emphasis.
  */
-const UPDATED = "21 October 2026";
+const UPDATED = "22 October 2026";
 const CONTACT = "lakesofmotion@gmail.com";
 
 export default function PrivacyPage() {
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
       {/* The page scrolls itself. html and body are overflow:hidden for the
           whole app (globals.css, so iOS cannot drag the fixed nav with the
           document), which is why every page is a 100dvh shell with its own
-          scroller, as the Library and the Bible reader are. */}
+          scroller, as You and the Bible reader are. */}
       <div className="h-[100dvh] w-full overflow-y-auto overscroll-contain">
       <main className="mx-auto w-full max-w-[782px] px-[24px] pb-[140px] pt-[40px] text-[18px] leading-[27px] desk:pt-[121px]">
         {/* The way back. The phone has the bottom nav for this, but the desktop
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
               they give us. We never see your Apple or Google password.
             </li>
             <li>
-              <span className="text-white">Your Library:</span> the films and verses you save and the
+              <span className="text-white">What you save:</span> the films and verses you save and the
               verses you highlight, with their colours.
             </li>
           </ul>
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="How we use it">
-          Only to sign you in and to keep your Library the same on every device you use. We do not
+          Only to sign you in and to keep what you save the same on every device you use. We do not
           show ads, sell or rent your information, or use it to profile you. There are no analytics
           or tracking cookies on Dafod.
         </Section>
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
         <Section title="Who else handles it">
           <ul className="flex list-disc flex-col gap-[8px] pl-[22px]">
             <li>
-              <span className="text-white">Supabase</span> stores your account and Library.
+              <span className="text-white">Supabase</span> stores your account and what you save.
             </li>
             <li>
               <span className="text-white">Vercel</span> hosts the site.
@@ -117,11 +117,11 @@ export default function PrivacyPage() {
 
         <Section title="Your browser">
           We use your browser&apos;s local storage to keep you signed in and to make the app quick to
-          load your Library. Signing out clears your Library from that browser.
+          load what you have saved. Signing out clears it from that browser.
         </Section>
 
         <Section title="Keeping and deleting it">
-          We keep your account and Library for as long as you have an account. To delete them, email{" "}
+          We keep your account and what you save for as long as you have an account. To delete them, email{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a> from the address
           you signed in with, and we will delete both within 30 days.
         </Section>

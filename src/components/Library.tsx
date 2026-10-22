@@ -5,9 +5,10 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import DesktopNav from "./DesktopNav";
 import { HIGHLIGHT_COLOURS } from "./VerseActionBar";
+import { ChevronIcon } from "./icons";
 import { fetchChapterIn, parseTitle, readingTranslation } from "@/data/bible";
 import { shortPosts } from "@/data/shorts";
-import { authSheetStore, authStore } from "@/lib/auth";
+import { authSheetStore, authStore, signOut, type Reader } from "@/lib/auth";
 import { highlightStore, readingStore, savedPostStore } from "@/lib/stores";
 import { formatVerseRange } from "@/lib/verseRef";
 
@@ -92,6 +93,26 @@ interface HighlightEntry {
   version: string;
 }
 
+/*
+ * YOU — the account centre (the "You" tab, at /you).
+ *
+ * It was the Library: two tabs and a grid. Now it is the reader's own page, in
+ * one scrolling column, as iOS's account pages are:
+ *
+ *   you        who is signed in — the initial in a 56 circle on #212121, the
+ *              name in Inter Regular 18 white, the email in Medium 15 #999999 —
+ *              or, signed out, the way in.
+ *   Saved      the Library as it was: the films bookmarked in the feed and the
+ *              verses highlighted in the Bible, under the same pills (renamed
+ *              "Films" and "Highlights" now that a "Saved" heading sits above
+ *              them, and short enough that a 375 screen holds both).
+ *   Account    the rest of being an account: the privacy policy, deleting the
+ *              account, signing out. Rows on the sheets' #0E0E0E card.
+ *
+ * Section headings are the sheets' title type, Inter Semi Bold 17 white, so
+ * the page reads as the same family as the reader's cards. The column, its
+ * 24 side padding and the desk geometry are the Library's, unchanged.
+ */
 export default function Library() {
   const [tab, setTab] = useState<LibraryTab>("feed");
   const auth = useSyncExternalStore(authStore.subscribe, authStore.read, authStore.serverSnapshot);
@@ -100,50 +121,140 @@ export default function Library() {
     <>
       <div className="fixed inset-0 z-[-1] bg-black" />
       <div
-        className="library-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
+        className="library-column relative mx-auto h-[100dvh] w-full overflow-hidden bg-black
                    md:max-w-[390px]"
       >
-        {/* The head is pinned and the lists scroll under it, so the tabs stay
-            reachable however far down the grid you are. */}
-        <div className="flex-shrink-0 pt-[40px] desk:pt-[121px]">
-          {/* Scrolls rather than clips. The pills hug their labels, and the two
-              renamed ones total 327 against the 327 a 375 screen has spare —
-              exactly zero. Measured on a 360 Android the second ran 15.2px past
-              its own margin with nowhere to go. This is the answer the verse
-              action bar already gives to the same question, and it costs
-              nothing on a screen wide enough to hold both. */}
-          <div className="scrollbar-hide flex gap-[12px] overflow-x-auto px-[24px]">
-            <TabPill label="Saved Feed" active={tab === "feed"} onClick={() => setTab("feed")} />
-            <TabPill
-              label="Highlighted Verses"
-              active={tab === "verses"}
-              onClick={() => setTab("verses")}
-            />
-            {/* In the row, after the tabs, rather than pinned beside it: the
-                two pills already take the whole of a 375 screen, and a fixed
-                button would clip the second one. Here it scrolls into reach on
-                a phone and sits at the end of the row wherever there is room. */}
-            {auth.status === "signedIn" && (
-              <AccountButton initial={(auth.reader.name || auth.reader.email || "?").charAt(0)} />
-            )}
-          </div>
+        {/* One scroller for the whole page: html and body never scroll here
+            (globals.css), so the column carries its own. The bottom padding
+            clears the phone's nav. */}
+        <div className="scrollbar-hide h-full overflow-y-auto pb-[140px] pt-[40px] desk:pb-[64px] desk:pt-[121px]">
+          {/* Nothing while the session is still being read, so a signed-in
+              reader never sees the sign-in prompt flash past. */}
+          {auth.status === "signedIn" && <Profile reader={auth.reader} />}
+          {auth.status === "signedOut" && <SignedOut />}
+
+          {auth.status === "signedIn" && (
+            <section className="mt-[40px]">
+              <SectionTitle>Saved</SectionTitle>
+              {/* Scrolls rather than clips, the verse action bar's answer to a
+                  row that may not fit; at these lengths it never needs to. */}
+              <div className="scrollbar-hide flex gap-[12px] overflow-x-auto px-[24px]">
+                <TabPill label="Films" active={tab === "feed"} onClick={() => setTab("feed")} />
+                <TabPill label="Highlights" active={tab === "verses"} onClick={() => setTab("verses")} />
+              </div>
+              {tab === "feed" ? <SavedFeed /> : <SavedHighlights />}
+            </section>
+          )}
+
+          {auth.status !== "loading" && (
+            <section className="mt-[48px]">
+              <SectionTitle>Account</SectionTitle>
+              <AccountRows signedIn={auth.status === "signedIn"} />
+            </section>
+          )}
         </div>
 
-        {/* The Library is the reader's account: signed out there is nothing of
-            theirs to list, only the way in. Nothing at all while the session
-            is still being read, so a signed-in reader never sees the prompt
-            flash past on the way to their grid. */}
-        {auth.status === "signedOut" ? (
-          <SignedOut />
-        ) : auth.status === "signedIn" ? (
-          tab === "feed" ? <SavedFeed /> : <SavedHighlights />
-        ) : (
-          <div className="flex-1" />
-        )}
-
-        <DesktopNav activeTab="library" />
+        <DesktopNav activeTab="you" />
       </div>
     </>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-[16px] px-[24px] text-[17px] font-semibold leading-[25.5px] text-white">
+      {children}
+    </h2>
+  );
+}
+
+/* Who is signed in. The initial stands in for a photo: Apple never sends one,
+   and Google's would be the only face on a page of paintings. */
+function Profile({ reader }: { reader: Reader }) {
+  const initial = (reader.name || reader.email || "?").charAt(0);
+  return (
+    <section className="flex items-center gap-[16px] px-[24px]">
+      <span
+        aria-hidden
+        className="flex h-[56px] w-[56px] flex-shrink-0 items-center justify-center rounded-full
+                   text-[22px] font-semibold uppercase text-white"
+        style={{ backgroundColor: "#212121" }}
+      >
+        {initial}
+      </span>
+      <div className="flex min-w-0 flex-col gap-[4px]">
+        <p className="truncate text-[18px] font-normal leading-[27px] text-white">
+          {reader.name || "Signed in"}
+        </p>
+        {reader.email && (
+          <p className="truncate text-[15px] font-medium leading-[18px]" style={{ color: "#999999" }}>
+            {reader.email}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/*
+ * The account's other sections, as rows on the sheets' card: #0E0E0E at radius
+ * 18.8333, rows 56 tall with 16 side padding, a #212121 hairline between, the
+ * label in Inter Regular 17 and a chevron turned to point onward.
+ *
+ * Deleting an account is a request by email for now — the privacy page
+ * promises it within 30 days — so the row writes that email rather than
+ * pretending to a button that deletes on the spot.
+ */
+const CONTACT = "lakesofmotion@gmail.com";
+
+function AccountRows({ signedIn }: { signedIn: boolean }) {
+  const [leaving, setLeaving] = useState(false);
+  const leave = async () => {
+    setLeaving(true);
+    await signOut();
+    setLeaving(false);
+  };
+  const rowClass =
+    "flex h-[56px] w-full items-center justify-between gap-[12px] border-none bg-transparent px-[16px] " +
+    "text-left text-[17px] font-normal text-white no-underline press-soft";
+
+  return (
+    <div className="px-[24px]">
+      <div className="overflow-hidden rounded-[18.8333px]" style={{ backgroundColor: "#0E0E0E" }}>
+        <Link href="/privacy" className={rowClass}>
+          Privacy
+          <Onward />
+        </Link>
+        {signedIn && (
+          <>
+            <Hairline />
+            <a
+              href={`mailto:${CONTACT}?subject=${encodeURIComponent("Delete my Dafod account")}`}
+              className={rowClass}
+            >
+              Delete account
+              <Onward />
+            </a>
+            <Hairline />
+            <button type="button" onClick={leave} disabled={leaving} className={`${rowClass} disabled:opacity-60`}>
+              {leaving ? "Signing out…" : "Sign out"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Hairline() {
+  return <div className="mx-[16px] h-[1px]" style={{ backgroundColor: "#212121" }} />;
+}
+
+function Onward() {
+  return (
+    <span className="flex -rotate-90 text-[#999999]">
+      <ChevronIcon size={22} />
+    </span>
   );
 }
 
@@ -197,8 +308,7 @@ function SavedFeed() {
   }
 
   return (
-    <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[24px]
-                    desk:pb-[32px] desk:pt-[32px]">
+    <div className="pt-[24px] desk:pt-[32px]">
       <div className="grid grid-cols-3 gap-[2px] px-[24px]">
         {saved.map((post) => (
           <Link
@@ -340,7 +450,7 @@ function SavedHighlights() {
     <>
       {/* The filter sits with the tabs in the design's own grouping — one
           block of controls, 24 below the tabs, 40 above the list. */}
-      <div className="flex-shrink-0 px-[24px] pt-[24px]">
+      <div className="px-[24px] pt-[24px]">
         <div
           className="flex h-[54px] items-center rounded-[30px] px-[16px]"
           style={{ backgroundColor: "#212121" }}
@@ -388,8 +498,7 @@ function SavedHighlights() {
             : "Highlight a verse in the Bible and it is kept here."}
         </Empty>
       ) : (
-        <div className="scrollbar-hide flex-1 overflow-y-auto pb-[120px] pt-[40px]
-                        desk:pb-[32px] desk:pt-[32px]">
+        <div className="pt-[40px] desk:pt-[32px]">
           <div className="flex flex-col gap-[32px]">
             {shown.map((entry) => (
               <div key={entry.key} className="flex flex-col gap-[12px] px-[24px]">
@@ -429,27 +538,10 @@ function SavedHighlights() {
   );
 }
 
-/* The account, as the first letter of the reader's name on the inactive
-   tab pill's #0E0E0E, at the pills' 38 height. Opens the account sheet. */
-function AccountButton({ initial }: { initial: string }) {
-  return (
-    <button
-      type="button"
-      onClick={() => authSheetStore.set(true)}
-      aria-label="Your account"
-      className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-full border-none
-                 text-[17px] font-semibold uppercase leading-[22px] text-white press"
-      style={{ backgroundColor: "#0E0E0E" }}
-    >
-      {initial}
-    </button>
-  );
-}
-
 /* Signed out: the empty state's type, and the way in. */
 function SignedOut() {
   return (
-    <div className="flex flex-1 flex-col items-start gap-[24px] px-[24px] pt-[40px]">
+    <section className="flex flex-col items-start gap-[24px] px-[24px]">
       <p className="text-[18px] font-normal leading-[27px]" style={{ color: "#999999" }}>
         Sign in to save films and verses and keep your highlights, on every device.
       </p>
@@ -462,7 +554,7 @@ function SignedOut() {
       >
         Sign in
       </button>
-    </div>
+    </section>
   );
 }
 
@@ -471,7 +563,7 @@ function SignedOut() {
    it reads as the list's first line rather than as chrome. */
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex-1 px-[24px] pt-[40px]">
+    <div className="px-[24px] pt-[24px]">
       <p className="text-[18px] font-normal leading-[27px]" style={{ color: "#999999" }}>
         {children}
       </p>

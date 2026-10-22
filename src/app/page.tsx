@@ -12,7 +12,7 @@ import { shortPosts } from "@/data/shorts";
  */
 export default function Home() {
   return (
-    <main className="h-[100dvh] bg-black">
+    <main className="h-[var(--app-h)] bg-black">
       <Feed posts={shortPosts} activeTab="home" />
     </main>
   );

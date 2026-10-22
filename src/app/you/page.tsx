@@ -11,7 +11,7 @@ export const metadata: Metadata = {
    Library, from when this page was the saved grid. */
 export default function YouPage() {
   return (
-    <main className="h-[100dvh] bg-black">
+    <main className="h-[var(--app-h)] bg-black">
       <Library />
     </main>
   );

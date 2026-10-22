@@ -39,7 +39,7 @@ export default function SoundBadge({ visible, onEnable }: SoundBadgeProps) {
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
       aria-label="Tap for sound"
-      className={`sound-badge fixed left-1/2 top-[calc(min(100vw,375px)*8/9)] z-[9998]
+      className={`sound-badge fixed left-1/2 top-[calc(var(--strip-h)+min(100vw,375px)*8/9)] z-[9998]
                   flex -translate-x-1/2 items-center gap-[9px] rounded-full border-none
                   py-[13px] pl-[20px] pr-[24px] text-white
                   transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]

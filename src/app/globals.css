@@ -2090,6 +2090,8 @@ html, body {
  *               words. Where the screen is tall enough, it is simply the
  *               film's 9:16 and nothing is cropped.
  *
+ * The screen here is --app-h, the viewport less the app strip when it shows.
+ *
  * The width stays the column's (side gutters were asked off). Plain CSS, not
  * layered, so it beats the card's aspect-[9/16] utility below the desk. */
 @media (max-width: 1027px) {
@@ -2098,14 +2100,14 @@ html, body {
     --nav-floor: max(2px, env(safe-area-inset-bottom));
     --film-h: calc(var(--col-w) * 16 / 9);
     /* Screen above the nav: the bar is 75 tall on --nav-floor (BottomNav). */
-    --clear: calc(100dvh - var(--nav-floor) - 75px);
+    --clear: calc(var(--app-h) - var(--nav-floor) - 75px);
     --crop-top: clamp(
       0px,
       calc(var(--cap-bottom, 1) * var(--film-h) - var(--clear)),
       calc(var(--cap-top, 0) * var(--film-h))
     );
     height: min(
-      calc(100dvh - var(--nav-floor) - 18px),
+      calc(var(--app-h) - var(--nav-floor) - 18px),
       calc(var(--film-h) - var(--crop-top))
     );
   }
@@ -2120,3 +2122,61 @@ html, body {
   }
 }
 
+
+/* THE APP STRIP (components/AppStrip.tsx).
+ * --strip-h is the room it takes at the top, and --app-h what is left for a
+ * page shell. Both are 0 / 100dvh unless the strip is showing: phone widths,
+ * with html.has-app-strip. The top safe-area inset is the strip's to pad, so
+ * an installed or full-screen page keeps it clear of the status bar. */
+:root {
+  --strip-h: 0px;
+  --app-h: calc(100dvh - var(--strip-h));
+}
+.app-strip {
+  display: none;
+}
+@media (max-width: 1027px) {
+  html.has-app-strip {
+    --strip-h: calc(56px + env(safe-area-inset-top, 0px));
+  }
+  html.has-app-strip .app-strip {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 10px;
+    height: var(--strip-h);
+    padding: env(safe-area-inset-top, 0px) 16px 0 8px;
+    background: #0e0e0e;
+    border-bottom: 1px solid #212121;
+    position: relative;
+    z-index: 10002;
+  }
+}
+.app-strip-close {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #8a8a8a;
+}
+.app-strip-icon {
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+.app-strip-get {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: #ededed;
+  padding: 6px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #111111;
+  text-decoration: none;
+}

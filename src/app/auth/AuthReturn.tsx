@@ -41,7 +41,7 @@ export default function AuthReturn({ finish }: { finish: () => Promise<string> }
   }[state];
 
   return (
-    <main className="flex h-[100dvh] flex-col items-center justify-center gap-[24px] bg-black px-[24px] text-center">
+    <main className="flex h-[var(--app-h)] flex-col items-center justify-center gap-[24px] bg-black px-[24px] text-center">
       <p className="text-[18px] font-normal leading-[27px]" style={{ color: "#999999" }}>
         {message}
       </p>

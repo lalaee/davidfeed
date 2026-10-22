@@ -201,7 +201,7 @@ function YouColumn({ children }: { children: React.ReactNode }) {
     <>
       <div className="fixed inset-0 z-[-1] bg-black" />
       <div
-        className="library-column relative mx-auto h-[100dvh] w-full overflow-hidden bg-black
+        className="library-column relative mx-auto h-[var(--app-h)] w-full overflow-hidden bg-black
                    md:max-w-[390px]"
       >
         {/* One scroller for the whole page: html and body never scroll here

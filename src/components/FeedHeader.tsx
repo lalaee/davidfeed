@@ -66,7 +66,8 @@ interface FeedHeaderProps {
   collectionBackHref?: string;
 }
 
-const TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) - 1px)";
+// Below the phone's app strip when it shows (--strip-h, AppStrip.tsx).
+const TOP = "calc(var(--strip-h) + max(env(safe-area-inset-top, 0px), 45px) - 1px)";
 // Held 39px below the header, the gap it has always had.
 const PANEL_TOP = "calc(max(env(safe-area-inset-top, 0px), 45px) + 38px)";
 

@@ -48,7 +48,7 @@ export default function SavedFeedPage() {
   if (!shortPosts.some((p) => p.id === psalm)) notFound();
 
   return (
-    <main className="h-[100dvh] bg-black">
+    <main className="h-[var(--app-h)] bg-black">
       <Feed
         posts={posts}
         activeTab="you"

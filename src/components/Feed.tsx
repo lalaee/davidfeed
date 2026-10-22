@@ -658,7 +658,7 @@ export default function Feed({
 
     <div
       ref={columnRef}
-      className="feed-column relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
+      className="feed-column relative mx-auto flex h-[var(--app-h)] w-full flex-col overflow-hidden bg-black
                     desk-feed md:max-w-[375px] desk:fixed desk:top-0 desk:mx-0
                     desk:h-[100dvh]"
     >

@@ -393,7 +393,7 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
 
       <DesktopNav activeTab="bible" />
 
-      <div className={`app-shell relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-black
+      <div className={`app-shell relative mx-auto flex h-[var(--app-h)] w-full flex-col overflow-hidden bg-black
                        md:max-w-[390px] reader-column ${recede}`}>
         {/* Header Section — absolutely overlaid so the verses scroll behind it */}
         <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[40px] desk:pt-[121px]">

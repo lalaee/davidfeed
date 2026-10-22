@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           whole app (globals.css, so iOS cannot drag the fixed nav with the
           document), which is why every page is a 100dvh shell with its own
           scroller, as You and the Bible reader are. */}
-      <div className="h-[100dvh] w-full overflow-y-auto overscroll-contain">
+      <div className="h-[var(--app-h)] w-full overflow-y-auto overscroll-contain">
       <main className="mx-auto w-full max-w-[782px] px-[24px] pb-[140px] pt-[40px] text-[18px] leading-[27px] desk:pt-[121px]">
         {/* The way back, to wherever the reader came from: You, the sign-in
             sheet over the feed or a chapter, the homepage footer. Without it

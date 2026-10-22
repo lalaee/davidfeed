@@ -33,7 +33,7 @@ export default async function BiblePage({ params }: { params: Promise<{ ref?: st
   const { book, chapter } = parseRef((await params).ref);
   const known = BOOKS.some((b) => b.name === book);
   return (
-    <main className="h-[100dvh] bg-black">
+    <main className="h-[var(--app-h)] bg-black">
       <BibleReader
         book={known ? book : DEFAULT_BOOK}
         chapter={known ? chapter : DEFAULT_CHAPTER}

@@ -9,10 +9,13 @@ How they were made, so the set can be redone:
 2. The app launched with `-AppStoreScreenshots` (`xcrun simctl launch <udid> com.davidfeed.ios -AppStoreScreenshots`):
    the status bar is hidden and the cards' top corners are square, so a film runs flush to the top
    (`ScreenshotMode` in Design/StatusBar.swift; off in normal use).
-3. `xcrun simctl io <udid> screenshot shot.png` on each film.
-4. The Dynamic Island is drawn into every simulator capture. `./unisland.sh in.png out.png` clone-stamps it out
-   with a feathered patch from just below it. That works on films whose top is open sky, glass or a plain
-   ground; it copies faces or text upward on films with figures or captions at the top (art deco, engraving,
-   shadow puppet), so those are not in the set.
-5. The Bible and Library shots were taken with the status bar showing; the band behind it is the app's pure
-   black, so rows 0-140 were painted black (`drawbox`), leaving every other pixel as captured.
+3. `xcrun simctl io <udid> screenshot shot.png` on each film. Screenshot mode also signs in a sample reader
+   ("Dafod Reader") with six saved films and two highlighted verses of Psalm 46 (`ScreenshotMode.sampleLibrary`),
+   locally only — nothing is stored or sent — so the reader, You and Saved can be shown.
+4. The Dynamic Island is drawn into every simulator capture. On a film, `./film-island.py shot.png <film>.mp4
+   out.png` finds the exact frame on screen (matching the band below the island against every frame of the
+   bundled film) and lays the film's own top rows over it — the real picture, seamless, on any film (~40 s
+   each). `./unisland.sh` (a feathered clone patch) is the old fallback; it fails on films with faces or words
+   at the top. On the reader and Saved the island sits on pure black and needs nothing.
+5. The current set (23 Oct 2026): ink wash, art deco, watercolour, engraving, the reader (Psalm 46 with two
+   highlights), Saved. Retake when the UI changes.

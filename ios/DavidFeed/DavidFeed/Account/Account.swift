@@ -52,6 +52,18 @@ final class Account: NSObject {
     func start(app: AppState) async {
         self.app = app
         app.onLocalChange = { [weak self] in self?.schedulePush() }
+        // App Store screenshots: a sample reader and Library, so You, Saved and
+        // the reader's highlights can be shown. Nothing is stored or sent --
+        // no Keychain, no sync (syncedFor stays nil, so changes don't push).
+        if ScreenshotMode.on {
+            session = try? AccountSession(["access_token": "screenshot", "refresh_token": "screenshot",
+                                           "expires_in": 1e9,
+                                           "user": ["id": "screenshot", "email": "reader@dafod.app",
+                                                    "user_metadata": ["full_name": "Dafod Reader"]]])
+            status = .signedIn
+            app.apply(row: ScreenshotMode.sampleLibrary)
+            return
+        }
         guard var saved = AccountSession.load() else { status = .signedOut; return }
         if saved.isExpiring {
             guard let fresh = try? await Supabase.refresh(saved) else {

@@ -31,5 +31,13 @@ enum ScreenshotMode {
         guard on else { return }
         UIApplication.shared.isStatusBarHidden = true
     }
+
+    /// The Library the screenshots show: six saved films and two highlighted
+    /// verses of Psalm 46 (where the reader opens), in the account row's shape (AppState.apply).
+    static let sampleLibrary: [String: Any] = [
+        "saved_posts": ["2301": true, "2302": true, "302": true, "4501": true, "41001": true, "303": true],
+        "saved_verses": [String: Any](),
+        "highlights": ["Psalms 46": ["1": "#FFFE54", "5": "#FF548D"]],
+    ]
 }
 

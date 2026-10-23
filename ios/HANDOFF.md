@@ -305,18 +305,17 @@ ios/
 
 ---
 
-## 7. App Store screenshots
+## 7. App Store screenshots and review notes
 
-Six at 6.9" in `AppStore/screenshots/iphone-6.9/`: ink wash, stained glass, watercolour, impasto, reader,
-Library. **Out of date since 23 Oct:** shot 4 is the impasto (off the feed now), the film shots still show
-the card label, and the last shot is the old Library tab (now You). Retake 4 and 6 (and re-check 1–3) before
-uploading. No status bar, no Dynamic Island, no rounded top corners. Method in `AppStore/README.md`. The
-island is drawn into every iOS 26 simulator capture (`--mask` doesn't remove it); `unisland.sh` clone-stamps
-it with a feathered patch — it works on open tops (sky, glass, plain ground) and copies faces or captions
-on films with figures at the top (art deco, engraving, shadow puppet), so those aren't in the set. The
-mask must be full-range (a gray frame is 16–235 — a 92 % opaque patch left a ghost of the pill).
+Six at 6.9" in `AppStore/screenshots/iphone-6.9/` (retaken 23 Oct): ink wash, art deco, watercolour,
+engraving, the reader (Psalm 46, two highlights), Saved. No status bar, no Dynamic Island, no rounded top
+corners. Method in `AppStore/README.md`: `-AppStoreScreenshots` (status bar off, square top corners, and a
+local sample reader + Library so You/Saved/highlights can be shown), then `AppStore/film-island.py` restores
+the film's real pixels under the island by matching the exact frame in the bundled film.
 
----
+`AppStore/REVIEW_NOTES.md` is the text for App Review › Notes: how to sign in (Sign in with Apple, any Apple
+ID), where account deletion is, why background audio, the one permission (add to Photos, from Save Video),
+no purchases/UGC/tracking, and the content rights.
 
 ## 8. Open items
 
@@ -327,7 +326,9 @@ mask must be full-range (a gray frame is 16–235 — a 92 % opaque patch left a
    User Content › Other User Content; all linked to the user, none used for tracking, purpose App
    Functionality (matches `PrivacyInfo.xcprivacy`). Name is there because Sign in with Apple asks for
    `.fullName` and the app stores it as the reader's name.
-4. Listing text; upload the six screenshots.
+4. Listing text; upload the six screenshots; paste `AppStore/REVIEW_NOTES.md` into App Review › Notes.
+   Privacy policy URL https://www.dafod.app/privacy; the terms are at https://www.dafod.app/terms (App Store
+   Connect › App Information › License Agreement can stay Apple's standard EULA).
 5. Xcode → Product → Archive → Distribute → App Store Connect (automatic signing creates the distribution
    certificate on first upload). TestFlight internal testing first (no review), then submit.
 
@@ -340,7 +341,22 @@ mask must be full-range (a gray frame is 16–235 — a 92 % opaque patch left a
 - **Test on the phone:** Continue with Apple → save a film → see it on dafod.app/you/saved with the same
   account; highlight a verse on the web → see it in the app after bringing it to the front.
 
+**Checked against common rejections (23 Oct, from Reddit threads he shared):** in-app account deletion
+that really deletes ✓; report/block — not applicable, no user content ✓; not a web wrapper ✓; no purchases
+✓; privacy policy linked in the app (sign-in sheet, You prompt, Account) and App Privacy matching the
+manifest ✓; reviewer access — Sign in with Apple + notes ✓ (a dedicated review login is optional, see
+below); permissions — only NSPhotoLibraryAddUsageDescription, for the share sheet's Save Video (without it,
+Save Video crashes the app; verified the prompt shows and the app survives) ✓; terms of service page ✓.
+
 **Decisions / risks to raise with him:**
+- **Sign in with Apple token revocation.** Apple's account-deletion page says apps using Sign in with Apple
+  *should* revoke the user's Apple tokens (REST API) when deleting an account; some apps are rejected for not
+  doing it. The app doesn't yet. It needs a small server step (a Supabase Edge Function holding a client
+  secret for `com.davidfeed.ios`, generated from his .p8 — which only he handles): the app would send a fresh
+  Apple authorization code on Delete account, the function exchanges and revokes it.
+- **Review login.** 2.1 asks for demo account details if the app has a login. Sign in with Apple lets the
+  reviewer in with their own Apple ID, which is normally accepted; if review asks, create a Google account for
+  review and put it in the notes.
 - **NIV credit.** The films quote the NIV. Biblica's notice ("Scripture quotations taken from The Holy Bible,
   New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by
   permission. All rights reserved worldwide.") is shown **nowhere in the app** — he had it on the cards and

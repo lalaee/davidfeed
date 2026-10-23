@@ -6,7 +6,6 @@ import SwiftUI
 /// grabber, the promise, a ruled checklist, Continue with Google as the light
 /// primary pill, Continue with Apple, and the privacy link.
 struct SignInSheet: View {
-    @State private var showPrivacy = false
     private var account: Account { .shared }
 
     private static let checklist = ["Save films to watch again", "Highlight verses", "On every device"]
@@ -39,9 +38,7 @@ struct SignInSheet: View {
             ProviderButtons(compactApple: true)
                 .padding(.top, 24)
 
-            Button("Privacy") { showPrivacy = true }
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(DF.ink.opacity(0.6))
+            LegalLinks()
                 .frame(maxWidth: .infinity)
                 .padding(.top, 14)
         }
@@ -51,7 +48,6 @@ struct SignInSheet: View {
         .presentationDetents([.height(560), .large])
         .presentationDragIndicator(.visible)
         .presentationBackground(DF.surface)
-        .sheet(isPresented: $showPrivacy) { SafariView(url: URL(string: "https://www.dafod.app/privacy")!) }
     }
 }
 
@@ -130,4 +126,24 @@ struct SafariView: UIViewControllerRepresentable {
         return vc
     }
     func updateUIViewController(_ vc: SFSafariViewController, context: Context) {}
+}
+
+/// Privacy · Terms, as small links opening dafod.app's pages in the app.
+/// App Review looks for the privacy policy inside the app, and for terms that
+/// match what it does.
+struct LegalLinks: View {
+    enum Page: String, Identifiable { case privacy, terms; var id: String { rawValue } }
+    @State private var open: Page?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Button("Privacy") { open = .privacy }
+            Text("·")
+            Button("Terms") { open = .terms }
+        }
+        .font(.system(size: 15, weight: .medium))
+        .foregroundStyle(DF.ink.opacity(0.6))
+        .buttonStyle(.plain)
+        .sheet(item: $open) { SafariView(url: URL(string: "https://www.dafod.app/\($0.rawValue)")!) }
+    }
 }

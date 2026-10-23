@@ -128,7 +128,8 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Changes">
-          If this policy changes, we will update this page and the date at the top.
+          If this policy changes, we will update this page and the date at the top. The terms for using
+          Dafod are at <Link href="/terms" className="text-white underline">dafod.app/terms</Link>.
         </Section>
       </main>
       </div>

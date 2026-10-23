@@ -9,6 +9,7 @@ import SwiftUI
 /// Privacy, Delete account, Sign out.
 struct YouView: View {
     @State private var showPrivacy = false
+    @State private var showTerms = false
     @State private var confirmDelete = false
     @State private var deleting = false
     @State private var deleteFailure: String?
@@ -34,6 +35,7 @@ struct YouView: View {
             }
         }
         .sheet(isPresented: $showPrivacy) { SafariView(url: URL(string: "https://www.dafod.app/privacy")!) }
+        .sheet(isPresented: $showTerms) { SafariView(url: URL(string: "https://www.dafod.app/terms")!) }
         .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete account", role: .destructive) { Task { await delete() } }
         } message: {
@@ -66,9 +68,7 @@ struct YouView: View {
                 .padding(.top, 16)
             ProviderButtons()
                 .padding(.top, 28)
-            Button("Privacy") { showPrivacy = true }
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(DF.ink.opacity(0.6))
+            LegalLinks()
                 .padding(.top, 18)
         }
         .padding(.horizontal, 24)
@@ -106,6 +106,8 @@ struct YouView: View {
                 NavigationLink(value: "saved") { row("Saved") }
                 hairline
                 Button { showPrivacy = true } label: { row("Privacy") }
+                hairline
+                Button { showTerms = true } label: { row("Terms") }
                 hairline
                 Button { confirmDelete = true } label: { row(deleting ? "Deleting…" : "Delete account") }
                     .disabled(deleting)

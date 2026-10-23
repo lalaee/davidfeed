@@ -74,7 +74,8 @@ export default function PrivacyPage() {
         <Section title="How we use it">
           Only to sign you in and to keep what you save the same on every device you use. We do not
           show ads, sell or rent your information, or use it to profile you. There are no analytics
-          or tracking cookies on Dafod.
+          or tracking cookies on the website, and no analytics, advertising or tracking code in the
+          app.
         </Section>
 
         <Section title="Google user data">
@@ -96,7 +97,8 @@ export default function PrivacyPage() {
               <span className="text-white">Supabase</span> stores your account and what you save.
             </li>
             <li>
-              <span className="text-white">Vercel</span> hosts the site.
+              <span className="text-white">Vercel</span> hosts the website, and the films the app
+              fetches when you share one.
             </li>
             <li>
               <span className="text-white">Apple and Google</span> handle signing in, under their own
@@ -114,9 +116,9 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Keeping and deleting it">
-          We keep your account and what you save for as long as you have an account. In the iPhone
-          app, You › Delete account deletes your account and everything saved to it straight away, on
-          every device. You can also email{" "}
+          We keep your account and what you save for as long as you have an account. On the website
+          or in the iPhone app, You › Delete account deletes your account and everything saved to it
+          straight away, on every device. You can also email{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a> from the address
           you signed in with, and we will delete both within 30 days.
         </Section>

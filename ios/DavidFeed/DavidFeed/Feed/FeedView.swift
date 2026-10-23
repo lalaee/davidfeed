@@ -30,7 +30,31 @@ struct FeedView: View {
     /// belongs to the reader, and reshuffling it would lose the place they put
     /// things in. Only the topic feed is dealt."
     private var posts: [Post] {
-        fixedSet ? allPosts : TopicStore.dealt(topic.posts(from: allPosts))
+        fixedSet ? allPosts : Self.spread(TopicStore.dealt(topic.posts(from: allPosts)))
+    }
+
+    /// The dealt order, reworked so two films of the same passage never play
+    /// back to back -- the web's spread() in Feed.tsx, step for step. At each
+    /// pick: if one passage holds more than half of what is left, it must go
+    /// now or it can't be kept apart later; otherwise the first film whose
+    /// passage differs from the last. With nine films over four passages
+    /// (3/3/2/1) a repeat never has to happen.
+    static func spread(_ items: [Post]) -> [Post] {
+        var left = items, out: [Post] = [], last: String?
+        while !left.isEmpty {
+            var counts: [String: Int] = [:]
+            for p in left { counts[p.passage, default: 0] += 1 }
+            var pick: Int?
+            for p in left where p.passage != last && counts[p.passage]! * 2 > left.count {
+                pick = left.firstIndex { $0.passage == p.passage }
+                break
+            }
+            if pick == nil { pick = left.firstIndex { $0.passage != last } }
+            let it = left.remove(at: pick ?? 0)
+            out.append(it)
+            last = it.passage
+        }
+        return out
     }
 
     /// The card whose cover the ambience is drawn from.
@@ -42,18 +66,23 @@ struct FeedView: View {
         return posts.indices.contains(i + 1) ? posts[i + 1].id : nil
     }
 
-    /// A card is its film's shape: the screen's width, and the height that
-    /// gives the film at that width. The films are 9:16, so a card ends short
-    /// of the bar and the next one peeks beneath it.
-    private func cardHeight(_ post: Post, width: CGFloat) -> CGFloat {
-        width * CGFloat(post.aspect ?? 16.0 / 9.0)
+    /// A card is its film's shape -- the screen's width, and the height that
+    /// gives the film at that width -- unless that won't fit above the tab
+    /// bar with a gap under it. Then the card stands as tall as there is room
+    /// for, and FeedCardView crops the film around its burned-in words. On a
+    /// 17 Pro the whole 9:16 film fits; on a short iPhone (SE, mini) it does
+    /// not, and the bar would otherwise sit on the captions.
+    private func cardHeight(_ post: Post, width: CGFloat, room: CGFloat) -> CGFloat {
+        min(width * CGFloat(post.aspect ?? 16.0 / 9.0), max(room, 320))
     }
 
     var body: some View {
         GeometryReader { geo in
             // The scroll view runs edge to edge, so its height is the screen's.
             let viewport = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
-            let lastHeight = posts.last.map { cardHeight($0, width: geo.size.width) } ?? 0
+            // From the top of the screen to the top of the tab bar, less the gap.
+            let room = geo.safeAreaInsets.top + geo.size.height - DF.filmGap
+            let lastHeight = posts.last.map { cardHeight($0, width: geo.size.width, room: room) } ?? 0
 
             ScrollView(.vertical) {
                 LazyVStack(spacing: DF.filmGap) {
@@ -70,7 +99,7 @@ struct FeedView: View {
                             // silently.
                             playsLoop: activeID == post.id || post.id == nextID
                         )
-                            .frame(height: cardHeight(post, width: geo.size.width))
+                            .frame(height: cardHeight(post, width: geo.size.width, room: room))
                             .id(post.id)
                     }
                 }

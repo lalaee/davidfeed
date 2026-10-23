@@ -235,7 +235,12 @@ struct BibleView: View {
                 highlight: app.highlight(k),
                 shareItem: shareText(n),
                 zoomNamespace: zoom,
-                onHighlight: { app.setHighlight($0, for: k) },
+                onHighlight: { colour in
+                    // The colour this verse should end up with (the same swatch
+                    // again clears it), applied now or after signing in.
+                    let target = colour.flatMap { app.highlight(k) == $0 ? nil : $0 }
+                    Account.shared.gated { [app] in app.forceHighlight(target, for: k) }
+                },
                 onCompare: { comparing = n }
             )
             .padding(.horizontal, 16)

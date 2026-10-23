@@ -29,6 +29,15 @@ struct Post: Codable, Identifiable, Hashable {
     let aspect: Double?
     /// The translation the film quotes. Set by the import from the film's brief.
     let translation: String?
+    /// Where the film's burned-in words sit, [highest, lowest], as fractions of
+    /// its height -- the web's films.ts, measured by OCR. A card too short for
+    /// the whole film crops around them (FeedCardView).
+    let captions: [Double]?
+
+    /// "Psalm 45:2-8" -> "Psalm 45": what the feed keeps apart (spread).
+    var passage: String {
+        title.split(separator: ":", maxSplits: 1).first.map(String.init) ?? title
+    }
 
     /// The web app stores absolute web paths ("/assets/shorts/x.mp3"); the app
     /// bundle is flat, so only the filename carries over.

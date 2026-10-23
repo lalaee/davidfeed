@@ -1,4 +1,4 @@
-# iOS handoff — Dafod (22 October 2026)
+# iOS handoff — Dafod (updated 23 October 2026)
 
 The native iPhone app for dafod.app: a feed of LemoLab Bible films, a Bible reader and a Library. This file
 is everything the previous sessions (4 September – 22 October 2026) learned, for the agent who continues.
@@ -14,11 +14,16 @@ user's standing rules) applies here too. `../AGENTS.md` (the Next.js warning) is
   (provisioning profiles last 365 days). Automatic signing.
 - **Runs on:** iPhone only, portrait only, iOS 18.0+. Every iOS 26 API is gated (`Design/Compat.swift`); on 18
   the glass falls back to a dark surface. Not offered as "Designed for iPhone" on Mac or Vision Pro.
-- **On Olalekan's phone:** the current `main` of this folder (`b239912`): ten films, Dafod icon and name.
-  His phone is an iPhone 17 Pro on **iOS 26.6.1**.
+- **On Olalekan's phone:** the `ios-parity` branch (23 Oct): nine films, accounts, You tab. His phone is an
+  iPhone 17 Pro on **iOS 26.6.1**.
+- **Parity with the web (23 Oct):** the app now follows the web's phone app (branch `fit-phone-card` →
+  `ios-parity`): nine films with the web's ids, no card label, the web's `spread()` order, cards cropped
+  around each film's words on short screens, the web's share file (with the Dafod ending and white strip),
+  and **accounts** — Sign in with Apple / Google through the same Supabase project, the Library synced with
+  the web (one account, both apps), saving and highlighting gated behind sign-in, a **You** tab in place of
+  Library. See §5 "Accounts".
 - **Not yet on TestFlight or the App Store.** What is left is listed in §8.
-- **Size:** ~191 MB built (179 MB of it the ten films). Just under the 200 MB point where iOS asks before
-  downloading over cellular — adding films will cross it.
+- **Size:** ~157 MB built (144 MB of it the nine films).
 - **Where the code lives:** here, `ios/` in `lalaee/davidfeed` (public repo), with the full iOS history
   (52 commits) merged in by `git subtree`. Before this it was a standalone repo at
   `~/Downloads/Code/davidfeed-ios` with no remote; that copy is now the old home — work here.
@@ -54,6 +59,7 @@ ios/
 ├─ DavidFeed/
 │  ├─ DavidFeed.xcodeproj          the app (target DavidFeed; file-system-synchronised groups)
 │  ├─ Info.plist                   background audio, encryption = NO, status bar not VC-based
+│  ├─ DavidFeed.entitlements       Sign in with Apple; associated domains webcredentials:(www.)dafod.app
 │  ├─ run-on-device.sh             build + install + launch on the connected iPhone
 │  ├─ tools/
 │  │  ├─ import-bible-films.sh     the films → HEVC + posters + shorts.json (§5)
@@ -71,10 +77,16 @@ ios/
 │     │  ├─ Playback.swift         which card is current, sound on/off, Now Playing, remote commands
 │     │  ├─ ReflectionSampler.swift reads the playing frames: rim colours, motion, top brightness
 │     │  ├─ Artwork.swift          decoded-poster cache; light/dark measure of a poster's bottom
+│     │  ├─ ShareFilm.swift        the share item: the web's share file from dafod.app, cached
 │     │  └─ FeedHeaderView.swift   topic switcher (topics are parked: Topic.enabled = false)
 │     ├─ Bible/                    reader, books sheet, compare sheet, verse action bar, highlight swatches
-│     ├─ Library/LibraryView.swift saved films + highlighted verses
-│     ├─ Models/                   Post (+ PostStore), AppState (saved/highlights), Topic
+│     ├─ Account/
+│     │  ├─ Account.swift          session, sign-in (Apple native, Google via the web's callback), gating, sync
+│     │  ├─ Supabase.swift         the REST calls (no SDK), Keychain session
+│     │  ├─ SignInViews.swift      the sign-in sheet, the provider buttons, an in-app Safari view
+│     │  └─ YouView.swift          the You tab: prompt or Account (Saved, Privacy, Delete account, Sign out)
+│     ├─ Library/LibraryView.swift Saved: films + highlights (opened from You)
+│     ├─ Models/                   Post (+ PostStore), AppState (saved/highlights + the web row), Topic
 │     ├─ Design/
 │     │  ├─ Design.swift           tokens (DF.*): colours, card radius 53, filmGap 24, type
 │     │  ├─ Compat.swift           iOS 26 API gates with iOS 18 fallbacks
@@ -132,27 +144,35 @@ ios/
 ## 5. How the app works
 
 ### The feed (`Feed/FeedView.swift`, `FeedCardView.swift`)
-- **Content:** `Resources/data/shorts.json` → `PostStore.shorts`. Each post: `id`, `title` (the label),
-  `backgroundImage` (poster), `posterVideoSrc` (the film), `translation` ("NIV"), `aspect` (h/w). Paths are
+- **Content:** `Resources/data/shorts.json` → `PostStore.shorts`, written by the import **from the web's
+  `src/data/films.ts`** (§6). Each post: `id` (the web's), `title` (reference; not shown on the card),
+  `backgroundImage` (poster), `posterVideoSrc` (the film), `translation` ("NIV"), `aspect` (h/w), `captions`
+  ([highest, lowest] of the burned-in words, fractions of the height, OCR-measured on the web). Paths are
   web-style (`/assets/verses/x.mp4`); the bundle is flat, so only the file name is used.
-- **Order:** `TopicStore.dealt` — a seeded shuffle (mulberry32 Fisher–Yates, new seed per launch). Topics
-  are parked (`Topic.enabled = false`), so the feed is all films.
+- **Order:** `TopicStore.dealt` (seeded mulberry32 Fisher–Yates, new seed per launch), then
+  `FeedView.spread` — the web's `spread()`: never two films of the same passage back to back. Topics are
+  parked (`Topic.enabled = false`).
 - **Card size = the film's shape:** width = screen width, height = width × `aspect` (9:16 → ~715 pt on a
-  17 Pro). Cards are separated by `DF.filmGap` (24 pt), so ~135 pt of the next film shows below. This
-  was tuned with Olalekan over several rounds ("reduce the tip" → "gap too much" → "increase the tip");
-  gap and tip trade one for one because the film and the screen are both fixed.
+  17 Pro), **capped at the room above the tab bar less the gap** — on short iPhones (SE, mini) the card is
+  cut short and `FeedCardView.cropTop` crops the film's head by only what its lowest words need to sit
+  inside the card (the web's `.feed-card` rule; a film whose words span more than the card keeps its head).
+  Cards are separated by `DF.filmGap` (24 pt), so ~135 pt of the next film shows below on a 17 Pro. This
+  was tuned with Olalekan over several rounds; gap and tip trade one for one.
 - **Snapping:** `.scrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByOne))` — one card per flick,
   like the web's `scroll-snap-stop: always`. Bottom padding lets the last card snap too. The scroll view
   ignores all safe areas so a snapped card's top is the screen's top.
 - **Ambience:** behind the feed, the active film's poster at 1.25×, blur 60, saturation 2.75, crossfading
   over 0.5 s (`FeedAmbience`, the web's CSS stand-in for its Pixi scene).
-- **The label** (`post.title`) and the rail icons take their colour from the film: **dark on a film whose
+- **No label on the card** (taken off on the web; the title is the card's VoiceOver label and the share
+  sheet's preview). The rail icons take their colour from the film: **dark on a film whose
   poster is light at the bottom** (watercolour, woodcuts), white otherwise, with a small soft shadow
   (`ArtworkCache.isLightAtBottom`, threshold luminance 150). There is **no scrim**: the films end on their
   own caption bands (some cream), and a dark gradient read as a grey bar. A whole chapter is named alone
   ("Psalm 23"); verses only for part of one ("Psalm 45:2-8").
-- **Share** sends the film file itself (it carries voice, score and captions). **Save** is the bookmark;
-  double-tap also saves and bursts a heart.
+- **Share** (`ShareFilm`) sends the web's share file — the film with its "See more at: Dafod.app" ending
+  over the white Dafod.app strip, 1080×2132 — fetched from `https://www.dafod.app/assets/share/<id>.mp4`
+  when a destination asks for it, cached in Caches/share/; offline it falls back to the bundled film.
+  **Save** is the bookmark; double-tap also saves and bursts a heart. **Both need an account** (below).
 
 ### Playback and sound (`LoopPlayerView.swift`, `Playback.swift`)
 - The films carry their own audio. There is **no narration player and no ambient bed** (both removed on
@@ -210,11 +230,51 @@ ios/
   ```
 - Opening the Bible tab from the feed lands on the chapter the current film quotes.
 
-### Library and persistence (`Models/AppState.swift`)
-- UserDefaults keys `davidfeed.saved` (film ids), `davidfeed.highlights` (verse → colour hex),
-  `davidfeed.savedVerses`. Highlight colours `#F19AEA #FFFE54 #FF548D #61D3FA`. No account; nothing leaves
-  the device (the web app has accounts; the iOS app does not).
-- **Film ids are stable** (101–110) across re-imports so saved films stay saved. Don't renumber.
+### Accounts, You and the synced Library (`Account/*`, `Models/AppState.swift`)
+- **The same accounts as dafod.app:** Supabase project `ulmptivzgvcpbygpkkfv`, table `public.library` (one
+  row per reader: `saved_posts {"2301": true}`, `saved_verses {"Psalms 23": {"3": true}}`, `highlights
+  {"Psalms 23": {"1": "#FFFE54"}}`), RLS-protected. The app talks to it over plain HTTPS
+  (`Supabase.swift`, no SDK) with the public anon key the website ships. Session in the Keychain
+  (`app.dafod.session`), refreshed when within a minute of expiry.
+- **Gating:** saving a film, the double-tap heart and highlighting a verse go through
+  `Account.shared.gated { … }` — signed in, done now; signed out, the **sign-in sheet** opens and the action
+  is applied once they're in (closing the sheet drops it). Actions set END STATES, never toggles (the web's
+  rule: a replayed toggle could undo a save made on another device).
+- **Sync** (a port of the web's `lib/auth.ts`): AppState stays the instant cache; every local change pushes
+  the whole row (debounced 400 ms, `dafod.libraryDirty` until confirmed). On sign-in: `dafod.libraryOwner`
+  absent → the phone's pre-account saves are merged into the account (device wins per verse); same reader →
+  server wins unless dirty; another reader → local dropped. Pulled again whenever the app returns to the
+  front. Sign-out clears the local Library. The app's verse keys (`psalms/23/1`) are converted to the web's
+  chapter keys (`Psalms 23` + `1`) via `bible/index.json` (same 66 names as the web).
+- **Ids:** films use the web's ids (2301…, 301…, 4501, 4503, 41001). Saves made under the app's old ids
+  (101–110) are migrated on launch (`AppState.webID`).
+- **Sign in with Apple:** native (`ASAuthorizationController`), SHA-256 nonce, token straight to Supabase
+  (`com.davidfeed.ios` is one of the Apple provider's client IDs). Apple's name arrives only on the first
+  authorisation; it's written to the account's `full_name`. Needs the entitlement (the App ID already has
+  the capability on). Not testable on the simulator (no Apple Account).
+- **Google:** the web's own flow — Google's OpenID endpoint with the **web** client
+  (`62034029832-8od4…`), `response_type=id_token`, returning to `https://www.dafod.app/auth/google` — run in
+  `ASWebAuthenticationSession` with an **https callback** (iOS 17.4+), which iOS allows only if dafod.app's
+  `/.well-known/apple-app-site-association` names `LZ7G2KT2U7.com.davidfeed.ios` under `webcredentials`
+  (added in this branch; served as JSON by `next.config.ts`). **Until that file is deployed, Google can't
+  return to the app** — iOS reports it as a cancel ("not associated with domain"); the app then says
+  "Google sign-in isn't ready in the app yet. Use Continue with Apple for now." Verified on the simulator:
+  Google's page opens; the return is refused for exactly that reason. The https callback needs iOS 17.4,
+  below the app's 18.0 target, so it's available everywhere the app runs. No Google iOS client was created
+  on purpose: it would need a second client ID in Supabase's Google
+  provider and changes to Google Cloud.
+- **You tab** (`YouView`): signed out — "Keep what speaks to you", Continue with Google / Apple, Privacy
+  (opens dafod.app/privacy in an in-app Safari view). Signed in — "Account", the reader (initial, name,
+  email), rows **Saved** (the old Library, now pills Films / Highlights), Privacy, **Delete account**, Sign
+  out.
+- **Delete account** calls `public.delete_my_account()` (migration
+  `supabase/migrations/20261023000000_delete_account.sql`, **apply by hand in the Supabase SQL editor**).
+  Until it exists the app shows "Couldn't delete your account" and offers the email request
+  (lakesofmotion@gmail.com) the web uses. App Review requires in-app deletion for apps with accounts
+  (guideline 5.1.1(v)) — apply the migration before submitting.
+- **Privacy manifest** now declares email, user ID and other user content (saves/highlights), linked, not
+  tracking, for app functionality. App Store Connect's App Privacy answers must match (no longer "Data Not
+  Collected").
 
 ### Screenshot mode
 - Launch with `-AppStoreScreenshots` (simulator): status bar hidden, cards' top corners square. Never on in
@@ -228,25 +288,29 @@ ios/
   no "See more at Dafod.app" end card). Download with
   `gh api -H "Accept: application/vnd.github.raw" "repos/lalaee/lemo-opuscar/contents/Bible/no-outro/<name>.mp4" > <name>.mp4`.
   The same films are already public on the web (`../public/assets/films/no-outro/`).
-- **The ten** (ids): Psalm 23 paper-cut lightbox (101), watercolor (102), woodcut (103); Psalm 3 shadow
-  puppet (104), stained glass (105), woodcut (106); Psalm 45:2-8 art deco (107), impasto (108), engraving
-  (110); Isaiah 41:10-13 ink wash (109). All 1080×1920, 24 fps, 54–92 s, NIV, voice + score + burned-in
-  captions.
+- **The nine** (the web's ids): Psalm 23 paper-cut lightbox (2301), watercolor (2302), woodcut (2303); Psalm
+  3 shadow puppet (301), stained glass (302), woodcut (303); Psalm 45:2-8 art deco (4501), engraving (4503);
+  Isaiah 41:10-13 ink wash (41001). Psalm 45's impasto (4502) is off the feed on both (its words sit at both
+  ends of the frame and can't clear the bar on a short phone). All 1080×1920, 24 fps, 54–92 s, NIV, voice +
+  score + burned-in captions.
 - **Verse ranges** come from each film's brief in lemo-opuscar (`dafod/<passage>/shared/BRIEF.md`): Psalm
   23:1–6 and Psalm 3:1–8 (whole chapters), Psalm 45:2–8, Isaiah 41:10–13 (also in its file name).
-- **Import:** download the folder, then `./tools/import-bible-films.sh <folder>`. It encodes HEVC
+- **Import:** `./tools/import-bible-films.sh [folder]`. **The list of films, their ids, verses and caption
+  spans come from the web's `src/data/films.ts`** (this repo, `../../src/data/films.ts`), so the two feeds
+  can't drift: add a film there first. With a folder of originals it (re-)encodes; without one it only
+  rewrites `shorts.json` and removes media for films no longer listed. Encoding: HEVC
   (libx265 crf 28, **capped at 3 Mbps** — the woodcuts' hatching came out bigger than the originals
   uncapped), ≤1080 wide, AAC 96 k stereo; cuts a poster at 10 %; removes media for films no longer in the
-  folder; writes `shorts.json` (keeps existing ids, new films take the next id). ~3 min per film on 6
-  threads. Adding a film: put it in the folder; if its name doesn't carry verses and it isn't a whole
-  chapter, add it to `BRIEF_VERSES` in the script.
+  folder. ~3 min per film on 6 threads.
 
 ---
 
 ## 7. App Store screenshots
 
 Six at 6.9" in `AppStore/screenshots/iphone-6.9/`: ink wash, stained glass, watercolour, impasto, reader,
-Library. No status bar, no Dynamic Island, no rounded top corners. Method in `AppStore/README.md`. The
+Library. **Out of date since 23 Oct:** shot 4 is the impasto (off the feed now), the film shots still show
+the card label, and the last shot is the old Library tab (now You). Retake 4 and 6 (and re-check 1–3) before
+uploading. No status bar, no Dynamic Island, no rounded top corners. Method in `AppStore/README.md`. The
 island is drawn into every iOS 26 simulator capture (`--mask` doesn't remove it); `unisland.sh` clone-stamps
 it with a feathered patch — it works on open tops (sky, glass, plain ground) and copies faces or captions
 on films with figures at the top (art deco, engraving, shadow puppet), so those aren't in the set. The
@@ -260,10 +324,21 @@ mask must be full-range (a gray frame is 16–235 — a 92 % opaque patch left a
 1. Create the app record for `com.davidfeed.ios` (name Dafod, category, age rating).
 2. Privacy policy URL — dafod.app has a page at `/privacy` (check it covers the iOS app: nothing collected,
    UserDefaults only). Support URL.
-3. App Privacy: "Data Not Collected" (matches `PrivacyInfo.xcprivacy`).
+3. App Privacy: **Data collected** now — Contact Info › Email Address, Identifiers › User ID, User Content ›
+   Other User Content; all linked to the user, none used for tracking, purpose App Functionality
+   (matches `PrivacyInfo.xcprivacy`).
 4. Listing text; upload the six screenshots.
 5. Xcode → Product → Archive → Distribute → App Store Connect (automatic signing creates the distribution
    certificate on first upload). TestFlight internal testing first (no review), then submit.
+
+**Before accounts work fully in the app:**
+- **Deploy the web** with `public/.well-known/apple-app-site-association` and the `next.config.ts` header
+  (branch `ios-parity`), so Google can return to the app. Check:
+  `curl -sI https://www.dafod.app/.well-known/apple-app-site-association` → 200, `application/json`.
+  Apple's CDN caches it; a fresh install picks it up.
+- **Apply the delete-account migration** in the Supabase SQL editor.
+- **Test on the phone:** Continue with Apple → save a film → see it on dafod.app/you/saved with the same
+  account; highlight a verse on the web → see it in the app after bringing it to the front.
 
 **Decisions / risks to raise with him:**
 - **NIV credit.** The films quote the NIV. Biblica's notice ("Scripture quotations taken from The Holy Bible,
@@ -272,7 +347,6 @@ mask must be full-range (a gray frame is 16–235 — a 92 % opaque patch left a
   asked for it off. The films' briefs say it must appear; Biblica's terms generally require it. Suggest an
   About/credits line or at least the App Store description. Their permission for an app that is mostly NIV
   films was not verified.
-- **Size:** at ~191 MB, one or two more films cross 200 MB (cellular download prompt).
 - **iOS 18:** the films build has not been checked on an iOS 18 simulator (the fallbacks were checked with
   the earlier feed). Worth one pass before submitting.
 - **The reflector's class-name walk** (`"Platter"`) is allowed but fragile across iOS releases.

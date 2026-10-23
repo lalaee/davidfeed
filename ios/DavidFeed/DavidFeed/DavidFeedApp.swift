@@ -20,6 +20,8 @@ struct DavidFeedApp: App {
                 // Starting the engine up front avoids the first tap paying for
                 // it and arriving late.
                 .task { Haptics.prepare() }
+                // The Keychain's session (if any), then the Library synced.
+                .task { await Account.shared.start(app: app) }
         }
     }
 }

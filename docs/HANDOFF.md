@@ -416,9 +416,13 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 - **Saved verses are stored and synced but never listed.** The Bible reader's
   Save writes `saved_verses`, and nothing shows them: You → Saved lists films
   and highlights only. This was true of the old Library as well.
-- The iOS app (`ios/`) has no accounts yet. It still
-  keeps saves in UserDefaults. `com.davidfeed.ios` is already listed as an Apple
-  client ID in Supabase, ready for native Sign in with Apple later.
+- The iOS app (`ios/`) has accounts as of 23 October 2026 (branch
+  `ios-parity`): native Sign in with Apple (`com.davidfeed.ios` as the Apple
+  client ID), Google through this site's own `/auth/google` callback, the same
+  `library` row synced both ways. It needs
+  `public/.well-known/apple-app-site-association` deployed (for Google) and
+  `supabase/migrations/20261023000000_delete_account.sql` applied (in-app
+  account deletion). See `ios/HANDOFF.md` §5.
 
 ---
 

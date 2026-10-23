@@ -58,6 +58,8 @@ struct FeedCardView: View {
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(post.title)
             // Screenshots square the top corners, so a capture starts flush with
             // the film; in use the card is rounded all round.
             .clipShape(UnevenRoundedRectangle(
@@ -104,36 +106,59 @@ struct FeedCardView: View {
                                muted: !(isActive && playback.isPlaying))
             }
         }
-        .frame(width: size.width, height: size.height)
+        // The film at its own height; the card shows the part of it that
+        // fits (all of it, unless the card was cut short for a small screen).
+        .frame(width: size.width, height: filmHeight(size))
+        .offset(y: -cropTop(size))
+        .frame(width: size.width, height: size.height, alignment: .top)
         .clipped()
+    }
+
+    private func filmHeight(_ size: CGSize) -> CGFloat {
+        max(size.height, size.width * CGFloat(post.aspect ?? 16.0 / 9.0))
+    }
+
+    /// How much of the film's head a short card leaves off: only what its
+    /// lowest burned-in words need to sit inside the card (with a little air),
+    /// never more than the film has to spare -- the web's .feed-card rule. A
+    /// film whose words span more than the card keeps its head.
+    private func cropTop(_ size: CGSize) -> CGFloat {
+        let film = filmHeight(size), spare = film - size.height
+        guard spare > 0.5 else { return 0 }
+        guard let span = post.captions, span.count == 2 else { return spare / 2 }
+        let lowest = CGFloat(span[1]) * film, highest = CGFloat(span[0]) * film
+        var top = min(max(lowest + 12 - size.height, 0), spare)
+        if top > highest { top = highest }   // can't keep both ends: keep the head's words
+        return top
     }
 
     private var bottomBar: some View {
         VStack {
             Spacer()
             HStack(alignment: .bottom) {
-                Text(post.title)
-                    .font(.system(size: 24, weight: .semibold))
-                    .tracking(-0.48)
-                    .foregroundStyle(chrome.ink)
-                    .shadow(color: chrome.shadow, radius: 3, y: 1)
+                // No passage title on the card, as on the web: the film shows
+                // its own words. The title still names it for VoiceOver and in
+                // the share sheet.
                 Spacer(minLength: 16)
                 VStack(spacing: 32) {
-                    // The film is the share: it already carries its voice, score
-                    // and captions, so the file goes alone, as the web's does.
-                    if let film = post.loopURL {
-                        ShareLink(item: film, preview: SharePreview(post.title)) {
-                            RailIcon(asset: "Send", tint: chrome.ink, shadow: chrome.shadow)
-                        }
-                        .buttonStyle(.plain)
+                    // The film as the web shares it -- with its Dafod ending,
+                    // over the white strip -- fetched when a destination asks
+                    // for it (ShareFilm).
+                    ShareLink(item: ShareFilm(post: post), preview: SharePreview(post.title)) {
+                        RailIcon(asset: "Send", tint: chrome.ink, shadow: chrome.shadow)
                     }
+                    .buttonStyle(.plain)
                     RailButton(
                         asset: app.isSaved(post) ? "BookmarkActive" : "BookmarkInactive",
                         tint: app.isSaved(post) ? Color(hex: "#EAC72C") : chrome.ink,
                         shadow: chrome.shadow
                     ) {
-                        app.toggleSaved(post)
-                        withAnimation(.snappy) { showSavedPop = app.isSaved(post) }
+                        // An account holds saves, as on the web: signed out,
+                        // this opens the sign-in sheet and saves once they're in.
+                        let on = !app.isSaved(post), id = post.id
+                        if Account.shared.gated({ [app] in app.setSaved(id, on: on) }) {
+                            withAnimation(.snappy) { showSavedPop = on }
+                        }
                     }
                 }
             }
@@ -172,7 +197,10 @@ struct FeedCardView: View {
     }
 
     private func like(at point: CGPoint) {
-        if !app.isSaved(post) { app.toggleSaved(post) }
+        // The heart is the save happening: signed out, the sheet asks first and
+        // no heart plays for a save that hasn't been made.
+        let id = post.id
+        guard app.isSaved(post) || Account.shared.gated({ [app] in app.setSaved(id, on: true) }) else { return }
         let heart = Heart(point: point, angle: Double.random(in: -22...22))
         hearts.append(heart)
         Task {

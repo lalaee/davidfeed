@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Home / Bible / Library.
+/// Home / Bible / You.
 ///
 /// The web app hand-builds this bar — a 281x75 black pill with one capsule that
 /// glides to the selected tab, reproducing "the iOS 26 tab bar's one moving
@@ -10,8 +10,9 @@ import SwiftUI
 struct RootView: View {
     /// Named Screen, not Tab: SwiftUI's own `Tab` is the builder used below,
     /// and shadowing it makes the TabView content fail to construct.
-    enum Screen: Hashable { case home, bible, library }
+    enum Screen: Hashable { case home, bible, you }
     @State private var screen: Screen = .home
+    @Environment(\.scenePhase) private var scenePhase
     /// Where the system drew the tab bar's capsule, for the reflector.
     @State private var bar: TabBarPlatterProbe.Bar?
 
@@ -31,10 +32,11 @@ struct RootView: View {
             } label: {
                 navLabel("Bible", icon: "NavBible", on: screen == .bible)
             }
-            Tab(value: Screen.library) {
-                LibraryView()
+            // You: the account, and the Library inside it (Saved), as on the web.
+            Tab(value: Screen.you) {
+                YouView()
             } label: {
-                navLabel("Library", icon: "NavLibrary", on: screen == .library)
+                navLabel("You", icon: "NavYou", on: screen == .you)
             }
         }
         // The tab bar shrinks to a pill as you scroll down and comes back as you
@@ -67,6 +69,16 @@ struct RootView: View {
             StatusBar.set(dark: dark)
         }
         .onAppear { ScreenshotMode.apply() }
+        // Raised by a save or highlight made signed out; closing it drops what
+        // was held.
+        .sheet(isPresented: Binding(get: { Account.shared.sheetShown },
+                                    set: { if !$0 { Account.shared.dismissSheet() } })) {
+            SignInSheet()
+        }
+        // Back in front: pull the Library, or push a save made offline.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await Account.shared.foreground() } }
+        }
         .tabBarNeverMinimizes()
         .tint(DF.ink)
         .background(DF.ground)

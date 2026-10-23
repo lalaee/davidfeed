@@ -1,82 +1,110 @@
 [
  {
-  "id": 101,
+  "id": 2301,
   "title": "Psalm 23",
   "backgroundImage": "/assets/verses/psalm-23-paper-cut-lightbox.jpg",
   "posterVideoSrc": "/assets/verses/psalm-23-paper-cut-lightbox.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.09,
+   0.88
+  ]
  },
  {
-  "id": 102,
+  "id": 2302,
   "title": "Psalm 23",
   "backgroundImage": "/assets/verses/psalm-23-watercolor.jpg",
   "posterVideoSrc": "/assets/verses/psalm-23-watercolor.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.13,
+   0.89
+  ]
  },
  {
-  "id": 103,
+  "id": 2303,
   "title": "Psalm 23",
   "backgroundImage": "/assets/verses/psalm-23-woodcut.jpg",
   "posterVideoSrc": "/assets/verses/psalm-23-woodcut.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.07,
+   0.88
+  ]
  },
  {
-  "id": 104,
+  "id": 301,
   "title": "Psalm 3",
   "backgroundImage": "/assets/verses/psalm-3-shadow-puppet.jpg",
   "posterVideoSrc": "/assets/verses/psalm-3-shadow-puppet.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.05,
+   0.23
+  ]
  },
  {
-  "id": 105,
+  "id": 302,
   "title": "Psalm 3",
   "backgroundImage": "/assets/verses/psalm-3-stained-glass.jpg",
   "posterVideoSrc": "/assets/verses/psalm-3-stained-glass.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.75,
+   0.96
+  ]
  },
  {
-  "id": 106,
+  "id": 303,
   "title": "Psalm 3",
   "backgroundImage": "/assets/verses/psalm-3-woodcut.jpg",
   "posterVideoSrc": "/assets/verses/psalm-3-woodcut.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.105,
+   0.95
+  ]
  },
  {
-  "id": 107,
+  "id": 4501,
   "title": "Psalm 45:2-8",
   "backgroundImage": "/assets/verses/psalm-45-art-deco.jpg",
   "posterVideoSrc": "/assets/verses/psalm-45-art-deco.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.84,
+   0.95
+  ]
  },
  {
-  "id": 108,
-  "title": "Psalm 45:2-8",
-  "backgroundImage": "/assets/verses/psalm-45-impasto.jpg",
-  "posterVideoSrc": "/assets/verses/psalm-45-impasto.mp4",
-  "translation": "NIV",
-  "aspect": 1.7778
- },
- {
-  "id": 109,
-  "title": "Isaiah 41:10-13",
-  "backgroundImage": "/assets/verses/isaiah-41-10-13-ink-wash.jpg",
-  "posterVideoSrc": "/assets/verses/isaiah-41-10-13-ink-wash.mp4",
-  "translation": "NIV",
-  "aspect": 1.7778
- },
- {
-  "id": 110,
+  "id": 4503,
   "title": "Psalm 45:2-8",
   "backgroundImage": "/assets/verses/psalm-45-engraving.jpg",
   "posterVideoSrc": "/assets/verses/psalm-45-engraving.mp4",
   "translation": "NIV",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "captions": [
+   0.87,
+   0.94
+  ]
+ },
+ {
+  "id": 41001,
+  "title": "Isaiah 41:10-13",
+  "backgroundImage": "/assets/verses/isaiah-41-10-13-ink-wash.jpg",
+  "posterVideoSrc": "/assets/verses/isaiah-41-10-13-ink-wash.mp4",
+  "translation": "NIV",
+  "aspect": 1.7778,
+  "captions": [
+   0.2,
+   0.89
+  ]
  }
 ]

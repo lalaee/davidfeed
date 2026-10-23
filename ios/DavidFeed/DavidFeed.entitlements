@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sign in with Apple (on for the App ID com.davidfeed.ios). -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	<!-- Google sign-in returns to https://www.dafod.app/auth/google, which the
+	     app catches as an ASWebAuthenticationSession https callback; that needs
+	     dafod.app's apple-app-site-association to name this app. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:www.dafod.app</string>
+		<string>webcredentials:dafod.app</string>
+	</array>
+</dict>
+</plist>

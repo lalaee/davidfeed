@@ -20,8 +20,9 @@ import SwiftUI
 ///          Regular 18/150% white. Entries 32 apart.
 struct LibraryView: View {
     private enum Section: String, CaseIterable, Identifiable {
-        case saved = "Saved Feed"
-        case highlights = "Highlighted Verses"
+        // The web's labels since the Library moved into You.
+        case saved = "Films"
+        case highlights = "Highlights"
         var id: String { rawValue }
     }
 

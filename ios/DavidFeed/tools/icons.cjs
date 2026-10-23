@@ -45,6 +45,7 @@ const STATEFUL = {
   NavHomeIcon: "active",
   NavBibleIcon: "active",
   NavLibraryIcon: "active",
+  NavYouIcon: "active",
   BookmarkIcon: "filled",
 };
 

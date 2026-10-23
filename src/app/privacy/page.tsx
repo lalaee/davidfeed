@@ -13,13 +13,14 @@ export const metadata: Metadata = {
  * Google" consent screen, and owed to anyone who makes an account here.
  *
  * Written to what the code actually does — lib/auth.ts, lib/stores.ts and the
- * `library` migration — so it must change when they do: a new field stored, a
- * new service added, or analytics switched on.
+ * `library` migration, and the iPhone app (ios/: Account/, PrivacyInfo.xcprivacy)
+ * — so it must change when they do: a new field stored, a new service added, or
+ * analytics switched on. App Review reads it, so the app is covered here too.
  *
  * Set in the Library's type on its #000 column: Inter Semi Bold 17 headings,
  * Regular 18/150% body in #999999, white for emphasis.
  */
-const UPDATED = "22 October 2026";
+const UPDATED = "23 October 2026";
 const CONTACT = "lakesofmotion@gmail.com";
 
 export default function PrivacyPage() {
@@ -43,14 +44,15 @@ export default function PrivacyPage() {
 
         <Section title="Who we are">
           Dafod (<Link href="/" className="text-white underline">dafod.app</Link>) is a feed of short
-          Bible films and a Bible reader, run by Olalekan Isaac. You can reach us at{" "}
+          Bible films and a Bible reader, on the web and as an iPhone app, run by Olalekan Isaac. This
+          policy covers both. You can reach us at{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a>.
         </Section>
 
         <Section title="What we keep">
           <p>
-            Watching the feed and reading the Bible need no account, and we keep nothing about you
-            while you do. If you sign in, we keep:
+            Watching the feed and reading the Bible need no account, on the web or in the app, and we
+            keep nothing about you while you do. If you sign in, we keep:
           </p>
           <ul className="mt-[12px] flex list-disc flex-col gap-[8px] pl-[22px]">
             <li>
@@ -64,8 +66,8 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p className="mt-[12px]">
-            Your reading preferences (translation, sound on or off) stay in your browser and are
-            never sent to us.
+            Your reading preferences (translation, sound on or off) stay in your browser or on your
+            iPhone and are never sent to us.
           </p>
         </Section>
 
@@ -104,13 +106,17 @@ export default function PrivacyPage() {
           <p className="mt-[12px]">They process it for us and for nothing else. No one else receives it.</p>
         </Section>
 
-        <Section title="Your browser">
-          We use your browser&apos;s local storage to keep you signed in and to make the app quick to
-          load what you have saved. Signing out clears it from that browser.
+        <Section title="On your device">
+          On the web we use your browser&apos;s local storage to keep you signed in and to make Dafod
+          quick to load what you have saved. In the iPhone app, your sign-in is kept in the iPhone&apos;s
+          Keychain and a copy of what you have saved is kept on the phone for the same reason. Signing
+          out clears both from that browser or phone.
         </Section>
 
         <Section title="Keeping and deleting it">
-          We keep your account and what you save for as long as you have an account. To delete them, email{" "}
+          We keep your account and what you save for as long as you have an account. In the iPhone
+          app, You › Delete account deletes your account and everything saved to it straight away, on
+          every device. You can also email{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a> from the address
           you signed in with, and we will delete both within 30 days.
         </Section>

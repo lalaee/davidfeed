@@ -386,8 +386,13 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
     highlights.
   - **Account:** rows on the sheets' `#0E0E0E` card.
     - Privacy (`/privacy`).
-    - Delete account: a `mailto:lakesofmotion@gmail.com` request. There is no
-      self-serve deletion.
+    - Delete account: deletes on the spot after an in-place confirm, through
+      `public.delete_my_account()` (`deleteAccount` in `lib/auth.ts`, the same
+      RPC the iOS app calls). It was applied to production on 23 October 2026,
+      and anon is refused. If the call fails, the row offers the email
+      request.
+    - The rows use `.row-press`: a faint tint on hover and no scale. The
+      user asked for the row hover to be much smaller.
     - Sign out.
     - Signed out, only Privacy shows.
 - **What's gone:** the old account button in the tab row. `AuthSheet`'s
@@ -553,15 +558,14 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 5. **iOS:** regenerate provisioning profiles, since Sign in with Apple was
    added to the App ID. Native sign-in and sync for the iOS app are not built
    yet.
-6. **Account deletion is manual:** the privacy page says email
-   lakesofmotion@gmail.com. Deleting the `auth.users` row cascades to
-   `library`. There is no self-serve delete yet; Apple expects one inside the
-   iOS app once it has accounts.
+6. **Account deletion is in place** on the web and in the app (§5). Deleting
+   the `auth.users` row cascades to `library`. The privacy page, which now
+   covers the iPhone app too, describes both paths.
 7. **`*.p8` is not in `.gitignore`.** `.gitignore` is one of the user's
    untouched files, so ask before adding the pattern.
-8. **The Agentation feedback toolbar** (`AgentationWrapper`) appears on the
-   live site at desktop widths. Confirm with the user whether it should be
-   dev-only.
+8. **The Agentation feedback toolbar is development-only.** `layout.tsx`
+   renders it only under `next dev`, and it's loaded on demand, so the live
+   site neither shows nor downloads it.
 9. **Twelve more LemoLab films** are in lemo-opuscar `Bible/outro`, not yet in
    the feed: Isaiah 41 woodcut, Jeremiah 29, John 3, Joshua 1, Matthew 6,
    Philippians 4, Proverbs 3, Psalm 121, Psalm 91 ×2, Romans 8 and 12.

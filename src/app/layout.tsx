@@ -51,7 +51,9 @@ export default function RootLayout({
             sheet any save made while signed out opens. See lib/auth.ts. */}
         <AuthSheet />
         <RouteTrail />
-        <AgentationWrapper />
+        {/* Development only: the feedback toolbar is a tool for building,
+            not part of the site. */}
+        {process.env.NODE_ENV === "development" && <AgentationWrapper />}
       </body>
     </html>
   );

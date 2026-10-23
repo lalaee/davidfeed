@@ -191,6 +191,22 @@ export async function signOut() {
   await supabase()?.auth.signOut();
 }
 
+/**
+ * Deletes the signed-in reader's account and, with it, their Library row
+ * (public.delete_my_account, supabase/migrations/20261023000000_delete_account
+ * .sql — it only ever deletes auth.uid(), and refuses anyone signed out). The
+ * same call the iOS app makes. Then signs out on this device only: the user is
+ * gone, so there is no server session left to end, and the local sign-out is
+ * what fires SIGNED_OUT and clears the cached Library (stopSync).
+ */
+export async function deleteAccount() {
+  const sb = supabase();
+  if (!sb) throw new Error("Sign-in is not configured.");
+  const { error } = await sb.rpc("delete_my_account");
+  if (error) throw error;
+  await sb.auth.signOut({ scope: "local" });
+}
+
 /* ── The Library row ─────────────────────────────────────────────────────── */
 
 interface LibraryRow {

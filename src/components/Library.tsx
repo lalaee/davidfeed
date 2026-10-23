@@ -9,7 +9,7 @@ import { ChevronIcon } from "./icons";
 import { AppleLogo, GoogleLogo, SignInStatus, useSignIn } from "./SignIn";
 import { fetchChapterIn, parseTitle, readingTranslation } from "@/data/bible";
 import { shortPosts } from "@/data/shorts";
-import { authStore, signOut, type Reader } from "@/lib/auth";
+import { authStore, deleteAccount, signOut, type Reader } from "@/lib/auth";
 import { googleSignInAvailable } from "@/lib/googleSignIn";
 import { highlightStore, readingStore, savedPostStore } from "@/lib/stores";
 import { formatVerseRange } from "@/lib/verseRef";
@@ -262,22 +262,39 @@ function Profile({ reader }: { reader: Reader }) {
  * 18.8333, rows 56 tall with 16 side padding, a #212121 hairline between, the
  * label in Inter Regular 17 and a chevron turned to point onward.
  *
- * Deleting an account is a request by email for now — the privacy page
- * promises it within 30 days — so the row writes that email rather than
- * pretending to a button that deletes on the spot.
+ * Delete account deletes on the spot, as the iOS app does (App Store
+ * guideline 5.1.1(v) asks it of the app; the site keeps level with it). The
+ * row asks first, in place: the card's last rows give way to a plain warning
+ * and Cancel / Delete, red only on the button that does it. If the deletion
+ * fails, the email request the privacy page also offers is the way out.
  */
 const CONTACT = "lakesofmotion@gmail.com";
 
 function AccountRows() {
   const [leaving, setLeaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
   const leave = async () => {
     setLeaving(true);
     await signOut();
     setLeaving(false);
   };
+  const remove = async () => {
+    setDeleting(true);
+    setDeleteError(false);
+    try {
+      // On success the session ends, You re-renders signed out, and this
+      // card goes with it.
+      await deleteAccount();
+    } catch {
+      setDeleting(false);
+      setDeleteError(true);
+    }
+  };
   const rowClass =
     "flex h-[56px] w-full items-center justify-between gap-[12px] border-none bg-transparent px-[16px] " +
-    "text-left text-[17px] font-normal text-white no-underline press-soft";
+    "text-left text-[17px] font-normal text-white no-underline row-press";
 
   return (
     <div className="px-[24px]">
@@ -292,17 +309,65 @@ function AccountRows() {
           <Onward />
         </Link>
         <Hairline />
-        <a
-          href={`mailto:${CONTACT}?subject=${encodeURIComponent("Delete my Dafod account")}`}
-          className={rowClass}
-        >
-          Delete account
-          <Onward />
-        </a>
-        <Hairline />
-        <button type="button" onClick={leave} disabled={leaving} className={`${rowClass} disabled:opacity-60`}>
-          {leaving ? "Signing out…" : "Sign out"}
-        </button>
+        {confirming ? (
+          <div className="flex flex-col gap-[16px] px-[16px] py-[16px]">
+            <p className="text-[17px] font-normal leading-[24px] text-white">
+              Delete your account and everything you saved?
+            </p>
+            <p className="text-[15px] font-medium leading-[20px]" style={{ color: "#999999" }}>
+              Your films, saved verses and highlights go with it, on every device. This can&apos;t be
+              undone.
+            </p>
+            {deleteError && (
+              <p role="alert" className="text-[15px] font-medium leading-[20px] text-[#FF6B6B]">
+                Couldn&apos;t delete it just now. Try again, or{" "}
+                <a
+                  href={`mailto:${CONTACT}?subject=${encodeURIComponent("Delete my Dafod account")}`}
+                  className="text-white underline"
+                >
+                  ask us by email
+                </a>
+                .
+              </p>
+            )}
+            <div className="flex gap-[10px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirming(false);
+                  setDeleteError(false);
+                }}
+                disabled={deleting}
+                className="h-[44px] flex-1 rounded-full border-none text-[16px] font-semibold text-white
+                           press disabled:opacity-60"
+                style={{ backgroundColor: "#212121" }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={remove}
+                disabled={deleting}
+                className="h-[44px] flex-1 rounded-full border-none text-[16px] font-semibold text-white
+                           press disabled:opacity-60"
+                style={{ backgroundColor: "#D93025" }}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button type="button" onClick={() => setConfirming(true)} className={rowClass}>
+              Delete account
+              <Onward />
+            </button>
+            <Hairline />
+            <button type="button" onClick={leave} disabled={leaving} className={`${rowClass} disabled:opacity-60`}>
+              {leaving ? "Signing out…" : "Sign out"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

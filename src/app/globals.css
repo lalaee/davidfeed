@@ -616,6 +616,18 @@ button, [role="button"], a {
     background-color 140ms cubic-bezier(0.32, 0.72, 0, 1),
     opacity 140ms cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* LIST ROWS (the Account card on You). A full-width row that swells 2% on
+   hover, as .press-soft does, reads as the whole card lurching under the
+   pointer; the user asked it down. Rows answer the way iOS list rows do: no
+   movement, a faint lift of the fill on hover, a touch more while pressed. */
+.row-press {
+  transition: background-color 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (hover: hover) {
+  .row-press:hover:not(:disabled) { background-color: rgba(255, 255, 255, 0.03); }
+}
+.row-press:active:not(:disabled) { background-color: rgba(255, 255, 255, 0.06); }
+
 .press:hover:not(:disabled)      { transform: scale(1.04); }
 .press-soft:hover:not(:disabled) { transform: scale(1.02); }
 .press:active:not(:disabled),

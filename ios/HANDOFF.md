@@ -322,11 +322,11 @@ mask must be full-range (a gray frame is 16–235 — a 92 % opaque patch left a
 
 **Olalekan, in App Store Connect (needs his login):**
 1. Create the app record for `com.davidfeed.ios` (name Dafod, category, age rating).
-2. Privacy policy URL — dafod.app has a page at `/privacy` (check it covers the iOS app: nothing collected,
-   UserDefaults only). Support URL.
-3. App Privacy: **Data collected** now — Contact Info › Email Address, Identifiers › User ID, User Content ›
-   Other User Content; all linked to the user, none used for tracking, purpose App Functionality
-   (matches `PrivacyInfo.xcprivacy`).
+2. Privacy policy URL — `https://www.dafod.app/privacy`, which covers the app as well as the site. Support URL.
+3. App Privacy: **Data collected** now — Contact Info › Name and Email Address, Identifiers › User ID,
+   User Content › Other User Content; all linked to the user, none used for tracking, purpose App
+   Functionality (matches `PrivacyInfo.xcprivacy`). Name is there because Sign in with Apple asks for
+   `.fullName` and the app stores it as the reader's name.
 4. Listing text; upload the six screenshots.
 5. Xcode → Product → Archive → Distribute → App Store Connect (automatic signing creates the distribution
    certificate on first upload). TestFlight internal testing first (no review), then submit.
@@ -336,7 +336,7 @@ mask must be full-range (a gray frame is 16–235 — a 92 % opaque patch left a
   (branch `ios-parity`), so Google can return to the app. Check:
   `curl -sI https://www.dafod.app/.well-known/apple-app-site-association` → 200, `application/json`.
   Apple's CDN caches it; a fresh install picks it up.
-- **Apply the delete-account migration** in the Supabase SQL editor.
+- ~~Apply the delete-account migration~~ — applied 23 October 2026; `delete_my_account()` refuses anon.
 - **Test on the phone:** Continue with Apple → save a film → see it on dafod.app/you/saved with the same
   account; highlight a verse on the web → see it in the app after bringing it to the front.
 

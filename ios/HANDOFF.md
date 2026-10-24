@@ -1,4 +1,4 @@
-# iOS handoff — Dafod (updated 23 October 2026)
+# iOS handoff — Dafod (updated 24 October 2026)
 
 The native iPhone app for dafod.app: a feed of LemoLab Bible films, a Bible reader and a Library. This file
 is everything the previous sessions (4 September – 22 October 2026) learned, for the agent who continues.
@@ -22,6 +22,9 @@ user's standing rules) applies here too. `../AGENTS.md` (the Next.js warning) is
   and **accounts** — Sign in with Apple / Google through the same Supabase project, the Library synced with
   the web (one account, both apps), saving and highlighting gated behind sign-in, a **You** tab in place of
   Library. See §5 "Accounts".
+- **Licensed Bibles (24 Oct, `6b7cec7`):** the reader now has NIV, NKJV and NLT as well as KJV, ASV and
+  WEB, **NIV the default**. The three are fetched from the website's `/api/bible` route, not bundled — see
+  §5 "Bible". This is on `main` but on no phone and in no build yet: the next archive must include it.
 - **Not yet on TestFlight or the App Store.** What is left is listed in §8.
 - **Size:** ~157 MB built (144 MB of it the nine films).
 - **Where the code lives:** here, `ios/` in `lalaee/davidfeed` (public repo), with the full iOS history
@@ -321,7 +324,10 @@ corners. Method in `AppStore/README.md`: `-AppStoreScreenshots` (status bar off,
 local sample reader + Library so You/Saved/highlights can be shown), then `AppStore/film-island.py` restores
 the film's real pixels under the island by matching the exact frame in the bundled film.
 
-`AppStore/REVIEW_NOTES.md` is the text for App Review › Notes: how to sign in (Sign in with Apple, any Apple
+The reader screenshot is from before the licensed Bibles and shows KJV, which is still true of the app —
+no need to retake it. If you do retake it, NIV is now the default and needs the network (or pick KJV).
+
+`AppStore/REVIEW_NOTES.md` is the text for App Review › Notes (updated 24 Oct for NIV/NKJV/NLT): how to sign in (Sign in with Apple, any Apple
 ID), where account deletion is, why background audio, the one permission (add to Photos, from Save Video),
 no purchases/UGC/tracking, and the content rights.
 
@@ -339,6 +345,21 @@ no purchases/UGC/tracking, and the content rights.
    Connect › App Information › License Agreement can stay Apple's standard EULA).
 5. Xcode → Product → Archive → Distribute → App Store Connect (automatic signing creates the distribution
    certificate on first upload). TestFlight internal testing first (no review), then submit.
+
+**The licensed Bibles (from the 24 Oct web session):**
+- **Build, put it on the phone and check:** NIV opens on the Bible tab with the Biblica line under the last
+  verse; NKJV and NLT from the translation menu; Compare lists six with no copyright lines (removed by
+  request); aeroplane mode on a chapter never opened shows "NIV needs a connection…"; a highlight in You
+  quotes the NIV text. Verified on the 26.0 simulator only (Psalm 23, NIV and Compare).
+- **The translation choice is not persisted** (it never was: `BibleStore.translation` is plain state). It
+  used to reset to KJV each launch and now resets to NIV. Persisting it (UserDefaults, as the web keeps
+  its in localStorage) is a small, unrequested improvement — ask before doing it.
+- **App Store privacy answers do not change:** the chapter requests carry no user data, and the app sends
+  API.Bible no FUMS reports (required of web apps only). `PrivacyInfo.xcprivacy` is unchanged.
+- **Quota:** the app and the site share API.Bible's Starter plan, 5,000 calls a month, through the site's
+  29-day cache. The phone adds its own 29-day copy under Caches/licensed-bible, so it re-asks rarely. No
+  overage billing exists on that plan: past the limit the route returns 503 and the app shows the
+  connection message for chapters it does not already hold.
 
 **Before accounts work fully in the app:**
 - **Deploy the web** with `public/.well-known/apple-app-site-association` and the `next.config.ts` header
@@ -401,6 +422,11 @@ which are unused by the films; `Topic`/`topics.json` are parked.
 - `.scrollEdgeEffectStyle(.soft, for: .bottom)` didn't render on 26.6.1 (FB18350439); `variableBlur` via
   CAFilter (BlurUIKit) works but is private API — it was removed before the App Store.
 - `simctl` hangs when the Mac is overloaded; shut extra simulators, then retry.
+- **Never bundle NIV, NKJV or NLT text, or put the API.Bible key in the app.** The licence is for text
+  served through API.Bible, refreshed within 30 days, and the key lives only on Vercel. Change the route
+  (`../src/app/api/bible/…`, `../src/lib/apiBible.ts`) and both apps follow; the verse parser lives there.
+- In the simulator, a tap on the verse action bar during its fade-in does not register — tap again after
+  it settles. Not a bug in the bar.
 
 ---
 
@@ -408,6 +434,7 @@ which are unused by the films; `Topic`/`topics.json` are parked.
 
 | Commit | What |
 | --- | --- |
+| `6b7cec7` | NIV, NKJV, NLT fetched from dafod.app (NIV default), copyright under the chapter, review notes |
 | `b239912` | No-outro films (10), screenshot mode, clean App Store set |
 | `5df5d37`, `7f86f54` | Status bar follows the film; KJV titles stripped (parser fix on the web) |
 | `0064995` | Named Dafod; Dafod icon; first screenshots |

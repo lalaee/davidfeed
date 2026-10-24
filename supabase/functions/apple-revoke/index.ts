@@ -55,8 +55,29 @@ async function apple(path: string, form: Record<string, string>) {
   return { ok: res.ok, status: res.status, data };
 }
 
+/*
+ * The caller must be a signed-in reader, not merely the holder of the public
+ * anon key. verify_jwt has already checked the token's signature, but the anon
+ * key is itself a valid JWT (role "anon"), so the role is checked here too.
+ * The signature being verified upstream is what makes reading the payload
+ * without re-verifying it safe.
+ */
+function signedInUser(req: Request): string | null {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const payload = token?.split(".")[1];
+  if (!payload) return null;
+  try {
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4)));
+    return claims.role === "authenticated" && typeof claims.sub === "string" ? claims.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (!signedInUser(req)) return json({ error: "sign in first" }, 401);
   const { code } = await req.json().catch(() => ({}));
   if (typeof code !== "string" || !code) return json({ error: "missing code" }, 400);
   const p8 = Deno.env.get("APPLE_P8");

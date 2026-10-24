@@ -39,7 +39,7 @@ struct YouView: View {
         .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete account", role: .destructive) { Task { await delete() } }
         } message: {
-            Text("This removes your account and everything saved to it, on every device. It can't be undone.")
+            Text("This removes your account and everything saved to it, on every device. It can't be undone. If you signed in with Apple, you'll confirm with Apple, and Dafod's access to your Apple Account is removed too.")
         }
         .alert("Couldn't delete your account", isPresented: Binding(
             get: { deleteFailure != nil }, set: { if !$0 { deleteFailure = nil } }
@@ -152,6 +152,7 @@ struct YouView: View {
         do {
             try await account.deleteAccount()
         } catch {
+            if let f = error as? Supabase.Failure, f.message.hasPrefix("Deletion cancelled") { return }
             deleteFailure = "\(error.localizedDescription) You can ask us to delete it by email."
         }
     }

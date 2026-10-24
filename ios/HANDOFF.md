@@ -349,11 +349,17 @@ below); permissions — only NSPhotoLibraryAddUsageDescription, for the share sh
 Save Video crashes the app; verified the prompt shows and the app survives) ✓; terms of service page ✓.
 
 **Decisions / risks to raise with him:**
-- **Sign in with Apple token revocation.** Apple's account-deletion page says apps using Sign in with Apple
-  *should* revoke the user's Apple tokens (REST API) when deleting an account; some apps are rejected for not
-  doing it. The app doesn't yet. It needs a small server step (a Supabase Edge Function holding a client
-  secret for `com.davidfeed.ios`, generated from his .p8 — which only he handles): the app would send a fresh
-  Apple authorization code on Delete account, the function exchanges and revokes it.
+- **Sign in with Apple token revocation — built (24 Oct), needs deploying.** On Delete account, an
+  Apple-linked account (checked via `auth/v1/user` providers) asks the reader to confirm with Apple (a fresh
+  authorization code), posts it to the **`apple-revoke` Edge Function** (`supabase/functions/apple-revoke`),
+  which signs a 5-minute client secret for `com.davidfeed.ios` with the Sign in with Apple key, trades the code
+  at appleid.apple.com/auth/token and revokes the refresh token at /auth/revoke; then the account is deleted.
+  Closing Apple's sheet cancels the deletion; a failed revocation is logged and the deletion goes ahead. The
+  client-secret signing was checked under Node with a throwaway key (valid ES256 JWT). **Not yet deployed:**
+  Olalekan sets the secret `APPLE_P8` (the .p8's contents — he does this himself; never read it) and deploys
+  the function (dashboard › Edge Functions, or `supabase functions deploy apple-revoke --project-ref
+  ulmptivzgvcpbygpkkfv` after `supabase login`). Check after: delete a throwaway Apple-linked account on the
+  phone; Settings › Apple Account › Sign in with Apple should no longer list Dafod.
 - **Review login.** 2.1 asks for demo account details if the app has a login. Sign in with Apple lets the
   reviewer in with their own Apple ID, which is normally accepted; if review asks, create a Google account for
   review and put it in the notes.

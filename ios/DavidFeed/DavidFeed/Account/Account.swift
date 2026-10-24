@@ -152,17 +152,8 @@ final class Account: NSObject {
         errorMessage = nil
         defer { if busy == .apple { busy = nil } }
         let raw = Self.randomNonce()
-        let request = ASAuthorizationAppleIDProvider().createRequest()
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = Self.sha256(raw)
         do {
-            let credential = try await withCheckedThrowingContinuation { continuation in
-                appleContinuation = continuation
-                let controller = ASAuthorizationController(authorizationRequests: [request])
-                controller.delegate = self
-                controller.presentationContextProvider = self
-                controller.performRequests()
-            }
+            let credential = try await appleAuthorization(scopes: [.fullName, .email], nonce: Self.sha256(raw))
             guard let data = credential.identityToken, let token = String(data: data, encoding: .utf8) else {
                 throw Supabase.Failure(status: 0, message: "Apple didn't return a sign-in token.")
             }
@@ -243,6 +234,22 @@ final class Account: NSObject {
         }
     }
 
+    /// Apple's sign-in sheet, returning the credential: the identity token
+    /// (to sign in) and a one-time authorization code (to revoke on deletion).
+    private func appleAuthorization(scopes: [ASAuthorization.Scope], nonce: String?) async throws
+        -> ASAuthorizationAppleIDCredential {
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = scopes
+        request.nonce = nonce
+        return try await withCheckedThrowingContinuation { continuation in
+            appleContinuation = continuation
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
+        }
+    }
+
     // MARK: signing out, deleting
 
     func signOut() async {
@@ -252,9 +259,35 @@ final class Account: NSObject {
 
     /// Deletes the account and everything saved to it, on every device
     /// (public.delete_my_account in the web repo's supabase/migrations).
+    ///
+    /// An account linked to Apple first has its Sign in with Apple authorization
+    /// revoked, as Apple asks: the reader confirms with Apple (a fresh
+    /// authorization code, good for five minutes), and the apple-revoke function
+    /// revokes it. Closing Apple's sheet stops the deletion. If the revocation
+    /// itself fails (the function not deployed, Apple unreachable), the account
+    /// is still deleted -- that is what the reader asked for -- and it's logged;
+    /// the reader can also remove Dafod in Settings › Apple Account › Sign in
+    /// with Apple.
     func deleteAccount() async throws {
         guard let s = await validSession() else {
             throw Supabase.Failure(status: 401, message: "Sign in again to delete your account.")
+        }
+        let providers = (try? await Supabase.providers(s)) ?? []
+        if providers.contains("apple") {
+            let credential: ASAuthorizationAppleIDCredential
+            do {
+                credential = try await appleAuthorization(scopes: [], nonce: nil)
+            } catch let error as ASAuthorizationError where error.code == .canceled {
+                throw Supabase.Failure(status: 0, message: "Deletion cancelled. Confirm with Apple to delete your account.")
+            }
+            if let data = credential.authorizationCode, let code = String(data: data, encoding: .utf8) {
+                do {
+                    try await Supabase.revokeApple(code: code, session: s)
+                    Self.log.notice("Apple authorization revoked")
+                } catch {
+                    Self.log.error("Apple revocation failed: \(String(describing: error), privacy: .public)")
+                }
+            }
         }
         try await Supabase.deleteAccount(s)
         endSession()

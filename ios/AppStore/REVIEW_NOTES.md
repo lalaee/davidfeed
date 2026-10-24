@@ -27,7 +27,10 @@ WHERE THINGS ARE
   Sign out.
 
 ACCOUNT DELETION (5.1.1(v)): You › Delete account › Delete account. It deletes
-the account and everything saved to it immediately, on every device.
+the account and everything saved to it immediately, on every device. For an
+account created with Sign in with Apple, the reader confirms with Apple and the
+app's Sign in with Apple authorization is revoked through Apple's REST API
+before the account is deleted.
 
 BACKGROUND AUDIO: the films carry their narration and music; playback
 continues when the screen locks, and the lock screen shows the film and

@@ -69,6 +69,23 @@ enum Supabase {
                           headers: ["Prefer": "resolution=merge-duplicates,return=minimal"])
     }
 
+    /// The providers the reader's account is linked to ("apple", "google"),
+    /// from the auth server rather than the cached session, so an account that
+    /// gained Apple on the web is seen.
+    static func providers(_ session: AccountSession) async throws -> [String] {
+        let user = try await call("auth/v1/user", method: "GET", token: session.accessToken, body: nil)
+        let meta = user["app_metadata"] as? [String: Any] ?? [:]
+        return meta["providers"] as? [String] ?? (meta["provider"] as? String).map { [$0] } ?? []
+    }
+
+    /// Revokes the reader's Sign in with Apple authorization: the apple-revoke
+    /// Edge Function trades this fresh authorization code for Apple's refresh
+    /// token and revokes it (supabase/functions/apple-revoke).
+    static func revokeApple(code: String, session: AccountSession) async throws {
+        _ = try await raw("functions/v1/apple-revoke", method: "POST", token: session.accessToken,
+                          body: ["code": code])
+    }
+
     /// public.delete_my_account() (supabase/migrations/20261023000000_delete_account.sql):
     /// removes the signed-in reader's account and, by cascade, their Library.
     static func deleteAccount(_ session: AccountSession) async throws {
@@ -78,7 +95,7 @@ enum Supabase {
     // MARK: plumbing
 
     private static func call(_ path: String, method: String = "POST", token: String? = nil,
-                             body: [String: Any]) async throws -> [String: Any] {
+                             body: [String: Any]?) async throws -> [String: Any] {
         let data = try await raw(path, method: method, token: token, body: body)
         if data.isEmpty { return [:] }
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {

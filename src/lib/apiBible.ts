@@ -70,9 +70,10 @@ export async function fetchLicensedChapter(
   bookName: string,
   chapter: number,
 ): Promise<LicensedChapter | null> {
-  const key = process.env.API_BIBLE_KEY;
+  const key = process.env.API_BIBLE_KEY?.trim();
   const bibleId = API_BIBLE_IDS[translationId];
   const code = usfmCode(bookIndex);
+  if (!key) console.error("api.bible: API_BIBLE_KEY is not set");
   if (!key || !bibleId || !code) return null;
 
   const url =
@@ -84,7 +85,12 @@ export async function fetchLicensedChapter(
     headers: { "api-key": key },
     next: { revalidate: CACHE_SECONDS },
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    // Logged so a spent allowance (429) or a bad key (401) shows in the
+    // function logs rather than only as the reader quietly losing NIV.
+    console.error(`api.bible: ${res.status} for ${translationId} ${code}.${chapter}`, (await res.text()).slice(0, 200));
+    return null;
+  }
   const body = (await res.json()) as {
     data?: { content?: Node[]; copyright?: string };
     meta?: { fumsToken?: string };

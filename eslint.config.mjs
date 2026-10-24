@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Supabase Edge Functions run on Deno, not in the site.
+    "supabase/functions/**",
     // The native iOS app and its Node build helpers; not part of the site.
     "ios/**",
   ]),

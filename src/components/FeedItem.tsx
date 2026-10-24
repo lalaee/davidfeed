@@ -332,18 +332,26 @@ export default function FeedItem({
     return () => el.removeEventListener("timeupdate", onTime);
   }, [startAt]);
 
-  // Chrome suspends VIDEO in a backgrounded tab while letting audio carry on,
-  // and it does not resume the video when the tab comes back. The card then
-  // sits on a frozen frame with the narration still running — which is exactly
-  // what "switch apps, come back, the artwork is dead" looks like.
+  // Leaving the tab (another tab, another app, the screen locking) stops the
+  // film — picture and sound — and coming back picks it up where it was.
+  // Before, nothing paused it on the way out: the browser suspended the muted
+  // picture and the narration played on in the background, unseen.
   //
-  // The activation effect cannot cover this: isActive never changed, so it
-  // never re-runs. Restart whatever the browser stopped, on the way back in.
+  // On the way back in, Chrome also does not resume a video it suspended, and
+  // the activation effect cannot cover that (isActive never changed, so it
+  // never re-runs). So whatever is paused is restarted here, unless the reader
+  // paused it themselves.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState !== "visible" || !isActiveRef.current) return;
-      if (userPausedRef.current) return;
-      [videoRef.current, posterVideoRef.current, audioRef.current].forEach((el) => {
+      const media = [videoRef.current, posterVideoRef.current, audioRef.current];
+      if (document.visibilityState !== "visible") {
+        media.forEach((el) => {
+          if (el && !el.paused) el.pause();
+        });
+        return;
+      }
+      if (!isActiveRef.current || userPausedRef.current) return;
+      media.forEach((el) => {
         if (el?.paused) el.play().catch(() => {});
       });
     };

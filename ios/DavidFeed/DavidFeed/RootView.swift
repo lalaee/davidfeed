@@ -24,6 +24,7 @@ struct RootView: View {
         TabView(selection: $screen) {
             Tab(value: Screen.home) {
                 FeedView(allPosts: PostStore.shorts)
+                    .environment(\.feedOnScreen, screen == .home)
             } label: {
                 navLabel("Home", icon: "NavHome", on: screen == .home)
             }
@@ -56,6 +57,11 @@ struct RootView: View {
         // quoting, so "Psalm 27:1" on screen becomes Psalms 27 in the reader.
         // Only from the feed: arriving from the Library, or back from a sheet,
         // should leave the reader where it was.
+        // The lock screen and Control Center show the film paused, not playing,
+        // while another tab is in front.
+        .onChange(of: screen, initial: true) { _, current in
+            Playback.shared.setFeedOnScreen(current == .home)
+        }
         .onChange(of: screen) { previous, current in
             guard current == .bible, previous == .home,
                   let post = Playback.shared.currentPost

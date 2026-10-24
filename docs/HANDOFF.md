@@ -505,8 +505,9 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 - Budget: one call per chapter per translation per 29 days, so the whole Bible
   in all three is ~3,600 calls a cycle. Usage shows on the api.bible
   dashboard. The terms require cached text to be refreshed within 30 days and
-  the publisher's copyright line shown with it (reader foot, compare card).
-- The iPhone app still has only KJV, ASV and WEB.
+  the publisher's copyright line shown with it (under the chapter; the
+  compare sheet leaves it out, by request).
+- The iPhone app has them too, through the same route (ios/HANDOFF.md, Bible).
 
 ### Vercel
 - Project `davidfeed`, team `olalekanisaaccb-gmailcoms-projects`.
@@ -638,3 +639,5 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
 13. The tabs went back to Home and Bible; You stays.
 14. NIV, NKJV and NLT in the Bible reader from API.Bible, NIV the default;
     copyright lines, FUMS view reports, privacy and terms updated (§6).
+15. NIV, NKJV and NLT in the iPhone app through the same route; copyright
+    lines off the compare sheet; NKJV small caps now read LORD.

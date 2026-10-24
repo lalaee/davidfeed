@@ -211,6 +211,14 @@ ios/
   the 26.0 simulator and on the phone.
 
 ### Bible (`Bible/*`, `Resources/bible/`)
+- **NIV, NKJV, NLT — licensed, fetched.** `BibleStore.load` asks the website's
+  `https://www.dafod.app/api/bible/<id>/<slug>/<chapter>` (the API.Bible key lives only on the server;
+  see the root `docs/HANDOFF.md` §6) and keeps each chapter in memory and under Caches/licensed-bible
+  for 29 days (API.Bible wants cached text refreshed within 30). NIV is the default translation, as on
+  the web. The chapter's copyright line shows under the last verse; the compare sheet leaves it out by
+  request. Offline with nothing cached, the reader says the translation needs a connection. FUMS view
+  reporting is required of web apps only, so the app reports nothing. Slugs and canon are the KJV
+  index's, which match the web's BOOKS.
 - KJV, ASV, WEB — all public domain. JSON per book: `{slug, name, chapters: {"23": ["v1", ...]}}`;
   `index.json` lists books per translation.
 - **Built by the web app's `../scripts/build-bible.py`** from cached sources (`../.bible-cache/`), then

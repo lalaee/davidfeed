@@ -20,8 +20,19 @@ private struct BookText: Codable {
 struct TranslationMeta: Identifiable, Hashable {
     let id: String
     let label: String
-    /// davidfeed's own note on provenance — all three are public domain.
+    /// davidfeed's own note on provenance.
     let note: String
+    /// Fetched from dafod.app rather than bundled. See `load`.
+    var licensed = false
+}
+
+/// One chapter of a licensed translation, as dafod.app's /api/bible route
+/// serves it: the web reader's {b, c, v} plus the publisher's notice.
+private struct RemoteChapter: Codable {
+    let v: [String]
+    let copyright: String
+    /// When it was fetched, for the 30-day refresh the licence requires.
+    var fetchedAt: Date?
 }
 
 @Observable
@@ -30,7 +41,18 @@ final class BibleStore {
     /// second store would let them drift onto different translations.
     @MainActor static let shared = BibleStore()
 
+    /// NIV, NKJV and NLT are licensed from API.Bible (American Bible Society)
+    /// and come from dafod.app's own route, which holds the API key — the app
+    /// never sees it — and caches each chapter for 29 days, so the free plan's
+    /// 5,000 calls a month cover the website and the app together. The other
+    /// three are public domain and bundled, so they work offline.
+    ///
+    /// API.Bible's view reporting (FUMS) is required of web apps only; an app
+    /// installed from the App Store is exempt, so nothing is reported here.
     static let translations: [TranslationMeta] = [
+        .init(id: "niv", label: "NIV", note: "New International Version", licensed: true),
+        .init(id: "nkjv", label: "NKJV", note: "New King James Version", licensed: true),
+        .init(id: "nlt", label: "NLT", note: "New Living Translation", licensed: true),
         .init(id: "kjv", label: "KJV", note: "King James Version, 1769"),
         .init(id: "asv", label: "ASV", note: "American Standard Version, 1901"),
         .init(id: "web", label: "WEB", note: "World English Bible"),
@@ -47,8 +69,16 @@ final class BibleStore {
 
     private(set) var books: [BookMeta] = []
     private var cache: [String: BookText] = [:]
+    /// Licensed chapters held in memory, keyed "niv-psalms-46". Observed, so a
+    /// chapter arriving redraws whatever was waiting for it.
+    private var remote: [String: RemoteChapter] = [:]
+    /// Licensed chapters that could not be had (offline, most likely), so the
+    /// reader can say so instead of showing an empty page.
+    private(set) var failed: Set<String> = []
+    @ObservationIgnored private var inFlight: Set<String> = []
 
-    var translation: String = "kjv" {
+    /// NIV first, as on the website, where it is what the films quote.
+    var translation: String = "niv" {
         didSet {
             guard translation != oldValue else { return }
             loadIndex()
@@ -66,7 +96,9 @@ final class BibleStore {
             return
         }
         // Canonical order is the index's own order for the selected translation.
-        books = all[translation] ?? []
+        // The licensed three have no bundled index; their canon is the KJV's,
+        // and the website validates every chapter against the same 66 books.
+        books = all[translation] ?? all["kjv"] ?? []
     }
 
     private func book(_ slug: String, _ tr: String? = nil) -> BookText? {
@@ -128,14 +160,106 @@ final class BibleStore {
         return Int(digits)
     }
 
-    func displayName(_ slug: String) -> String { book(slug)?.name ?? slug }
+    func displayName(_ slug: String) -> String { meta(slug)?.name ?? book(slug)?.name ?? slug }
+
+    static func isLicensed(_ translation: String) -> Bool {
+        translations.first { $0.id == translation }?.licensed ?? false
+    }
 
     /// Verses for one chapter, 1-based in the order they are read.
     ///
-    /// `translation` is explicit so the compare card can read all three at once
-    /// without moving the reader off the one it is on.
+    /// `translation` is explicit so the compare card can read all of them at
+    /// once without moving the reader off the one it is on. A licensed chapter
+    /// is empty until `load` has fetched it.
     func verses(book slug: String, chapter: Int, translation tr: String? = nil) -> [String] {
-        book(slug, tr)?.chapters[String(chapter)] ?? []
+        let tr = tr ?? translation
+        if Self.isLicensed(tr) {
+            return remote[Self.remoteKey(tr, slug, chapter)]?.v ?? []
+        }
+        return book(slug, tr)?.chapters[String(chapter)] ?? []
+    }
+
+    /// The publisher's notice for a licensed chapter, shown with its text as the
+    /// licence asks. Nil for the public-domain translations.
+    func copyright(book slug: String, chapter: Int, translation tr: String? = nil) -> String? {
+        let tr = tr ?? translation
+        guard Self.isLicensed(tr) else { return nil }
+        return remote[Self.remoteKey(tr, slug, chapter)]?.copyright
+    }
+
+    func loadFailed(book slug: String, chapter: Int, translation tr: String? = nil) -> Bool {
+        failed.contains(Self.remoteKey(tr ?? translation, slug, chapter))
+    }
+
+    // MARK: licensed chapters
+
+    private static let site = URL(string: "https://www.dafod.app")!
+    /// 29 days: API.Bible's terms want cached Scripture refreshed within 30.
+    private static let maxAge: TimeInterval = 29 * 24 * 60 * 60
+
+    private static func remoteKey(_ tr: String, _ slug: String, _ chapter: Int) -> String {
+        "\(tr)-\(slug)-\(chapter)"
+    }
+
+    /// The device's copy of fetched chapters, so a chapter read once opens
+    /// offline for the rest of the month. Caches, not Documents: the system may
+    /// clear it, and it is always re-fetchable.
+    private static let diskDir: URL? = {
+        guard let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+        else { return nil }
+        let dir = base.appending(path: "licensed-bible", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+
+    /// Fetch the licensed translations among `translations` for one chapter.
+    /// The public-domain ones are bundled and need nothing, so they are skipped;
+    /// a chapter already held (in memory or on disk, inside 29 days) is not
+    /// fetched again.
+    func load(book slug: String, chapter: Int, translations: [String]) async {
+        await withTaskGroup(of: Void.self) { group in
+            for tr in translations where Self.isLicensed(tr) {
+                group.addTask { await self.loadOne(tr, slug, chapter) }
+            }
+        }
+    }
+
+    private func loadOne(_ tr: String, _ slug: String, _ chapter: Int) async {
+        let key = Self.remoteKey(tr, slug, chapter)
+        if let held = remote[key], Self.fresh(held) { return }
+        guard !inFlight.contains(key) else { return }
+        inFlight.insert(key)
+        defer { inFlight.remove(key) }
+
+        let file = Self.diskDir?.appending(path: "\(key).json")
+        if let file, let data = try? Data(contentsOf: file),
+           let saved = try? JSONDecoder().decode(RemoteChapter.self, from: data), Self.fresh(saved) {
+            remote[key] = saved
+            failed.remove(key)
+            return
+        }
+
+        let url = Self.site.appending(path: "api/bible/\(tr)/\(slug)/\(chapter)")
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+            var chapterText = try JSONDecoder().decode(RemoteChapter.self, from: data)
+            chapterText.fetchedAt = .now
+            remote[key] = chapterText
+            failed.remove(key)
+            if let file, let encoded = try? JSONEncoder().encode(chapterText) {
+                try? encoded.write(to: file, options: .atomic)
+            }
+        } catch {
+            // A copy already on screen stays there; only a chapter with
+            // nothing to show is marked, so the reader can say why.
+            if remote[key] == nil { failed.insert(key) }
+        }
+    }
+
+    private static func fresh(_ chapter: RemoteChapter) -> Bool {
+        guard let at = chapter.fetchedAt else { return false }
+        return Date.now.timeIntervalSince(at) < maxAge
     }
 
     func chapterCount(_ slug: String) -> Int { meta(slug)?.chapters ?? 0 }

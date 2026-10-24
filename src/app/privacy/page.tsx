@@ -79,12 +79,13 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Licensed Bible translations">
-          The NIV, NKJV and NLT in the website&apos;s Bible reader come from API.Bible, run by the
+          The NIV, NKJV and NLT in the Bible reader come from API.Bible, run by the
           American Bible Society, under licence from their publishers. The licence asks that each
           time one of them is shown, your browser tells API.Bible which passage it was, so the
           publishers know what is being read. That report carries a random ID for your browser and
           another for the visit. It never includes your name, email address or account, and nothing
-          is sent while you read the KJV, ASV or WEB.
+          is sent while you read the KJV, ASV or WEB. The iPhone app fetches the same three
+          translations from dafod.app and reports nothing.
         </Section>
 
         <Section title="Google user data">
@@ -106,8 +107,8 @@ export default function PrivacyPage() {
               <span className="text-white">Supabase</span> stores your account and what you save.
             </li>
             <li>
-              <span className="text-white">Vercel</span> hosts the website, and the films the app
-              fetches when you share one.
+              <span className="text-white">Vercel</span> hosts the website, and the films and Bible
+              chapters the app fetches.
             </li>
             <li>
               <span className="text-white">Apple and Google</span> handle signing in, under their own

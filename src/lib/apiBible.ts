@@ -116,9 +116,10 @@ export async function fetchLicensedChapter(
  * so keeping only text with a verse id is the whole filter. A verse can run
  * across several paragraphs (each line of a psalm is one), and those join with
  * a space; text WITHIN a paragraph joins with nothing, because a word set in
- * small caps ("LORD", style nd) is its own node with the comma straight after.
+ * small caps ("LORD") is its own node with the comma straight after.
  * The small caps themselves become capitals, which is how the KJV files already
- * set the divine name.
+ * set the divine name. NIV and NLT mark it as the divine name (style nd), NKJV
+ * as plain small caps (sc); both are read the same way.
  */
 function collectVerses(content: Node[], chapter: number): string[] {
   const parts = new Map<number, string>();
@@ -132,7 +133,7 @@ function collectVerses(content: Node[], chapter: number): string[] {
         const m = /^[^.]+\.(\d+)\.(\d+)/.exec(n.attrs?.verseId ?? "");
         if (!m || Number(m[1]) !== chapter || !n.text) continue;
         const verse = Number(m[2]);
-        const text = style === "nd" ? n.text.toUpperCase() : n.text;
+        const text = style === "nd" || style === "sc" ? n.text.toUpperCase() : n.text;
         const before = parts.get(verse);
         parts.set(verse, before === undefined ? text : before + (paraStart ? " " : "") + text);
         paraStart = false;

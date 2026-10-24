@@ -53,6 +53,11 @@ struct CompareSheet: View {
             .scrollIndicators(.hidden)
         }
         .padding(.top, 24)
+        // The licensed translations are fetched; the bundled ones need nothing.
+        // No copyright lines here, by the user's call — the reader shows them.
+        .task {
+            await store.load(book: book, chapter: chapter, translations: BibleStore.translations.map(\.id))
+        }
         .presentationDetents([.height(444), .large])
         .presentationDragIndicator(.hidden)
     }
@@ -77,9 +82,8 @@ struct CompareSheet: View {
             Spacer(minLength: 0)
 
             // The design's "Versions" pill is gone. It was there to choose
-            // which translations the card shows, and with only three -- all of
-            // them listed below, always -- it was a control with nothing to
-            // decide. It was never wired to an action here either.
+            // which translations the card shows; here all six are listed,
+            // always. It was never wired to an action here either.
         }
         .frame(minHeight: 48)
         .padding(.horizontal, 16)

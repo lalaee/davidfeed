@@ -208,11 +208,6 @@ export default function CompareSheet({
                   <p className="text-[18px] font-normal leading-[27px] text-white">
                     {text || "Not available for this passage."}
                   </p>
-                  {t.copyright && (
-                    <p className="text-[12px] font-medium leading-[16px]" style={{ color: "#8A8A8A" }}>
-                      {t.copyright}
-                    </p>
-                  )}
                 </div>
               );
             })}

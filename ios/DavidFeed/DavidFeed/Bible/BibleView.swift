@@ -50,6 +50,7 @@ struct BibleView: View {
                                 // scroll straight to the verse it quotes.
                                 .id(verseAnchor(i + 1))
                         }
+                        licenceFooter
                         Color.clear.frame(height: 150)
                     }
                     .padding(.horizontal, 22)
@@ -67,6 +68,11 @@ struct BibleView: View {
                 // than in RootView because only this view has the scroll proxy.
                 .onChange(of: store.pendingVerse) { _, v in reveal(v, proxy) }
                 .task { reveal(store.pendingVerse, proxy) }
+                // NIV, NKJV and NLT arrive over the network (BibleStore.load);
+                // the bundled three return at once.
+                .task(id: "\(store.translation)/\(store.book)/\(store.chapter)") {
+                    await store.load(book: store.book, chapter: store.chapter, translations: [store.translation])
+                }
             }
             // The bar belongs to the VIEWPORT, not the column. Anchored to the
             // column it was positioned against the whole chapter's height, so
@@ -111,6 +117,23 @@ struct BibleView: View {
 
     // MARK: verses
 
+    /// Under the last verse: the publisher's notice, which the licence for NIV,
+    /// NKJV and NLT asks to travel with the text — or, when one of them could
+    /// not be fetched, why the page is empty.
+    @ViewBuilder
+    private var licenceFooter: some View {
+        if let notice = store.copyright(book: store.book, chapter: store.chapter), !verses.isEmpty {
+            Text(notice)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(DF.inkDim)
+                .padding(.top, 4)
+        } else if verses.isEmpty, store.loadFailed(book: store.book, chapter: store.chapter) {
+            Text("\(store.translation.uppercased()) needs a connection. KJV, ASV and WEB work offline.")
+                .font(.system(size: 21))
+                .foregroundStyle(DF.inkDim)
+        }
+    }
+
     private func verseAnchor(_ n: Int) -> String { "verse-\(n)" }
 
     /// Scroll to the verse a card quotes and select it, so the action bar is
@@ -119,6 +142,8 @@ struct BibleView: View {
         guard let verse, verse >= 1 else { return }
         store.pendingVerse = nil
         Task {
+            // A licensed chapter has to arrive before there is a verse to go to.
+            await store.load(book: store.book, chapter: store.chapter, translations: [store.translation])
             // One hop: the rows are lazy, so the target may not exist yet on the
             // frame the tab switches in.
             await Task.yield()

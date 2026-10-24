@@ -6,7 +6,8 @@ Keep this in step with the app. Guideline 2.1 wants a way in for the reviewer;
 ---
 
 Dafod is a feed of short animated Bible films (each with its own narration,
-score and burned-in captions) and a Bible reader (KJV, ASV, WEB).
+score and burned-in captions) and a Bible reader (NIV, NKJV, NLT, KJV, ASV,
+WEB).
 
 NO ACCOUNT IS NEEDED to watch the films or read the Bible. An optional account
 keeps saved films and highlighted verses in sync between the app and
@@ -44,8 +45,11 @@ NO purchases, subscriptions, ads, tracking, or user-generated content (readers
 cannot post or message anything).
 
 CONTENT: the films are Dafod's own, made for the app. Scripture in the films is
-the NIV, quoted with Biblica's permission notice (dafod.app/terms). KJV, ASV and
-WEB are public domain.
+the NIV, quoted with Biblica's permission notice (dafod.app/terms). In the reader,
+NIV, NKJV and NLT are licensed from API.Bible (American Bible Society) and
+fetched from dafod.app, each chapter shown with its publisher's copyright
+notice; they need a connection. KJV, ASV and WEB are public domain and bundled,
+so they work offline.
 
 Privacy: https://www.dafod.app/privacy   Terms: https://www.dafod.app/terms
 Contact: lakesofmotion@gmail.com

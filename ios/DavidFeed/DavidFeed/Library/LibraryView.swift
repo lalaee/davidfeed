@@ -49,6 +49,17 @@ struct LibraryView: View {
         .onAppear { preselectFilter() }
         .onChange(of: section) { preselectFilter() }
         .onChange(of: app.highlights) { preselectFilter() }
+        // Highlights quote their verses in the reading translation, and NIV,
+        // NKJV and NLT have to be fetched first (BibleStore.load). Keyed on the
+        // chapters held, so a new highlight elsewhere fetches only its own.
+        .task(id: "\(BibleStore.shared.translation)|\(highlightedChapters.joined(separator: ","))") {
+            let store = BibleStore.shared
+            for chapter in highlightedChapters {
+                let bits = chapter.split(separator: "/")
+                guard bits.count == 2, let c = Int(bits[1]) else { continue }
+                await store.load(book: String(bits[0]), chapter: c, translations: [store.translation])
+            }
+        }
         .fullScreenCover(item: $openedFeedAt) { post in
             // No .navigationTransition(.zoom) here. LibraryView has no
             // NavigationStack — the design has no title bar to put one under —
@@ -236,6 +247,14 @@ struct LibraryView: View {
             .padding(.bottom, 120)
         }
         .scrollIndicators(.hidden)
+    }
+
+    /// "psalms/46" for every chapter holding a highlight, sorted for a stable key.
+    private var highlightedChapters: [String] {
+        Set(app.highlights.keys.compactMap { key -> String? in
+            let bits = key.split(separator: "/")
+            return bits.count == 3 ? "\(bits[0])/\(bits[1])" : nil
+        }).sorted()
     }
 
     /// Contiguous verses sharing a colour collapse into one entry — highlighting

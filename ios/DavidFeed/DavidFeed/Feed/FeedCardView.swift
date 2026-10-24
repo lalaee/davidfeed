@@ -17,6 +17,9 @@ struct FeedCardView: View {
     /// stopped audio the moment the app left the foreground. Playback outlives
     /// every card; this one only says which post is current.
     private var playback: Playback { .shared }
+    /// False while another tab is showing: the films pause where they are and
+    /// pick up from there on return (FeedOnScreenKey).
+    @Environment(\.feedOnScreen) private var onScreen
     @State private var hearts: [Heart] = []
     @State private var showSavedPop = false
 
@@ -102,7 +105,7 @@ struct FeedCardView: View {
             // while the loop for a newly-focused card spins up.
             if playsLoop, let loop = post.loopURL {
                 // The film's own soundtrack, on the card in view, when sound is on.
-                LoopPlayerView(url: loop, isPlaying: true, active: isActive,
+                LoopPlayerView(url: loop, isPlaying: onScreen, active: isActive,
                                muted: !(isActive && playback.isPlaying))
             }
         }
@@ -278,5 +281,17 @@ private struct HeartBurst: View {
                     fade = 0
                 }
             }
+    }
+}
+
+/// Whether the feed is the screen in front. SwiftUI's TabView keeps the Home tab
+/// alive behind the others, so without this its films went on playing -- sound
+/// and all -- under the Bible and You. RootView sets it for the Home feed only;
+/// a feed presented elsewhere (Saved, played full screen) keeps the default.
+private struct FeedOnScreenKey: EnvironmentKey { static let defaultValue = true }
+extension EnvironmentValues {
+    var feedOnScreen: Bool {
+        get { self[FeedOnScreenKey.self] }
+        set { self[FeedOnScreenKey.self] = newValue }
     }
 }

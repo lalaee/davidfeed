@@ -19,6 +19,14 @@ final class Playback {
     /// Sound on. True from the start: each film carries its audio by default,
     /// and a tap on the card turns it off and on again.
     private(set) var isPlaying = true
+    /// Whether the Home feed is the tab in front; its films are paused while not.
+    private(set) var feedOnScreen = true
+
+    func setFeedOnScreen(_ on: Bool) {
+        guard feedOnScreen != on else { return }
+        feedOnScreen = on
+        publishNowPlaying()
+    }
     private var duration: Double = 0
 
     private init() {}
@@ -147,7 +155,7 @@ final class Playback {
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: post.title,
             MPMediaItemPropertyArtist: "Dafod",
-            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying && feedOnScreen ? 1.0 : 0.0,
         ]
         if duration > 0 { info[MPMediaItemPropertyPlaybackDuration] = duration }
         if let url = post.artworkURL, let image = UIImage(contentsOfFile: url.path) {

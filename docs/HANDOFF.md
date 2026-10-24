@@ -93,6 +93,7 @@ from the one you know.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the project's anon key (public by design) | the local "Publishable" key `supabase start` prints |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | `62034029832-8od42qjc3laha1g25i7j47feebmfn1qu.apps.googleusercontent.com` | same |
 | `ELEVENLABS_*` | — | local only, for older narration scripts |
+| `API_BIBLE_KEY` | set (sensitive), server only | same key, in `.env.local` |
 
 ### Local Supabase (Docker)
 ```bash
@@ -492,6 +493,21 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
   The user pastes the output into Supabase → Providers → Apple. Never read,
   print or commit the `.p8` or the secret yourself.
 
+### API.Bible (NIV, NKJV, NLT in the reader)
+- Account team "Olalekan Clement's team", application "Dafod", Starter plan:
+  free, noncommercial, 5,000 calls a month, no overage (past the limit it
+  stops answering until the month resets; it never bills).
+- Licensed Bibles (3 of 3 used): NIV `78a9f6124f344018-01`, NKJV
+  `63097d2a0a2f7db3-01`, NLT `d6e14a625393b4da-01`. End users set to 0-1K.
+- Code: `src/lib/apiBible.ts` (fetch, verse parser, 29-day data cache),
+  `src/app/api/bible/[translation]/[book]/[chapter]/route.ts` (validates
+  before calling out), `src/lib/fums.ts` (view reports, required on the web).
+- Budget: one call per chapter per translation per 29 days, so the whole Bible
+  in all three is ~3,600 calls a cycle. Usage shows on the api.bible
+  dashboard. The terms require cached text to be refreshed within 30 days and
+  the publisher's copyright line shown with it (reader foot, compare card).
+- The iPhone app still has only KJV, ASV and WEB.
+
 ### Vercel
 - Project `davidfeed`, team `olalekanisaaccb-gmailcoms-projects`.
 - Domain dafod.app: Vercel is the registrar, Vercel runs the DNS, and it
@@ -620,3 +636,5 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
     sound, the Dafod ending and the Figma strip under it. The share menu now
     shares the video on every device (§4, Sharing) (`4bb2466`).
 13. The tabs went back to Home and Bible; You stays.
+14. NIV, NKJV and NLT in the Bible reader from API.Bible, NIV the default;
+    copyright lines, FUMS view reports, privacy and terms updated (§6).

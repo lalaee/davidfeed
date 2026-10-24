@@ -57,8 +57,10 @@ export default function TermsPage() {
             reserved worldwide.
           </p>
           <p className="mt-[12px]">
-            The Bible reader&apos;s King James Version, American Standard Version and World English Bible
-            are in the public domain.
+            The Bible reader&apos;s New International Version, New King James Version and New Living
+            Translation are supplied by API.Bible under licence from their publishers, and each chapter
+            shows its publisher&apos;s copyright notice. Its King James Version, American Standard
+            Version and World English Bible are in the public domain.
           </p>
         </Section>
 

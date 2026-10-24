@@ -27,6 +27,7 @@ import {
 import { gated } from "@/lib/auth";
 import { formatVerseRange } from "@/lib/verseRef";
 import { navHiddenStore } from "@/lib/uiStore";
+import { reportScriptureView } from "@/lib/fums";
 
 /*
  * Geometry, type and colour follow Figma "Bible" — 2641:1161 (reading) and
@@ -151,6 +152,13 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
   );
   const shownVersion = reading?.label ?? TRANSLATIONS[0].label;
 
+  // NIV, NKJV and NLT are licensed on the condition that a web app reports
+  // each time their text is shown (lib/fums.ts). This is the one on screen;
+  // the public-domain three carry no token and report nothing.
+  useEffect(() => {
+    reportScriptureView(reading?.fums);
+  }, [reading?.fums]);
+
   /*
    * The verse-number gutter has to fit the widest number in the CHAPTER, not
    * the widest the design happened to draw.
@@ -225,10 +233,10 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
     if (!chosenVersionIds || !allTranslations.length) return allTranslations;
     /*
      * A stored choice naming a translation that no longer exists is stale as a
-     * WHOLE, not merely in that entry. NIV and NKJV were just dropped, so
-     * someone whose stored list was ["niv","nkjv","asv"] would otherwise have
-     * had it quietly pruned to ASV alone and been left comparing one
-     * translation against nothing, with no way to tell why.
+     * WHOLE, not merely in that entry. When NIV and NKJV were withdrawn, someone
+     * whose stored list was ["niv","nkjv","asv"] would otherwise have had it
+     * quietly pruned to ASV alone and been left comparing one translation
+     * against nothing, with no way to tell why. (They are back, licensed now.)
      */
     const known = new Set(allTranslations.map((t) => t.id));
     if (chosenVersionIds.some((id) => !known.has(id))) return allTranslations;
@@ -249,6 +257,12 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
     },
     [allTranslations],
   );
+
+  // The compare card shows several at once, so it reports what it lists —
+  // including one ticked on while it is open.
+  useEffect(() => {
+    if (showCompare) reportScriptureView(...listedTranslations.map((t) => t.fums));
+  }, [showCompare, listedTranslations]);
 
   const saved = selected.length > 0 && selected.every((n) => savedVerses[n]);
   const toggleSaved = useCallback(() => {
@@ -597,6 +611,13 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
               </div>
             );
           })}
+          {/* The publisher's notice, which the licence asks to travel with the
+              text. Only the licensed translations carry one. */}
+          {reading?.copyright && shownVerses.length > 0 && (
+            <p className="mt-[16px] text-[13px] font-medium leading-[18px]" style={{ color: "#8A8A8A" }}>
+              {reading.copyright}
+            </p>
+          )}
         </div>
 
         {/* The nav is the root layout's now, so it survives navigation and

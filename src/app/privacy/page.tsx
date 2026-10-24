@@ -15,12 +15,12 @@ export const metadata: Metadata = {
  * Written to what the code actually does — lib/auth.ts, lib/stores.ts and the
  * `library` migration, and the iPhone app (ios/: Account/, PrivacyInfo.xcprivacy)
  * — so it must change when they do: a new field stored, a new service added, or
- * analytics switched on. App Review reads it, so the app is covered here too.
+ * analytics switched on. The API.Bible paragraphs follow lib/fums.ts. App Review reads it, so the app is covered here too.
  *
  * Set in the Library's type on its #000 column: Inter Semi Bold 17 headings,
  * Regular 18/150% body in #999999, white for emphasis.
  */
-const UPDATED = "23 October 2026";
+const UPDATED = "24 October 2026";
 const CONTACT = "lakesofmotion@gmail.com";
 
 export default function PrivacyPage() {
@@ -78,6 +78,15 @@ export default function PrivacyPage() {
           app.
         </Section>
 
+        <Section title="Licensed Bible translations">
+          The NIV, NKJV and NLT in the website&apos;s Bible reader come from API.Bible, run by the
+          American Bible Society, under licence from their publishers. The licence asks that each
+          time one of them is shown, your browser tells API.Bible which passage it was, so the
+          publishers know what is being read. That report carries a random ID for your browser and
+          another for the visit. It never includes your name, email address or account, and nothing
+          is sent while you read the KJV, ASV or WEB.
+        </Section>
+
         <Section title="Google user data">
           When you sign in with Google we ask only for your basic profile — name, email address and
           account ID — and use it only as described above. Dafod&apos;s use of information received
@@ -104,15 +113,19 @@ export default function PrivacyPage() {
               <span className="text-white">Apple and Google</span> handle signing in, under their own
               privacy policies.
             </li>
+            <li>
+              <span className="text-white">API.Bible</span> supplies the NIV, NKJV and NLT, and
+              receives the anonymous reading reports described above.
+            </li>
           </ul>
           <p className="mt-[12px]">They process it for us and for nothing else. No one else receives it.</p>
         </Section>
 
         <Section title="On your device">
-          On the web we use your browser&apos;s local storage to keep you signed in and to make Dafod
-          quick to load what you have saved. In the iPhone app, your sign-in is kept in the iPhone&apos;s
+          On the web we use your browser&apos;s local storage to keep you signed in, to make Dafod
+          quick to load what you have saved, and to hold the random ID for the reading reports. In the iPhone app, your sign-in is kept in the iPhone&apos;s
           Keychain and a copy of what you have saved is kept on the phone for the same reason. Signing
-          out clears both from that browser or phone.
+          out clears your sign-in and that copy from the browser or phone.
         </Section>
 
         <Section title="Keeping and deleting it">

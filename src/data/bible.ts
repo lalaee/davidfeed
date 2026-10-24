@@ -1,25 +1,35 @@
 /*
  * The Bible: which books exist, which translations, and how to get a chapter.
  *
- * The text is NOT bundled. 66 books in three translations is 12.6MB, which has
- * no business in a JavaScript payload, so scripts/build-bible.py writes it to
- * public/bible/<translation>/<book-slug>/<chapter>.json — one file per chapter,
- * fetched when it is read and cached by the CDN like any other static asset.
- * A chapter costs about 4KB per translation.
+ * The text is NOT bundled. It arrives a chapter at a time, from one of two
+ * places that answer in the same {b, c, v} shape:
  *
- * All three are public domain: KJV (1769, from eBible.org, which asserts public
- * domain outright — see the note in the build script about the GPL-packaged
- * edition we deliberately did not use), ASV (1901) and WEB. NIV and NKJV used
- * to be here and are gone: both are copyrighted, and both had been transcribed
- * from memory rather than from a licensed source, so they were unusable twice
- * over.
+ *   Public domain — KJV (1769, from eBible.org, which asserts public domain
+ *   outright — see the note in the build script about the GPL-packaged edition
+ *   we deliberately did not use), ASV (1901) and WEB. scripts/build-bible.py
+ *   writes them to public/bible/<translation>/<book-slug>/<chapter>.json, one
+ *   static file per chapter, ~4KB each.
+ *
+ *   Licensed — NIV, NKJV and NLT, from API.Bible on its free Starter plan,
+ *   through our own route at /api/bible/... so the key stays on the server
+ *   (lib/apiBible.ts). These come with a copyright line the reader must show
+ *   and a FUMS token it reports when the text is on screen (lib/fums.ts).
+ *
+ * NIV and NKJV were once here as text transcribed from memory and were removed
+ * for it; these are the publishers' own, under licence.
  */
+
+import { reportScriptureView } from "@/lib/fums";
 
 export interface Translation {
   id: string;
   label: string;
   /** Keyed by verse number, for the chapter currently loaded. */
   verses: Record<number, string>;
+  /** The publisher's notice, shown with the text. Licensed translations only. */
+  copyright?: string;
+  /** API.Bible's view token for this chapter (lib/fums.ts). Licensed only. */
+  fums?: string;
 }
 
 export interface TranslationMeta {
@@ -27,10 +37,18 @@ export interface TranslationMeta {
   label: string;
   /** Shown where the app has to say where the text came from. */
   note: string;
+  /** Served by API.Bible through /api/bible rather than from public/bible. */
+  licensed?: boolean;
 }
 
-/** In the order the compare card lists them. */
+/**
+ * In the order the compare card lists them. The first is what the reader opens
+ * on until someone picks another: NIV, the translation the films quote.
+ */
 export const TRANSLATIONS: TranslationMeta[] = [
+  { id: "niv", label: "NIV", note: "New International Version (2011). Biblica, Inc.", licensed: true },
+  { id: "nkjv", label: "NKJV", note: "New King James Version. Thomas Nelson.", licensed: true },
+  { id: "nlt", label: "NLT", note: "New Living Translation. Tyndale House.", licensed: true },
   { id: "kjv", label: "KJV", note: "King James Version (1769). Public domain." },
   { id: "asv", label: "ASV", note: "American Standard Version (1901). Public domain." },
   { id: "web", label: "WEB", note: "World English Bible. Public domain." },
@@ -187,24 +205,34 @@ export function adjacentChapter(
   return { book: BOOKS[j].name, chapter: delta === 1 ? 1 : BOOKS[j].chapters };
 }
 
-/** The path a chapter's text lives at. */
+/** The path a chapter's text lives at: a static file, or the licensed route. */
 export function chapterUrl(translationId: string, book: string, chapter: number): string {
-  return `/bible/${translationId}/${bookSlug(book)}/${chapter}.json`;
+  const licensed = TRANSLATIONS.find((t) => t.id === translationId)?.licensed;
+  return licensed
+    ? `/api/bible/${translationId}/${bookSlug(book)}/${chapter}`
+    : `/bible/${translationId}/${bookSlug(book)}/${chapter}.json`;
 }
 
 interface ChapterFile {
   b: string;
   c: number;
   v: string[];
+  /** Licensed translations only — see app/api/bible. */
+  copyright?: string;
+  fums?: string | null;
 }
 
 /**
  * Every listed translation of one chapter.
  *
  * Fetched together because the compare card needs all of them the moment a
- * verse is selected, and three 4KB files in parallel is not worth staging. A
- * translation that fails to load is dropped rather than throwing: the reader
- * showing two of three is better than a blank page.
+ * verse is selected, and six small requests in parallel is not worth staging.
+ * A translation that fails to load is dropped rather than throwing: the reader
+ * showing five of six — or only the public-domain three, should API.Bible be
+ * unreachable — is better than a blank page.
+ *
+ * Nothing is reported to FUMS here. Loading a translation is not showing it;
+ * the reader reports the one on screen, and the compare card the ones it lists.
  */
 export async function fetchChapter(
   book: string,
@@ -213,8 +241,8 @@ export async function fetchChapter(
 ): Promise<Translation[]> {
   const results = await Promise.all(
     TRANSLATIONS.map(async (t): Promise<Translation | null> => {
-      const verses = await fetchChapterIn(t.id, book, chapter, signal);
-      return verses ? { id: t.id, label: t.label, verses } : null;
+      const found = await loadChapter(t.id, book, chapter, signal);
+      return found ? { id: t.id, label: t.label, ...found } : null;
     }),
   );
   return results.filter((t): t is Translation => t !== null);
@@ -224,7 +252,8 @@ export async function fetchChapter(
  * One chapter in one translation, as verse number -> text. Null when it cannot
  * be had, so a caller can render what it does have instead of failing whole.
  * The Library uses this: it quotes saved verses in the reading translation and
- * has no use for the other two.
+ * has no use for the others. It shows what it fetches straight away, so a
+ * licensed chapter is reported to FUMS as it arrives.
  */
 export async function fetchChapterIn(
   translationId: string,
@@ -232,6 +261,18 @@ export async function fetchChapterIn(
   chapter: number,
   signal?: AbortSignal,
 ): Promise<Record<number, string> | null> {
+  const found = await loadChapter(translationId, book, chapter, signal);
+  if (!found) return null;
+  reportScriptureView(found.fums);
+  return found.verses;
+}
+
+async function loadChapter(
+  translationId: string,
+  book: string,
+  chapter: number,
+  signal?: AbortSignal,
+): Promise<Pick<Translation, "verses" | "copyright" | "fums"> | null> {
   try {
     const res = await fetch(chapterUrl(translationId, book, chapter), { signal });
     if (!res.ok) return null;
@@ -240,7 +281,11 @@ export async function fetchChapterIn(
     data.v.forEach((text, i) => {
       if (text) verses[i + 1] = text;
     });
-    return verses;
+    return {
+      verses,
+      copyright: data.copyright || undefined,
+      fums: data.fums ?? undefined,
+    };
   } catch {
     return null;
   }

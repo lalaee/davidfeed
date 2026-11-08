@@ -34,7 +34,9 @@ struct ShareFilm: Transferable {
         let cached = dir.appendingPathComponent(fileName)
         if FileManager.default.fileExists(atPath: cached.path) { return cached }
         do {
-            let remote = URL(string: "https://www.dafod.app/assets/share/\(post.id).mp4")!
+            // A film added since the bucket names its own share file there.
+            let remote = post.shareSrc.flatMap(MediaStore.name).map(MediaStore.remote)
+                ?? URL(string: "https://www.dafod.app/assets/share/\(post.id).mp4")!
             let (tmp, response) = try await URLSession.shared.download(from: remote)
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

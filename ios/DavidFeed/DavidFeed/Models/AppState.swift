@@ -194,7 +194,14 @@ final class AppState {
         return "\(slug)/\(chapter[chapter.index(after: space)...])/\(verse)"
     }
 
+    /// Saved films still published and on the phone. One saved but not yet
+    /// downloaded appears once FilmCatalog has fetched it (LibraryView asks).
     var savedPosts: [Post] {
-        PostStore.shorts.filter { savedIDs.contains($0.id) }
+        FilmCatalog.shared.films.filter { savedIDs.contains($0.id) && FilmCatalog.shared.isReady($0) }
+    }
+
+    /// Saved films the phone doesn't hold yet.
+    var savedPostsToFetch: [Post] {
+        FilmCatalog.shared.films.filter { savedIDs.contains($0.id) && !FilmCatalog.shared.isReady($0) }
     }
 }

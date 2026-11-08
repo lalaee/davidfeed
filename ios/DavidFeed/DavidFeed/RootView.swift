@@ -25,7 +25,7 @@ struct RootView: View {
             Tab(value: Screen.home) {
                 // One film a day, not the scrolling feed. FeedView stays: Saved
                 // still plays its films through it.
-                VerseOfTheDayView(allPosts: PostStore.shorts)
+                VerseOfTheDayView()
                     .environment(\.feedOnScreen, screen == .home)
             } label: {
                 navLabel("Home", icon: "NavHome", on: screen == .home)

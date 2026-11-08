@@ -11,7 +11,7 @@ import Security
 /// nothing by itself; the table's row-level security is the access control
 /// (supabase/migrations in the web repo).
 enum Supabase {
-    static let url = URL(string: "https://ulmptivzgvcpbygpkkfv.supabase.co")!
+    nonisolated static let url = URL(string: "https://ulmptivzgvcpbygpkkfv.supabase.co")!
     static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsbXB0aXZ6Z3ZjcGJ5Z3Bra2Z2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0NDIzMTUsImV4cCI6MjEwODAxODMxNX0.hhuxSbEAZuFiNMlcy_DaZZUOeGUnsPVnjj1Vkb5fKZM"
 
     struct Failure: LocalizedError {
@@ -90,6 +90,14 @@ enum Supabase {
     /// removes the signed-in reader's account and, by cascade, their Library.
     static func deleteAccount(_ session: AccountSession) async throws {
         _ = try await raw("rest/v1/rpc/delete_my_account", method: "POST", token: session.accessToken, body: [:])
+    }
+
+    // MARK: the films
+
+    /// A public read with the anon key: the films and their schedule
+    /// (supabase/migrations/20261108000000_films.sql), for FilmCatalog.
+    static func get(_ path: String) async throws -> Data {
+        try await raw(path, method: "GET", token: nil, body: nil)
     }
 
     // MARK: plumbing

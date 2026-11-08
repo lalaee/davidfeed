@@ -30,6 +30,11 @@ final class FilmCatalog {
     /// after it "no connection".
     private(set) var refreshing = false
     private(set) var attempted = false
+    /// Bumped whenever files arrive or are cleared. MediaStore's set of names
+    /// isn't observable, so isReady reads this to make a view that asked
+    /// "is it here yet?" ask again once it is -- without it, Home kept its
+    /// spinner over a film that had finished downloading.
+    private(set) var mediaVersion = 0
 
     private struct Saved: Codable {
         var films: [Post]
@@ -55,7 +60,16 @@ final class FilmCatalog {
     func film(id: Int) -> Post? { films.first { $0.id == id } }
 
     /// Whether the film can be drawn: its poster and its film are on the phone.
-    func isReady(_ post: Post) -> Bool { post.artworkURL != nil && post.loopURL != nil }
+    func isReady(_ post: Post) -> Bool {
+        _ = mediaVersion
+        return post.artworkURL != nil && post.loopURL != nil
+    }
+
+    /// Clears every downloaded file but these films' (MediaStore.prune).
+    func prune(keeping posts: [Post]) {
+        MediaStore.prune(keeping: posts)
+        mediaVersion += 1
+    }
 
     static func dayKey(_ date: Date) -> String {
         let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
@@ -70,8 +84,9 @@ final class FilmCatalog {
 
     // MARK: fetching
 
-    /// The published films and a fortnight of the schedule either side of
-    /// today. A failed fetch keeps what the phone already has.
+    /// The published films and the schedule from a fortnight back to a month
+    /// ahead -- the month the 6am notifications are booked for
+    /// (VerseNotifications). A failed fetch keeps what the phone already has.
     func refresh() async {
         guard !refreshing else { return }
         refreshing = true
@@ -82,7 +97,7 @@ final class FilmCatalog {
             + "startAt:start_at,aspect,translation,captions"
         let cal = Calendar.current
         let from = Self.dayKey(cal.date(byAdding: .day, value: -14, to: Date()) ?? Date())
-        let to = Self.dayKey(cal.date(byAdding: .day, value: 14, to: Date()) ?? Date())
+        let to = Self.dayKey(cal.date(byAdding: .day, value: 31, to: Date()) ?? Date())
         do {
             async let filmsData = Supabase.get("rest/v1/films?select=\(columns)&order=position,id")
             async let daysData = Supabase.get("rest/v1/film_days?select=day,film_id&day=gte.\(from)&day=lte.\(to)")
@@ -112,6 +127,7 @@ final class FilmCatalog {
             failed.remove(post.id)
             let ok = await MediaStore.fetch([post.backgroundImage, post.posterVideoSrc ?? post.videoSrc])
             downloading.remove(post.id)
+            mediaVersion += 1
             if !ok || !isReady(post) { failed.insert(post.id) }
         }
     }

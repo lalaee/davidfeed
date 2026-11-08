@@ -83,13 +83,14 @@ struct VerseOfTheDayView: View {
 
     /// Today's and tomorrow's films onto the phone, from the list it has and
     /// then again from a fresh one; then everything else off it but the saved
-    /// films. Unstructured, so a download outlives the view that asked for it.
+    /// films; then the month's 6am notifications, booked from that fresh list.
+    /// Unstructured, so a download outlives the view that asked for it.
     private func sync() {
         today = Date()
         let day = today, catalog = catalog, saved = app.savedIDs
+        let film = { (date: Date) in catalog.scheduled(for: date) ?? Self.film(for: date, from: catalog.films) }
         let next = {
-            [day, Calendar.current.date(byAdding: .day, value: 1, to: day) ?? day]
-                .compactMap { catalog.scheduled(for: $0) ?? Self.film(for: $0, from: catalog.films) }
+            [day, Calendar.current.date(byAdding: .day, value: 1, to: day) ?? day].compactMap(film)
         }
         Task {
             await catalog.prepare(next())
@@ -98,8 +99,12 @@ struct VerseOfTheDayView: View {
             // Only once both are here: offline, the film on screen may be an
             // older one standing in, and it mustn't be deleted under the player.
             if next().allSatisfy(catalog.isReady) {
-                MediaStore.prune(keeping: next() + catalog.films.filter { saved.contains($0.id) })
+                catalog.prune(keeping: next() + catalog.films.filter { saved.contains($0.id) })
             }
+            // Asked once there's a film to be told about, not on a blank first launch.
+            guard !catalog.films.isEmpty else { return }
+            await VerseNotifications.requestPermissionIfNeeded()
+            await VerseNotifications.schedule(film: film)
         }
     }
 
@@ -134,13 +139,13 @@ struct VerseOfTheDayView: View {
                         // (FeedCardView.cropTop).
                         FeedCardView(post: post, isActive: true, playsLoop: true, verseOfTheDay: true)
                             .frame(height: min(geo.size.width * CGFloat(post.aspect ?? 16.0 / 9.0), filmRoom))
+                            .overlay(alignment: .bottomLeading) { title(post) }
                             .id(post.id)
                         shareButton(post)
                             .padding(.horizontal, Self.buttonInset)
                         Spacer(minLength: 0)
                     }
                     .ignoresSafeArea(edges: .top)
-                    .overlay(alignment: .top) { title }
                     .onAppear { Playback.shared.setQueue([post]) }
                     .onChange(of: post.id) { Playback.shared.setQueue([post]) }
                 }
@@ -174,31 +179,57 @@ struct VerseOfTheDayView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// "Verse of the day": Inter Semi Bold 20, -2% tracking, white in the
-    /// frame. White vanishes on the films whose tops are paper (the woodcuts),
-    /// so it goes dark over a light top, the same reading of the playing
-    /// frames that turns the status bar dark.
-    private var title: some View {
-        Text("Verse of the day")
-            .font(.system(size: 20, weight: .semibold))
-            .tracking(-0.4)
-            .foregroundStyle(ReflectionSampler.shared.topIsLight ? Color.black : Color.white)
-            .padding(.top, 4)
-            .accessibilityAddTraits(.isHeader)
+    /// The film's byline, bottom-left -- Figma "Frame 37020" (2798:1215): the
+    /// Dafod badge, a 37pt circle of the icon's gradient with the white D
+    /// (exported whole from 2798:1206, DafodBadge), then "Verse of the day"
+    /// 11.5 on, Inter Semi Bold 16, -2% tracking, shadow 0/1 blur 3 at 38%.
+    /// The row sits 23 in from the left and 21.8 above the film's rounded
+    /// edge (y 513.6-550.6 on a film that ends at 572.4). Black in the frame,
+    /// which sits on a light film; over a dark foot it goes white, read from
+    /// the poster the same way as the heart and bookmark (FeedCardView.chrome).
+    private static let bylineInset: CGFloat = 23
+    private static let bylineToFilmBottom: CGFloat = 21.8
+
+    private func title(_ post: Post) -> some View {
+        HStack(spacing: 11.5) {
+            Image("DafodBadge")
+                .resizable()
+                .frame(width: 37, height: 37)
+                .clipShape(.circle)
+                .accessibilityHidden(true)
+            Text("Verse of the day")
+                .font(.system(size: 16, weight: .semibold))
+                .tracking(-0.32)
+                .foregroundStyle(ArtworkCache.isLightAtBottom(post.artworkURL) ? Color.black : Color.white)
+                .shadow(color: .black.opacity(0.38), radius: 1.5, y: 1)
+                .accessibilityAddTraits(.isHeader)
+        }
+        .padding(.leading, Self.bylineInset)
+        .padding(.bottom, Self.bylineToFilmBottom)
+        .allowsHitTesting(false)
     }
 
-    /// "Share verse": a #8CE4FF pill, the Instagram glyph and the label, black.
-    /// Inter Medium 20 / 22, -0.43 tracking; padding 13 by 16, gap 8. It shares
-    /// what the feed's share did, the film from dafod.app (ShareFilm), so
-    /// Instagram is one of the share sheet's destinations.
+    /// "Share verse": a #8CE4FF pill, black. Figma "Extract button" (2790:1055):
+    /// the Instagram, WhatsApp, TikTok and Threads glyphs, 24pt, 2 apart, then
+    /// the label 8 on -- Inter Medium 20 / 22, -0.43 tracking; padding 13 by 16.
+    /// The glyphs say where the film can go; the button itself opens the share
+    /// sheet with the film from dafod.app (ShareFilm), which offers all of them
+    /// that are installed.
+    private static let shareGlyphs = ["Instagram", "WhatsApp", "TikTok", "Threads"]
+
     private func shareButton(_ post: Post) -> some View {
         ShareLink(item: ShareFilm(post: post), preview: SharePreview(post.title)) {
             HStack(spacing: 8) {
-                Image("Instagram")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
+                HStack(spacing: 2) {
+                    ForEach(Self.shareGlyphs, id: \.self) { glyph in
+                        Image(glyph)
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                    }
+                }
+                .accessibilityHidden(true)
                 Text("Share verse")
                     .font(.system(size: 20, weight: .medium))
                     .tracking(-0.43)

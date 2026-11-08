@@ -11,6 +11,11 @@ struct FeedCardView: View {
     /// because every extra looper is several more video items competing for a
     /// limited number of decoders.
     let playsLoop: Bool
+    /// The verse of the day: square at the top, where it runs under the status
+    /// bar, rounded at the bottom like a card. It keeps the save and adds a
+    /// like (the heart button, and the double-tap); its share is the button
+    /// under the film, so the rail drops its own.
+    var verseOfTheDay = false
 
     @Environment(AppState.self) private var app
     /// Not @State: a player owned by a view dies with the view, which is what
@@ -64,12 +69,13 @@ struct FeedCardView: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel(post.title)
             // Screenshots square the top corners, so a capture starts flush with
-            // the film; in use the card is rounded all round.
+            // the film; in use the card is rounded all round. The verse of the
+            // day is square at the top too, flush with the screen's edge.
             .clipShape(UnevenRoundedRectangle(
-                topLeadingRadius: ScreenshotMode.on ? 0 : DF.cardRadius,
+                topLeadingRadius: ScreenshotMode.on || verseOfTheDay ? 0 : DF.cardRadius,
                 bottomLeadingRadius: DF.cardRadius,
                 bottomTrailingRadius: DF.cardRadius,
-                topTrailingRadius: ScreenshotMode.on ? 0 : DF.cardRadius,
+                topTrailingRadius: ScreenshotMode.on || verseOfTheDay ? 0 : DF.cardRadius,
                 style: .continuous))
         }
         .task(id: isActive) { syncPlayback() }
@@ -147,10 +153,24 @@ struct FeedCardView: View {
                     // The film as the web shares it -- with its Dafod ending,
                     // over the white strip -- fetched when a destination asks
                     // for it (ShareFilm).
-                    ShareLink(item: ShareFilm(post: post), preview: SharePreview(post.title)) {
-                        RailIcon(asset: "Send", tint: chrome.ink, shadow: chrome.shadow)
+                    if !verseOfTheDay {
+                        ShareLink(item: ShareFilm(post: post), preview: SharePreview(post.title)) {
+                            RailIcon(asset: "Send", tint: chrome.ink, shadow: chrome.shadow)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    // The like, above the save, as Figma "Feed-Liked-Saved"
+                    // stacks them: a white outline heart, pink (#E6066B) and
+                    // filled once liked. A like needs no account.
+                    if verseOfTheDay {
+                        RailButton(
+                            asset: app.isLiked(post) ? "HeartActive" : "HeartInactive",
+                            tint: app.isLiked(post) ? Color(hex: "#E6066B") : chrome.ink,
+                            shadow: chrome.shadow
+                        ) {
+                            app.setLiked(post.id, on: !app.isLiked(post))
+                        }
+                    }
                     RailButton(
                         asset: app.isSaved(post) ? "BookmarkActive" : "BookmarkInactive",
                         tint: app.isSaved(post) ? Color(hex: "#EAC72C") : chrome.ink,
@@ -201,9 +221,16 @@ struct FeedCardView: View {
 
     private func like(at point: CGPoint) {
         // The heart is the save happening: signed out, the sheet asks first and
-        // no heart plays for a save that hasn't been made.
+        // no heart plays for a save that hasn't been made. On the verse of the
+        // day it is the like instead, which the heart button beside it shows;
+        // a double-tap only ever likes, never unlikes.
         let id = post.id
-        guard app.isSaved(post) || Account.shared.gated({ [app] in app.setSaved(id, on: true) }) else { return }
+        if verseOfTheDay {
+            app.setLiked(id, on: true)
+            Haptics.saveBounce()
+        } else {
+            guard app.isSaved(post) || Account.shared.gated({ [app] in app.setSaved(id, on: true) }) else { return }
+        }
         let heart = Heart(point: point, angle: Double.random(in: -22...22))
         hearts.append(heart)
         Task {

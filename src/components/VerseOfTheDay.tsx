@@ -10,6 +10,7 @@ import SoundBadge from "./SoundBadge";
 import { useFilmCatalog } from "./FilmCatalog";
 import { InstagramIcon, ThreadsIcon, TikTokIcon, WhatsAppIcon } from "./icons";
 import { useFeedSound } from "@/hooks/useFeedSound";
+import { useLiveInk } from "@/lib/liveInk";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import { dateOfKey, dayKey, filmForDay } from "@/lib/verseOfTheDay";
 
@@ -26,7 +27,7 @@ import { dateOfKey, dayKey, filmForDay } from "@/lib/verseOfTheDay";
  *   title    "Verse of the day" (2798:1197), Inter Semi Bold 19, -2% tracking,
  *            bottom-left: 36.8 in from the film's left edge, 27.8 above its
  *            foot. Black over light picture, white over dark, read live off
- *            the playing film right behind the words (liveInk, below), so
+ *            the playing film right behind the words (lib/liveInk.ts), so
  *            it turns as the film does; until a frame has been read, the
  *            film's own foot decides (lib/posterInk.ts). A film's row can
  *            set its ink by hand (title_ink). A short soft shadow in the
@@ -146,63 +147,6 @@ function cardFit(column: HTMLElement | null) {
   return { card, lowest, film: (width * 16) / 9, crop, height };
 }
 
-type TitleInk = "black" | "white";
-
-/*
- * THE TITLE'S INK, LIVE — black over light picture, white over dark, read off
- * the playing film right behind the words four times a second.
- *
- * The film is drawn object-fit: cover, cropped by .day-card's object-position
- * on a short screen, so the title's box is mapped back into the video's own
- * pixels by the same geometry, drawn down to a few pixels and averaged
- * (Rec. 709 luma). Light past 160 turns it black, dark under 140 turns it
- * white, and between the two it keeps what it has, so a frame that sits on
- * the line does not flicker it. The films are served from this origin, so
- * the canvas can be read.
- */
-const liveInk = new WeakMap<HTMLElement, TitleInk>();
-const SAMPLE_MS = 250;
-let sampler: CanvasRenderingContext2D | null | undefined;
-
-function sampleInk(title: HTMLElement): TitleInk | undefined {
-  const video = title.parentElement?.querySelector<HTMLVideoElement>(".day-card video[poster]");
-  if (!video || video.readyState < 2 || !video.videoWidth) return undefined;
-  if (sampler === undefined) {
-    const c = document.createElement("canvas");
-    c.width = 16;
-    c.height = 4;
-    sampler = c.getContext("2d", { willReadFrequently: true });
-  }
-  if (!sampler) return undefined;
-  const box = video.getBoundingClientRect();
-  const t = title.getBoundingClientRect();
-  const { videoWidth: vw, videoHeight: vh } = video;
-  const scale = Math.max(box.width / vw, box.height / vh);
-  const [px, py] = getComputedStyle(video).objectPosition.split(" ");
-  const offset = (pos: string, room: number) =>
-    pos.endsWith("%") ? (room * parseFloat(pos)) / 100 : parseFloat(pos) || 0;
-  const ox = offset(px, box.width - vw * scale);
-  const oy = offset(py, box.height - vh * scale);
-  const sx = (t.left - box.left - ox) / scale;
-  const sy = (t.top - box.top - oy) / scale;
-  const sw = t.width / scale;
-  const sh = t.height / scale;
-  if (sw <= 0 || sh <= 0) return undefined;
-  try {
-    sampler.drawImage(video, sx, sy, sw, sh, 0, 0, 16, 4);
-    const d = sampler.getImageData(0, 0, 16, 4).data;
-    let luma = 0;
-    for (let i = 0; i < d.length; i += 4) luma += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
-    luma /= d.length / 4;
-    const was = liveInk.get(title);
-    if (luma > 160) return "black";
-    if (luma < 140) return "white";
-    return was ?? (luma >= 150 ? "black" : "white");
-  } catch {
-    return undefined;
-  }
-}
-
 export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
   const { films, days } = useFilmCatalog();
   // The server renders the day it had (UTC, at most five minutes old); the
@@ -238,26 +182,9 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
     if (post) measurePoster(post.backgroundImage);
   }, [post]);
   // The title, held in state from a callback ref, is read against the film
-  // behind it while it is on screen (liveInk, above).
+  // behind it while it is on screen (lib/liveInk.ts).
   const [title, setTitle] = useState<HTMLHeadingElement | null>(null);
-  const watchInk = useCallback(
-    (onChange: () => void) => {
-      if (!title) return () => {};
-      const tick = () => {
-        if (document.hidden) return;
-        const next = sampleInk(title);
-        if (next && next !== liveInk.get(title)) {
-          liveInk.set(title, next);
-          onChange();
-        }
-      };
-      tick();
-      const timer = setInterval(tick, SAMPLE_MS);
-      return () => clearInterval(timer);
-    },
-    [title],
-  );
-  const live = useSyncExternalStore(watchInk, () => (title ? liveInk.get(title) : undefined), () => undefined);
+  const live = useLiveInk(title);
   // A film's row can set the title's ink by hand; otherwise the picture behind
   // it decides, and the film's foot until that has been read.
   const titleInk = post?.titleInk ?? live ?? (ink === "light-bottom" ? "black" : "white");

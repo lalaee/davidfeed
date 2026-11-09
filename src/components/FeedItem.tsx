@@ -8,6 +8,7 @@ import { BookmarkIcon, HeartIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { gated } from "@/lib/auth";
 import { likedPostStore, savedPostStore } from "@/lib/stores";
+import { useLiveInk } from "@/lib/liveInk";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import ShareSheet from "./ShareSheet";
 
@@ -715,6 +716,19 @@ export default function FeedItem({
   const ink = INK[inkKind];
   useEffect(() => { measurePoster(backgroundImage, inkFoot); }, [backgroundImage, inkFoot]);
 
+  // On Home the heart and the bookmark each read the film behind them live,
+  // as the title does (lib/liveInk.ts), and keep the poster's ink until then.
+  const [heartEl, setHeartEl] = useState<HTMLSpanElement | null>(null);
+  const [saveEl, setSaveEl] = useState<HTMLSpanElement | null>(null);
+  const heartLive = useLiveInk(isDay ? heartEl : null);
+  const saveLive = useLiveInk(isDay ? saveEl : null);
+  const inkOf = (live: "black" | "white" | undefined) =>
+    live ? INK[live === "black" ? "light-bottom" : "dark-bottom"] : ink;
+  const inkStyle = (live: "black" | "white" | undefined) => {
+    const { ink: color, shadow } = inkOf(live);
+    return { color, filter: `drop-shadow(0 1px 3px ${shadow})` };
+  };
+
   return (
     /*
      * No magnetic tilt: the card used to lean toward the pointer on desktop
@@ -852,7 +866,7 @@ export default function FeedItem({
       {/* Action Icons */}
       <div
         className="absolute right-[20px] bottom-[24px] flex flex-col gap-[32px] z-[100]"
-        style={{ color: ink.ink, filter: `drop-shadow(0 1px 3px ${ink.shadow})` }}
+        style={isDay ? undefined : inkStyle(undefined)}
       >
         {isDay ? (
           // Figma "Feed-Liked-Saved": the like above the save. Pink once
@@ -863,7 +877,9 @@ export default function FeedItem({
             animating={likeAnimating}
             animationClass="animate-icon-pop"
           >
-            <HeartIcon filled={isLiked} className="pointer-events-none block" />
+            <span ref={setHeartEl} className="block transition-[color,filter] duration-300" style={inkStyle(heartLive)}>
+              <HeartIcon filled={isLiked} className="pointer-events-none block" />
+            </span>
           </IconButton>
         ) : (
           <IconButton
@@ -884,8 +900,14 @@ export default function FeedItem({
         >
           {/* #EAC72C is the saved colour from the Figma export; unsaved
               inherits white through currentColor. */}
-          <span className={isSaved ? "text-[#EAC72C]" : undefined}>
-            <BookmarkIcon filled={isSaved} className="pointer-events-none block" />
+          <span
+            ref={isDay ? setSaveEl : undefined}
+            className="block transition-[color,filter] duration-300"
+            style={isDay ? inkStyle(saveLive) : undefined}
+          >
+            <span className={isSaved ? "text-[#EAC72C]" : undefined}>
+              <BookmarkIcon filled={isSaved} className="pointer-events-none block" />
+            </span>
           </span>
         </IconButton>
       </div>

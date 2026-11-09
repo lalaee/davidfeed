@@ -28,6 +28,33 @@ final class ReflectionSampler {
     /// middle does not make the clock flicker.
     private(set) var topIsLight = false
 
+    /// What sits over the playing film on Home and takes its ink from the
+    /// picture right behind it: the "Verse of the day" title, the heart and
+    /// the bookmark, by name. Each is its box in the film view's own points,
+    /// with that view's size (the film at its full height, before the card
+    /// crops it). Set by VerseOfTheDayView and FeedCardView; empty elsewhere.
+    private var probes: [String: (box: CGRect, film: CGSize)] = [:]
+    /// Black (true) over light picture, white over dark, read off the frames
+    /// behind each probe four times a second -- the web's useLiveInk
+    /// (lib/liveInk.ts): Rec. 709 luma past 160 of 255 turns it black, under
+    /// 140 white, and between the two it keeps what it has, so a frame on
+    /// the line does not flicker it. No entry until a frame has been read.
+    private(set) var inks: [String: Bool] = [:]
+    private var probesSampledAt: CFTimeInterval = 0
+
+    /// Puts `name` over the film at `box`, or takes it off with nil. A probe
+    /// that moves is read afresh.
+    func probe(_ name: String, _ box: CGRect?, film: CGSize) {
+        guard let box else {
+            probes[name] = nil
+            inks[name] = nil
+            return
+        }
+        if let old = probes[name], old.box == box, old.film == film { return }
+        probes[name] = (box, film)
+        inks[name] = nil
+    }
+
     private var player: AVQueuePlayer?
     private var itemObservation: NSKeyValueObservation?
     private var attachedItem: AVPlayerItem?
@@ -90,6 +117,7 @@ final class ReflectionSampler {
         colours = []
         previousFine = []
         topIsLight = false
+        inks = [:]
         motion = []
         range = nil
     }
@@ -110,6 +138,15 @@ final class ReflectionSampler {
         if let top = Self.band(of: buffer, from: 0, height: 0.07, samples: 4) {
             let lum = top.map { $0.x * 0.2126 + $0.y * 0.7152 + $0.z * 0.0722 }.reduce(0, +) / Float(top.count)
             if !topIsLight, lum > 0.62 { topIsLight = true } else if topIsLight, lum < 0.5 { topIsLight = false }
+        }
+        if !probes.isEmpty, link.timestamp - probesSampledAt >= 0.25 {
+            probesSampledAt = link.timestamp
+            for (name, probe) in probes {
+                guard let luma = Self.luma(of: buffer, under: probe.box, in: probe.film) else { continue }
+                let was = inks[name]
+                let black = luma > 160 ? true : luma < 140 ? false : was ?? (luma >= 150)
+                if black != was { inks[name] = black }
+            }
         }
         // Colour: the fine bins pooled to the rim's. Motion: the largest
         // frame-to-frame change among each rim bin's fine bins.
@@ -187,6 +224,43 @@ final class ReflectionSampler {
             let p = raw.bindMemory(to: UInt8.self)
             // BGRA in memory.
             return (0..<n).map { i in SIMD3(Float(p[i * 4 + 2]), Float(p[i * 4 + 1]), Float(p[i * 4])) / 255 }
+        }
+    }
+
+    /// The average Rec. 709 luma, 0-255, of the frame under `box`: a box in a
+    /// view of size `film` that shows the frame aspect-fill (the loop's
+    /// .resizeAspectFill), mapped back into the frame's pixels, drawn down to
+    /// 16 x 4 and averaged, as the web's sampleInk does with its canvas.
+    nonisolated private static func luma(of buffer: CVPixelBuffer, under box: CGRect, in film: CGSize) -> Float? {
+        let width = CVPixelBufferGetWidth(buffer), height = CVPixelBufferGetHeight(buffer)
+        guard width > 0, height > 0, film.width > 0, film.height > 0 else { return nil }
+        let scale = max(film.width / CGFloat(width), film.height / CGFloat(height))
+        let ox = (film.width - CGFloat(width) * scale) / 2, oy = (film.height - CGFloat(height) * scale) / 2
+        let px = CGRect(x: (box.minX - ox) / scale, y: (box.minY - oy) / scale,
+                        width: box.width / scale, height: box.height / scale).integral
+            .intersection(CGRect(x: 0, y: 0, width: width, height: height))
+        guard !px.isNull, px.width >= 1, px.height >= 1 else { return nil }
+
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
+        let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
+        var source = vImage_Buffer(data: base + Int(px.minY) * rowBytes + Int(px.minX) * 4,
+                                   height: vImagePixelCount(px.height), width: vImagePixelCount(px.width),
+                                   rowBytes: rowBytes)
+        let w = 16, h = 4
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        return pixels.withUnsafeMutableBytes { raw -> Float? in
+            var destination = vImage_Buffer(data: raw.baseAddress, height: vImagePixelCount(h),
+                                            width: vImagePixelCount(w), rowBytes: w * 4)
+            guard vImageScale_ARGB8888(&source, &destination, nil, vImage_Flags(kvImageNoFlags)) == kvImageNoError else { return nil }
+            let p = raw.bindMemory(to: UInt8.self)
+            // BGRA in memory.
+            var sum: Float = 0
+            for i in 0..<(w * h) {
+                sum += 0.2126 * Float(p[i * 4 + 2]) + 0.7152 * Float(p[i * 4 + 1]) + 0.0722 * Float(p[i * 4])
+            }
+            return sum / Float(w * h)
         }
     }
 

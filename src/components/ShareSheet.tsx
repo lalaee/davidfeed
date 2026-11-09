@@ -8,7 +8,10 @@ import { SOCIAL_PATHS } from "@/lib/socialIcons";
 import { fetchShareFile, readCanShareFiles, shareFileName } from "@/lib/shareVideo";
 
 /*
- * The share menu, on every device. What is shared is THE VIDEO: the film with
+ * The share menu, now only where the browser has no share sheet that takes a
+ * file (most desktop browsers). Phones go straight to their own sheet
+ * (hooks/useShareVideo.ts): every tile here opened that same sheet, so the
+ * menu was a step that chose nothing. What is shared is THE VIDEO: the film with
  * its sound and the "See more at Dafod.app" ending, from /assets/share/<id>.mp4
  * — not a link, which arrives as a bare card (the user saw exactly that on a
  * WhatsApp Status and asked for the film instead).

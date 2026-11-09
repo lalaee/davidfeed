@@ -27,8 +27,10 @@ export default function AppStrip() {
           text has less than the 242 the whole sentence takes (all phones but
           the widest) instead of wrapping or being cut. */}
       <span className="@container flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[15px] font-semibold leading-[19px] text-white">
-          Start your day with hope
+        {/* iOS's own tracking at 15, which also brings the line inside a
+            375 phone's 179. */}
+        <span className="truncate text-[15px] font-semibold leading-[19px] tracking-[-0.24px] text-white">
+          Start tomorrow with hope
         </span>
         <span className="truncate text-[13px] font-medium leading-[17px]" style={{ color: "#999999" }}>
           Wake up to a new verse<span className="hidden @[242px]:inline"> every morning</span>

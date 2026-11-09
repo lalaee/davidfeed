@@ -6,10 +6,11 @@
  * more at: Dafod.app", from lemo-opuscar's Bible/outro), re-encoded for the
  * web with its sound — the feed's own copies are silent and end without it.
  *
- * ShareSheet.tsx is the one way in, on every device. It fetches the file while
- * it is up (fetchShareFile, with progress) and its tiles hand that file to the
- * system share sheet where the browser has one (canShareFiles, asked of the
- * browser rather than guessed from the user agent), or download it.
+ * Where the browser has a share sheet that takes a file (canShareFiles, asked
+ * of the browser rather than guessed from the user agent), a tap goes straight
+ * to it with the file (hooks/useShareVideo.ts, which fetches it ahead or on
+ * the tap). Elsewhere ShareSheet.tsx fetches it while it is up and its tiles
+ * download it.
  */
 
 /** The verdict never changes after load, so there is nothing to subscribe to. */

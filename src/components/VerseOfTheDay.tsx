@@ -10,6 +10,7 @@ import SoundBadge from "./SoundBadge";
 import { useFilmCatalog } from "./FilmCatalog";
 import { InstagramIcon, ThreadsIcon, TikTokIcon, WhatsAppIcon } from "./icons";
 import { useFeedSound } from "@/hooks/useFeedSound";
+import { useShareVideo } from "@/hooks/useShareVideo";
 import { useLiveInk } from "@/lib/liveInk";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import { dateOfKey, dayKey, filmForDay } from "@/lib/verseOfTheDay";
@@ -42,8 +43,9 @@ import { dateOfKey, dayKey, filmForDay } from "@/lib/verseOfTheDay";
  *            above the nav.
  *
  * The rail keeps the save and gains a like (FeedItem's "day" variant); the
- * pill is the share, opening the same menu the feed's share did, with the
- * film and its Dafod ending.
+ * pill is the share: the film with its Dafod ending, straight into the
+ * phone's own share sheet (hooks/useShareVideo.ts), or the menu where the
+ * browser has no sheet for a file.
  *
  * At desk the page keeps its desktop chrome — the nav, the "Stop Doomscrolling
  * / Start Hopescrolling" copy with Download app on the left, Privacy — and the
@@ -156,6 +158,19 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
 
   const { soundOn, enableSound, toggleSound, armUnlock } = useFeedSound();
   const [shareOpen, setShareOpen] = useState(false);
+  // Straight to the system sheet, the video fetched ahead so the tap can open
+  // it at once (hooks/useShareVideo.ts); our own menu only where there is none.
+  const { menu, share, phase, progress } = useShareVideo(post?.id ?? 0, post?.title ?? "", {
+    prefetch: Boolean(post),
+  });
+  const shareLabel =
+    phase === "preparing"
+      ? `Preparing… ${Math.round(progress * 100)}%`
+      : phase === "armed"
+        ? "Tap to share"
+        : phase === "failed"
+          ? "Couldn't load. Try again"
+          : "Share verse";
 
   // The column, held in state from a callback ref so the title's fit can be
   // read off it (and re-read as it resizes) without touching a ref in render.
@@ -247,7 +262,8 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
 
           <button
             type="button"
-            onClick={() => setShareOpen(true)}
+            onClick={() => (menu ? setShareOpen(true) : share())}
+            aria-busy={phase === "preparing" || undefined}
             className="press mx-[16px] mt-[13.6px] flex h-[63px] flex-shrink-0 items-center justify-center
                        gap-[8px] rounded-[100px] border-none px-[16px] py-[13px] text-black"
             style={{ backgroundColor: "#8CE4FF" }}
@@ -258,7 +274,7 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
               <TikTokIcon size={24} />
               <ThreadsIcon size={24} />
             </span>
-            <span className="text-[20px] font-medium leading-[22px] tracking-[-0.43px]">Share verse</span>
+            <span className="text-[20px] font-medium leading-[22px] tracking-[-0.43px] tabular-nums">{shareLabel}</span>
           </button>
         </div>
       )}

@@ -9,6 +9,7 @@ import { Subtitle } from "@/data/psalm23-subtitles";
 import { gated } from "@/lib/auth";
 import { likedPostStore, savedPostStore } from "@/lib/stores";
 import { useLiveInk } from "@/lib/liveInk";
+import { useShareVideo } from "@/hooks/useShareVideo";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import ShareSheet from "./ShareSheet";
 
@@ -671,9 +672,13 @@ export default function FeedItem({
   }, [postId]);
 
   /*
-   * The share button opens our sheet on every device (ShareSheet.tsx), which
-   * shares the film itself — sound and the Dafod ending — not a link.
+   * The share button hands the film itself — sound and the Dafod ending, not
+   * a link — straight to the phone's share sheet (hooks/useShareVideo.ts),
+   * fetching it on the tap and showing that on the button; our own sheet
+   * (ShareSheet.tsx) only opens where the browser has no sheet for a file.
    */
+  const { menu: shareMenu, share: shareFile, phase: sharePhase, progress: shareProgress } =
+    useShareVideo(postId, title);
   const [shareOpen, setShareOpen] = useState(false);
   // A sheet belongs to the card that opened it. Scroll away and the card is no
   // longer the one on screen, so its sheet has to go with it — otherwise two
@@ -695,14 +700,9 @@ export default function FeedItem({
     if (navigator.vibrate) {
       navigator.vibrate(10);
     }
-    // Every device opens our menu now (ShareSheet.tsx). It fetches the
-    // film's share video — sound and the Dafod ending — while it is up, and
-    // its tiles hand that file to the system sheet or download it. Going
-    // straight to the system sheet from here, as phones used to, had to fetch
-    // tens of megabytes between the tap and the sheet, and a sheet opened
-    // that long after a tap is refused.
-    setShareOpen(true);
-  }, []);
+    if (shareMenu) setShareOpen(true);
+    else shareFile();
+  }, [shareMenu, shareFile]);
 
   // No scrim under the buttons (as on iOS): the films end on their own caption
   // bands, some cream, and a dark gradient over cream read as a grey bar. The
@@ -884,11 +884,34 @@ export default function FeedItem({
         ) : (
           <IconButton
             onClick={handleShare}
-            label="Share"
+            label={
+              sharePhase === "preparing"
+                ? `Preparing video, ${Math.round(shareProgress * 100)}%`
+                : sharePhase === "armed"
+                  ? "Tap to share"
+                  : sharePhase === "failed"
+                    ? "Couldn't load the video. Tap to try again"
+                    : "Share"
+            }
             animating={shareAnimating}
             animationClass="animate-send"
           >
-            <SendIcon size={40} className="pointer-events-none block" />
+            {/* While the video comes down, a ring fills around the plane;
+                once it is in hand and the sheet still needs a fresh tap, the
+                plane takes the share colour (#8CE4FF) to ask for it. */}
+            <span className="relative block" style={sharePhase === "armed" ? { color: "#8CE4FF" } : undefined}>
+              <SendIcon size={40} className="pointer-events-none block" />
+              {sharePhase === "preparing" && (
+                <svg className="pointer-events-none absolute -inset-[4px]" viewBox="0 0 48 48" aria-hidden>
+                  <circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+                  <circle
+                    cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                    pathLength={100} strokeDasharray="100" strokeDashoffset={100 - shareProgress * 100}
+                    transform="rotate(-90 24 24)"
+                  />
+                </svg>
+              )}
+            </span>
           </IconButton>
         )}
 

@@ -2156,9 +2156,15 @@ html, body {
     --nav-floor: max(2px, env(safe-area-inset-bottom));
     --film-h: calc(var(--col-w) * 16 / 9);
     --room: calc(var(--app-h) - var(--nav-floor) - 75px - 13px - 63px - 13.6px);
+    /* The lowest words also clear "Verse of the day", which sits over the
+     * film's foot: 27.8 up, 23 tall, and 8 of air above it. Where the screen
+     * gives the film its whole height they already do (the films' words end
+     * by 0.88, the title starts at 0.924); a browser's bars and the app strip
+     * take that room away, so the crop takes it back from the head. */
+    --title-clear: 58.8px;
     --crop-top: clamp(
       0px,
-      calc(var(--cap-bottom, 1) * var(--film-h) - var(--room)),
+      calc(var(--cap-bottom, 1) * var(--film-h) - (var(--room) - var(--title-clear))),
       calc(var(--cap-top, 0) * var(--film-h))
     );
     height: min(var(--film-h), var(--room));

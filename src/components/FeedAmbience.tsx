@@ -224,7 +224,23 @@ async function createScene(
   };
 }
 
-export default function FeedAmbience({ src, warm = [] }: { src?: string; warm?: string[] }) {
+/*
+ * Home's verse of the day keeps the colour to the top of the window: the
+ * ambience fades out by 40% down and the rest is the page's black. Asked for
+ * as a trial ("we can revert later") — drop the prop to go back to full.
+ */
+const TOP_ONLY_MASK = "linear-gradient(to bottom, #000 0%, transparent 40%)";
+
+export default function FeedAmbience({
+  src,
+  warm = [],
+  topOnly = false,
+}: {
+  src?: string;
+  warm?: string[];
+  /** Fade the ambience out by 40% down the window, black below. */
+  topOnly?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<Scene | null>(null);
   const [desk, setDesk] = useState(false);
@@ -311,6 +327,7 @@ export default function FeedAmbience({ src, warm = [] }: { src?: string; warm?: 
   // boxes, and <main> is bg-black: at -1 the canvas rendered perfectly and was
   // never seen. At 0 it paints after the flow and before the column, which is
   // later in the document at the same level.
+  const mask = topOnly ? { maskImage: TOP_ONLY_MASK, WebkitMaskImage: TOP_ONLY_MASK } : undefined;
   return (
     <>
       {/* The stand-in is also THE PHONE'S AMBIENCE. The swirl is desktop-only,
@@ -327,6 +344,7 @@ export default function FeedAmbience({ src, warm = [] }: { src?: string; warm?: 
           aria-hidden
           className="feed-ambience-standin pointer-events-none fixed inset-0 z-0 overflow-hidden"
           data-drawn={drawn ? "" : undefined}
+          style={mask}
         >
           {layers.map((url) => (
             // eslint-disable-next-line @next/next/no-img-element -- the cover the card already holds; no optimisation pass wanted between it and the first frame
@@ -338,8 +356,13 @@ export default function FeedAmbience({ src, warm = [] }: { src?: string; warm?: 
         ref={canvasRef}
         aria-hidden
         className="feed-ambience pointer-events-none fixed inset-0 z-0 hidden h-full w-full desk:block"
+        style={mask}
       />
-      <div aria-hidden className="feed-ambience-dim pointer-events-none fixed inset-0 z-0 hidden desk:block" />
+      <div
+        aria-hidden
+        className="feed-ambience-dim pointer-events-none fixed inset-0 z-0 hidden desk:block"
+        style={mask}
+      />
     </>
   );
 }

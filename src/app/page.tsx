@@ -1,19 +1,20 @@
-import Feed from "@/components/Feed";
-import { shortPosts } from "@/data/shorts";
+import VerseOfTheDay from "@/components/VerseOfTheDay";
 
 /*
- * Home is the shorts feed. The full chapter readings ran 45s to 2m40s, which
- * turned out to be more than a feed can hold attention for, so the spotlighted
- * passages replaced them outright rather than living behind a second tab.
+ * Home is the verse of the day: one film, the same one the iPhone app shows on
+ * the same date, from the list and schedule in Supabase (lib/filmCatalog.ts,
+ * provided by the root layout). The scrolling feed it replaced still plays a
+ * reader's saved films at /library/[id].
  *
- * chapterPosts is still the source of every card's artwork and parallax loop —
- * see src/data/shorts.ts — so the chapter data stays live in the codebase. It
- * is only the full-length narration and its captions that no longer play.
+ * The date is the reader's own, so the page works it out in the browser; this
+ * passes the server's UTC date for the first paint, which the browser then
+ * corrects where its local date differs.
  */
 export default function Home() {
+  const serverDay = new Date().toISOString().slice(0, 10);
   return (
     <main className="h-[var(--app-h)] bg-black">
-      <Feed posts={shortPosts} activeTab="home" />
+      <VerseOfTheDay serverDay={serverDay} />
     </main>
   );
 }

@@ -7,8 +7,8 @@ import DesktopNav from "./DesktopNav";
 import { HIGHLIGHT_COLOURS } from "./VerseActionBar";
 import { ChevronIcon } from "./icons";
 import { AppleLogo, GoogleLogo, SignInStatus, useSignIn } from "./SignIn";
+import { useFilmCatalog } from "./FilmCatalog";
 import { fetchChapterIn, parseTitle, readingTranslation } from "@/data/bible";
-import { shortPosts } from "@/data/shorts";
 import { authStore, deleteAccount, signOut, type Reader } from "@/lib/auth";
 import { googleSignInAvailable } from "@/lib/googleSignIn";
 import { highlightStore, readingStore, savedPostStore } from "@/lib/stores";
@@ -428,7 +428,10 @@ function SavedFeed() {
     savedPostStore.read,
     savedPostStore.serverSnapshot,
   );
-  const saved = useMemo(() => shortPosts.filter((p) => savedIds[p.id]), [savedIds]);
+  // The published films (Supabase, shared with the app): a film taken down
+  // leaves Saved too, as it does on the phone.
+  const { films } = useFilmCatalog();
+  const saved = useMemo(() => films.filter((p) => savedIds[p.id]), [films, savedIds]);
 
   if (!saved.length) {
     return <Empty>Bookmark a verse in the feed and its artwork lands here.</Empty>;

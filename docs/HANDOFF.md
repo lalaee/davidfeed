@@ -262,9 +262,8 @@ These are all in `globals.css`, `Feed.tsx`, `DesktopChrome.tsx` and
     looks for it).
 - **Hero copy:** the subtitle reads "Experience a collection of short verses
   that brings hope.", then a white **Download app** pill with the Apple mark.
-  - There is no App Store listing yet.
-  - The pill links to `NEXT_PUBLIC_APP_STORE_URL` once that's set in Vercel;
-    until then it goes nowhere and says "Coming soon" on hover.
+  - The pill, and the phone's app strip, open the App Store page
+    (`src/lib/appStore.ts`): https://apps.apple.com/us/app/dafod/id6826595194
 - **The Hopescrolling face** (the teal "o") keeps 3:1 contrast against the
   ambience. That is WCAG's ratio for an icon.
   - `src/lib/heroContrast.ts` estimates the wash from the active poster's

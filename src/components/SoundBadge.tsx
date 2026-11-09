@@ -29,9 +29,14 @@
 interface SoundBadgeProps {
   visible: boolean;
   onEnable: () => void;
+  /**
+   * Centred on the film it sits in (absolute) rather than on the feed's card
+   * slot (fixed). Home's verse of the day: its film is not the feed's shape.
+   */
+  inFilm?: boolean;
 }
 
-export default function SoundBadge({ visible, onEnable }: SoundBadgeProps) {
+export default function SoundBadge({ visible, onEnable, inFilm }: SoundBadgeProps) {
   return (
     <button
       type="button"
@@ -39,7 +44,9 @@ export default function SoundBadge({ visible, onEnable }: SoundBadgeProps) {
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
       aria-label="Tap for sound"
-      className={`sound-badge fixed left-1/2 top-[calc(var(--strip-h)+min(100vw,375px)*8/9)] z-[9998]
+      className={`${inFilm
+                    ? "absolute left-1/2 top-1/2 z-[150]"
+                    : "sound-badge fixed left-1/2 top-[calc(var(--strip-h)+min(100vw,375px)*8/9)] z-[9998]"}
                   flex -translate-x-1/2 items-center gap-[9px] rounded-full border-none
                   py-[13px] pl-[20px] pr-[24px] text-white
                   transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]

@@ -9,12 +9,9 @@
  * tall — 100dvh less the strip — so nothing is covered and the feed's card
  * still fits above the nav.
  *
- * Dafod is not on the App Store yet (ios/HANDOFF.md). Until
- * NEXT_PUBLIC_APP_STORE_URL is set the button reads "Soon" and goes nowhere,
- * the rule the desktop pill follows, rather than linking to a store search
- * that finds nothing.
+ * Get opens the app's App Store page (lib/appStore.ts).
  */
-const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || undefined;
+import { APP_STORE_URL } from "@/lib/appStore";
 
 export default function AppStrip() {
   return (
@@ -28,15 +25,9 @@ export default function AppStrip() {
           Get the app for iPhone
         </span>
       </span>
-      {APP_STORE_URL ? (
-        <a href={APP_STORE_URL} className="app-strip-get press">
-          Get
-        </a>
-      ) : (
-        <span className="app-strip-get" aria-disabled title="Coming soon to the App Store" style={{ opacity: 0.6 }}>
-          Soon
-        </span>
-      )}
+      <a href={APP_STORE_URL} className="app-strip-get press">
+        Get
+      </a>
     </aside>
   );
 }

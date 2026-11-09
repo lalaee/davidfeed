@@ -11,14 +11,7 @@ import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
 import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
 import HeroLottie from "./HeroLottie";
 import { hopeColourStore } from "@/lib/heroContrast";
-
-/*
- * The iOS app's App Store page. Dafod is not on the App Store yet (see
- * ios/HANDOFF.md). Until NEXT_PUBLIC_APP_STORE_URL is set, the button shows
- * but goes nowhere and says why on hover, rather than linking to a store
- * search that finds nothing (apps.apple.com's search returns a 404).
- */
-const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || undefined;
+import { APP_STORE_URL } from "@/lib/appStore";
 
 /*
  * The animated glyphs, four per line, cycling.
@@ -100,6 +93,8 @@ interface DesktopChromeProps {
   canNext: boolean;
   /** The poster the ambience is drawn from, so the hero can keep contrast. */
   ambienceSrc?: string;
+  /** Off on Home's verse of the day: one film, nothing to page to. */
+  paging?: boolean;
 }
 
 export default function DesktopChrome({
@@ -113,6 +108,7 @@ export default function DesktopChrome({
   canPrev,
   canNext,
   ambienceSrc,
+  paging = true,
 }: DesktopChromeProps) {
   // The Hopescrolling face's colour, kept at 4.5:1 against the ambience
   // behind it (lib/heroContrast.ts). Brand teal until a poster is measured.
@@ -215,8 +211,6 @@ export default function DesktopChrome({
             the button takes it back. */}
         <a
           href={APP_STORE_URL}
-          title={APP_STORE_URL ? undefined : "Coming soon to the App Store"}
-          aria-disabled={APP_STORE_URL ? undefined : true}
           className="pointer-events-auto flex h-[56px] w-fit items-center gap-[10px] rounded-full bg-white px-[28px]
                      text-[18px] font-semibold text-[#0E0E0E] no-underline press"
           style={{ letterSpacing: "-0.3px" }}
@@ -321,11 +315,13 @@ export default function DesktopChrome({
       ) : null}
 
       {/* Paging, to the left of the card */}
-      <div className="desk-paging fixed top-1/2 z-[500] hidden -translate-y-1/2
-                      flex-col gap-[16px] desk:flex">
-        <PageButton label="Previous verse" onClick={onPrev} disabled={!canPrev} up />
-        <PageButton label="Next verse" onClick={onNext} disabled={!canNext} />
-      </div>
+      {paging && (
+        <div className="desk-paging fixed top-1/2 z-[500] hidden -translate-y-1/2
+                        flex-col gap-[16px] desk:flex">
+          <PageButton label="Previous verse" onClick={onPrev} disabled={!canPrev} up />
+          <PageButton label="Next verse" onClick={onNext} disabled={!canNext} />
+        </div>
+      )}
     </>
   );
 }

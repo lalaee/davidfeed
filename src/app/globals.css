@@ -2135,6 +2135,59 @@ html, body {
 }
 
 
+/* HOME'S VERSE OF THE DAY (components/VerseOfTheDay.tsx).
+ *
+ * Below the desk the film runs the column's width from the top of the page
+ * shell, at its 9:16 where the screen has room. What room there is: --app-h
+ * less the nav (75 on --nav-floor, as the feed counts it), the 13 between the
+ * pill and the nav, the 63 pill and the 13.6 between film and pill (Figma
+ * "New Feed UI"). Shorter than the film, it is cropped exactly as the feed
+ * crops (THE PHONE CARD FITS THE SCREEN above): off the head just enough that
+ * the lowest words clear the foot, never past the highest, the rest off the
+ * bottom.
+ *
+ * At desk the column stands where the feed's card stood — 51 in from the right
+ * of the canvas, at --desk-card-top, right of the hero copy (.desk-copy) — as
+ * tall as the window allows up to the feed's 943, at the film's own 9:16,
+ * uncropped. */
+@media (max-width: 1027px) {
+  .day-card {
+    --col-w: 100vw;
+    --nav-floor: max(2px, env(safe-area-inset-bottom));
+    --film-h: calc(var(--col-w) * 16 / 9);
+    --room: calc(var(--app-h) - var(--nav-floor) - 75px - 13px - 63px - 13.6px);
+    --crop-top: clamp(
+      0px,
+      calc(var(--cap-bottom, 1) * var(--film-h) - var(--room)),
+      calc(var(--cap-top, 0) * var(--film-h))
+    );
+    height: min(var(--film-h), var(--room));
+  }
+  .day-card .film-layer {
+    object-position: 50% calc(-1 * var(--crop-top));
+  }
+}
+@media (min-width: 768px) and (max-width: 1027px) {
+  .day-card {
+    --col-w: 375px;
+  }
+}
+@media (min-width: 1028px) {
+  .day-column {
+    --day-h: min(943px, calc(100dvh - var(--desk-card-top) - 13.6px - 63px - 32px));
+    position: fixed;
+    /* 24 higher than the feed's card, asked for: the film and pill sit a little
+     * closer to the nav, the same size, with the room going to the foot. */
+    top: calc(var(--desk-card-top) - 24px);
+    right: calc(var(--desk-gutter) + 51px);
+    width: calc(var(--day-h) * 9 / 16);
+    max-width: none;
+  }
+  .day-card {
+    height: var(--day-h);
+  }
+}
+
 /* THE APP STRIP (components/AppStrip.tsx).
  * --strip-h is the room it takes at the top, and --app-h what is left for a
  * page shell: 0 and 100dvh at desk, where there is no strip. The top

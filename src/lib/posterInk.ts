@@ -14,6 +14,8 @@
  * card using the same image waits on one decode and nothing sets state from an
  * effect. Until a poster has been measured the answer is "dark", which is the
  * white ink every card had before — the label never starts out invisible.
+ *
+ * Home's "Verse of the day" title, at the film's foot, takes the same call.
  */
 
 type Ink = "light-bottom" | "dark-bottom";

@@ -4,7 +4,7 @@ import { notFound, useParams } from "next/navigation";
 import { useMemo, useSyncExternalStore } from "react";
 
 import Feed from "@/components/Feed";
-import { shortPosts } from "@/data/shorts";
+import { useFilmCatalog } from "@/components/FilmCatalog";
 import { savedPostStore } from "@/lib/stores";
 
 /*
@@ -38,14 +38,16 @@ export default function SavedFeedPage() {
    * does drop it from the list, which is the honest answer for a list OF
    * bookmarks — the snap simply carries you to the next one.
    */
+  // The published films (Supabase, shared with the app), not a fixed list.
+  const { films } = useFilmCatalog();
   const posts = useMemo(
-    () => shortPosts.filter((p) => live[p.id] || p.id === psalm),
-    [live, psalm],
+    () => films.filter((p) => live[p.id] || p.id === psalm),
+    [films, live, psalm],
   );
 
   // A URL naming a psalm the feed does not carry is a bad URL, not an empty
   // library — say so rather than opening someone else's card.
-  if (!shortPosts.some((p) => p.id === psalm)) notFound();
+  if (!films.some((p) => p.id === psalm)) notFound();
 
   return (
     <main className="h-[var(--app-h)] bg-black">

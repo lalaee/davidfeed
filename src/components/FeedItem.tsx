@@ -4,10 +4,10 @@ import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from "
 import HeartAnimation from "./HeartAnimation";
 import VideoSubtitles from "./VideoSubtitles";
 import IconButton from "./IconButton";
-import { BookmarkIcon, SendIcon } from "./icons";
+import { BookmarkIcon, HeartIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { gated } from "@/lib/auth";
-import { savedPostStore } from "@/lib/stores";
+import { likedPostStore, savedPostStore } from "@/lib/stores";
 import { INK, measurePoster, posterInkStore } from "@/lib/posterInk";
 import ShareSheet from "./ShareSheet";
 
@@ -84,6 +84,14 @@ interface FeedItemProps {
    * this in its deps forces a fresh evaluation.
    */
   restartToken?: string | number;
+  /**
+   * "day" is Home's verse of the day (VerseOfTheDay.tsx): one film sized by
+   * its page rather than by the feed's snap rhythm, square at the top where it
+   * meets the screen's edge and rounded 40 below (Figma "New Feed UI"). Its
+   * rail likes and saves; sharing is the "Share verse" pill under the film, so
+   * the rail drops its own, and a double-tap likes.
+   */
+  variant?: "feed" | "day";
 }
 
 interface HeartPosition {
@@ -111,7 +119,9 @@ export default function FeedItem({
   eagerAudio,
   restartToken,
   inWindow = true,
+  variant = "feed",
 }: FeedItemProps) {
+  const isDay = variant === "day";
   // Persisted, not component state: the Library's grid is a list of these,
   // and a bookmark that dies with the component has nothing to list. Read
   // through the store so a save made here shows up there without a reload.
@@ -123,6 +133,17 @@ export default function FeedItem({
     )[postId],
   );
   const [saveAnimating, setSaveAnimating] = useState(false);
+  // The like: no account, this browser only (stores.ts, likedPostStore).
+  const isLiked = Boolean(
+    useSyncExternalStore(
+      likedPostStore.subscribe,
+      likedPostStore.read,
+      likedPostStore.serverSnapshot,
+    )[postId],
+  );
+  const [likeAnimating, setLikeAnimating] = useState(false);
+  const likeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const likeFrameRef = useRef<number | null>(null);
   const [shareAnimating, setShareAnimating] = useState(false);
   const [hearts, setHearts] = useState<HeartPosition[]>([]);
   // A deliberate pause by the viewer, distinct from every other reason media
@@ -437,6 +458,8 @@ export default function FeedItem({
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (restartFrameRef.current) cancelAnimationFrame(restartFrameRef.current);
       if (shareFrameRef.current) cancelAnimationFrame(shareFrameRef.current);
+      if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+      if (likeFrameRef.current) cancelAnimationFrame(likeFrameRef.current);
     };
   }, []);
 
@@ -531,6 +554,30 @@ export default function FeedItem({
     };
   }, [effect]);
 
+  /**
+   * Like or unlike, with the same pop the bookmark gives. `on` forces a
+   * direction: the double-tap only ever likes, never unlikes, as on iOS.
+   */
+  const setLiked = useCallback(
+    (on: boolean) => {
+      const current = likedPostStore.read();
+      if (on) likedPostStore.write({ ...current, [postId]: true });
+      else {
+        const next = { ...current };
+        delete next[postId];
+        likedPostStore.write(next);
+      }
+      if (!on) return;
+      setLikeAnimating(false);
+      if (likeFrameRef.current) cancelAnimationFrame(likeFrameRef.current);
+      likeFrameRef.current = requestAnimationFrame(() => setLikeAnimating(true));
+      if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+      likeTimerRef.current = setTimeout(() => setLikeAnimating(false), 1250);
+      if (navigator.vibrate) navigator.vibrate(10);
+    },
+    [postId],
+  );
+
   const handleDoubleTap = useCallback(
     (x: number, y: number) => {
       const newHeart: HeartPosition = {
@@ -539,13 +586,14 @@ export default function FeedItem({
         y,
       };
       setHearts((prev) => [...prev, newHeart]);
+      if (isDay) setLiked(true);
 
       // Haptic feedback
       if (navigator.vibrate) {
         navigator.vibrate(20);
       }
     },
-    []
+    [isDay, setLiked]
   );
 
   // A tap mutes or unmutes; it does not stop the film. This is the iOS feed's
@@ -678,12 +726,20 @@ export default function FeedItem({
           ? ({ "--cap-top": captions[0], "--cap-bottom": captions[1] } as React.CSSProperties)
           : undefined
       }
-      className="feed-card relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[12px]
-                    desk:aspect-auto desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]"
+      className={
+        isDay
+          ? "day-card relative w-full flex-shrink-0"
+          : `feed-card relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[12px]
+             desk:aspect-auto desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]`
+      }
     >
       {/* Tappable Background Area for Double-Tap */}
       <div
-        className={`absolute inset-0 z-[1] overflow-hidden ${isActive ? "rounded-b-[32px]" : "rounded-[32px]"}`}
+        className={`absolute inset-0 z-[1] overflow-hidden ${
+          isDay
+            ? "rounded-b-[40px] desk:rounded-[40px]"
+            : isActive ? "rounded-b-[32px]" : "rounded-[32px]"
+        }`}
         onClick={handleBackgroundTap}
       >
         {/* Feed Background Video/Image */}
@@ -791,14 +847,27 @@ export default function FeedItem({
         className="absolute right-[20px] bottom-[24px] flex flex-col gap-[32px] z-[100]"
         style={{ color: ink.ink, filter: `drop-shadow(0 1px 3px ${ink.shadow})` }}
       >
-        <IconButton
-          onClick={handleShare}
-          label="Share"
-          animating={shareAnimating}
-          animationClass="animate-send"
-        >
-          <SendIcon size={40} className="pointer-events-none block" />
-        </IconButton>
+        {isDay ? (
+          // Figma "Feed-Liked-Saved": the like above the save. Pink once
+          // liked; until then it takes the rail's ink like the bookmark.
+          <IconButton
+            onClick={() => setLiked(!isLiked)}
+            label={isLiked ? "Unlike" : "Like"}
+            animating={likeAnimating}
+            animationClass="animate-icon-pop"
+          >
+            <HeartIcon filled={isLiked} className="pointer-events-none block" />
+          </IconButton>
+        ) : (
+          <IconButton
+            onClick={handleShare}
+            label="Share"
+            animating={shareAnimating}
+            animationClass="animate-send"
+          >
+            <SendIcon size={40} className="pointer-events-none block" />
+          </IconButton>
+        )}
 
         <IconButton
           onClick={handleSave}

@@ -21,6 +21,7 @@ const VERSIONS_KEY = "dafod.versions";
 const READING_KEY = "dafod.reading";
 /* Feed cards the reader bookmarked, keyed by psalm id. */
 const SAVED_POSTS_KEY = "dafod.savedPosts";
+const LIKED_POSTS_KEY = "dafod.liked";
 
 export type ChapterMap<T> = Record<number, T>;
 export const EMPTY_CHAPTER = {} as ChapterMap<never>;
@@ -119,3 +120,10 @@ export function migrateLegacyChapterKeys() {
     if (next) (store as { write: (v: unknown) => void }).write(next);
   }
 }
+
+/*
+ * Liked films — the heart on Home's verse of the day. Unlike a save it needs
+ * no account and goes nowhere: it stays in this browser and is never synced,
+ * as the iPhone app keeps its likes on the phone (same key, "dafod.liked").
+ */
+export const likedPostStore = makeJsonStore<Record<number, true>>(LIKED_POSTS_KEY, EMPTY_POSTS);

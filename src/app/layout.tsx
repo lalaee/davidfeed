@@ -5,7 +5,9 @@ import AgentationWrapper from "@/components/AgentationWrapper";
 import AppStrip from "@/components/AppStrip";
 import AuthSheet from "@/components/AuthSheet";
 import BottomNav from "@/components/BottomNav";
+import { FilmCatalogProvider } from "@/components/FilmCatalog";
 import RouteTrail from "@/components/RouteTrail";
+import { loadFilmCatalog } from "@/lib/filmCatalog";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,11 +32,14 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The films and the verse-of-the-day schedule, shared with the iPhone app
+  // through Supabase and cached for five minutes. See lib/filmCatalog.ts.
+  const catalog = await loadFilmCatalog();
   return (
     <html
       lang="en"
@@ -42,7 +47,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AppStrip />
-        {children}
+        <FilmCatalogProvider catalog={catalog}>{children}</FilmCatalogProvider>
         {/* Once, here, not per page: a layout survives navigation, and that
             is what lets the nav's selected pill glide between tabs instead of
             being remounted with each page. See BottomNav. */}

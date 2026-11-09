@@ -1,8 +1,8 @@
 /*
  * The Hopescrolling "o" keeps its contrast against whatever the ambience is.
  *
- * The heart-eyes face in the o of Hopescrolling is drawn in the frame's teal,
- * #76EEE8. Behind it is the ambience (FeedAmbience.tsx): the active film's
+ * The heart-eyes face in the o of Hopescrolling is drawn in the "Share verse"
+ * button's blue, #8CE4FF (it was the frame's teal, #76EEE8). Behind it is the ambience (FeedAmbience.tsx): the active film's
  * poster blown up, blurred to a wash, saturated 2.75x and dimmed 32% black.
  * Over most films that wash is dark and the teal is bright against it; over
  * the cream ones (the watercolour Psalm 23, the ink-wash Isaiah) it is a pale
@@ -27,7 +27,7 @@
  * posterInk.ts.
  */
 
-export const HOPE_TEAL = "#76EEE8";
+export const HOPE_TEAL = "#8CE4FF";
 
 /* The ambience recipe, from FeedAmbience.tsx and globals.css. */
 const SATURATION = 2.75;

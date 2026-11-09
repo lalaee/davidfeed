@@ -1,6 +1,8 @@
 # App Store screenshots
 
-`screenshots/iphone-6.9/` holds the 6.9" set (1320x2868, RGB, no alpha), in upload order.
+`screenshots/iphone-6.3/` holds the set App Store Connect now requires -- "iPhone with Dynamic Island
+(medium display)", 1206x2622 -- and `screenshots/iphone-6.9/` the same shots at 1320x2868 for the
+optional large-display slot; RGB, no alpha, in upload order. The 6.3" set is what version 1.1 carries.
 
 The current set (9 Nov 2026): the woodcut films alone, no app around them -- no tab bar, no
 status bar, no title or buttons -- each caught on a well-known line:
@@ -20,7 +22,9 @@ How they were made, so the set can be redone:
    film's own .srt (`dafod/<passage>/woodcut/*.srt`) shows the line, near the end of the caption so it
    has fully come in: `ffmpeg -ss <t> -i <film>.mp4 -frames:v 1 frame.png`. Times used: Jeremiah 5.6,
    John 3.5, Psalm 23 4.9, Isaiah 4.3, Proverbs 38.8, Philippians 17.0, Joshua 53.4, Romans 12 22.9.
-2. The shot: the frame scaled to the full 1320 width (1320x2347), and the 521 rows the 6.9" screen has
+2. The shot (6.9"; the 6.3" set is the same at 1206 wide: film 1206x2144, a 200-row band from row
+   1937, 239 rows above from row 161 of the doubled band and 239 below): the frame scaled to the full
+   1320 width (1320x2347), and the 521 rows the 6.9" screen has
    over a 9:16 film made up from the film's own paper -- a 220-row band of bare paper from under its
    words, doubled, 260 rows above and 261 below -- so the paper's grain runs on without a seam
    (a flat fill of its colour, #EDE7D6, showed an edge):

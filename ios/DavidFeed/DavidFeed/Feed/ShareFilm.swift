@@ -106,14 +106,18 @@ enum ShareFilm {
     }
 }
 
+/// A share in progress: how far the fetch has got, nil when idle. At file
+/// level, not nested in ShareFilmButton: an @Observable class inside the
+/// generic button crashed the Release compiler (Xcode 26.0.1) emitting its
+/// deinit.
+@Observable final class ShareFilmJob { var progress: Double? }
+
 /// A button that fetches the share film and then opens the sheet with it. The
 /// label is told how far the fetch has got (nil when idle) so it can show it.
 struct ShareFilmButton<Label: View>: View {
     let post: Post
     @ViewBuilder let label: (Double?) -> Label
-    @State private var job = Job()
-
-    @Observable final class Job { var progress: Double? }
+    @State private var job = ShareFilmJob()
 
     var body: some View {
         Button {

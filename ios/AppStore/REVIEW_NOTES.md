@@ -5,9 +5,10 @@ Keep this in step with the app. Guideline 2.1 wants a way in for the reviewer;
 
 ---
 
-Dafod is a feed of short animated Bible films (each with its own narration,
-score and burned-in captions) and a Bible reader (NIV, NKJV, NLT, KJV, ASV,
-WEB).
+Dafod shows one short animated Bible film a day, the Verse of the day (each
+film with its own narration, score and burned-in captions), and a Bible reader
+(NIV, NKJV, NLT, KJV, ASV, WEB). The films are downloaded from Dafod's server
+as they are needed rather than bundled, so the first launch needs a connection.
 
 NO ACCOUNT IS NEEDED to watch the films or read the Bible. An optional account
 keeps saved films and highlighted verses in sync between the app and
@@ -19,8 +20,10 @@ email/password account to share; Sign in with Apple gives the reviewer full
 access. [If you add a dedicated review account, put its details here.]
 
 WHERE THINGS ARE
-- Home: the films. Swipe up for the next one. Tap to mute or unmute.
-  Bookmark saves a film (asks to sign in first). Share sends the film.
+- Home: today's film, the same for everyone on a given date. Tap to mute or
+  unmute. The heart likes it (no account needed); the bookmark saves it (asks
+  to sign in first). "Share verse" downloads the film with the Dafod ending
+  and opens the share sheet.
 - Bible: the reader. Tap a verse to highlight it (asks to sign in first),
   compare translations or share it.
 - You: signed out, the sign-in prompt with links to Privacy and Terms. Signed
@@ -34,12 +37,18 @@ app's Sign in with Apple authorization is revoked through Apple's REST API
 before the account is deleted.
 
 BACKGROUND AUDIO: the films carry their narration and music; playback
-continues when the screen locks, and the lock screen shows the film and
-next/previous controls. This is the reason for UIBackgroundModes: audio.
+continues when the screen locks, and the lock screen shows the film with
+play/pause. This is the reason for UIBackgroundModes: audio.
 
-PERMISSIONS: the only one is "add to Photos", asked by the system if the
-reader picks Save Video in the share sheet. No location, camera, microphone,
-contacts, notifications or tracking.
+NOTIFICATIONS: optional, local (no push server). Once the day's film has
+played to the end, the app shows what the notification is ("Your verse of the
+day is here / Tap to watch.", once a day at 6am) with "Turn on notifications"
+and "Not now"; only "Turn on notifications" raises the system prompt. To see
+it, let the film on Home play through once.
+
+PERMISSIONS: notifications (above), and "add to Photos", asked by the system
+if the reader picks Save Video in the share sheet. No location, camera,
+microphone, contacts or tracking.
 
 NO purchases, subscriptions, ads, tracking, or user-generated content (readers
 cannot post or message anything).

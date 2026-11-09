@@ -14,10 +14,16 @@ import SwiftUI
 struct VerseOfTheDayView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppState.self) private var app
+    /// Whether Home is the tab in front (RootView).
+    @Environment(\.feedOnScreen) private var onScreen
     private var catalog: FilmCatalog { .shared }
     /// The date the film is picked for. Refreshed when the day turns over while
     /// the app is open, and whenever it comes back to the front.
     @State private var today = Date()
+    /// The 6am notification's offer, up once the day's film has played
+    /// through (NotificationOfferSheet).
+    @State private var offering = false
+    private var sampler: ReflectionSampler { .shared }
 
     /// Days count from here, so the rotation never depends on when a phone was
     /// set up or the app installed. Any fixed date works; this one is the day
@@ -101,9 +107,8 @@ struct VerseOfTheDayView: View {
             if next().allSatisfy(catalog.isReady) {
                 catalog.prune(keeping: next() + catalog.films.filter { saved.contains($0.id) })
             }
-            // Asked once there's a film to be told about, not on a blank first launch.
-            guard !catalog.films.isEmpty else { return }
-            await VerseNotifications.requestPermissionIfNeeded()
+            // Booked only once allowed; the asking waits for a watched film
+            // (offerNotifications).
             await VerseNotifications.schedule(film: film)
         }
     }
@@ -142,8 +147,9 @@ struct VerseOfTheDayView: View {
                         FeedCardView(post: post, isActive: true, playsLoop: true, verseOfTheDay: true)
                             .frame(height: card.height)
                             .overlay(alignment: .bottomLeading) {
-                                if titleFits(post, card) { title(post) }
+                                if titleFits(post, card) { title(post, card) }
                             }
+                            .coordinateSpace(.named(Self.cardSpace))
                             .id(post.id)
                         shareButton(post)
                             .padding(.horizontal, Self.buttonInset)
@@ -161,6 +167,28 @@ struct VerseOfTheDayView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { sync() }
+        }
+        .onChange(of: Playback.shared.playedThrough) { offerNotifications() }
+        .sheet(isPresented: $offering) {
+            NotificationOfferSheet(
+                onAccept: {
+                    offering = false
+                    Task {
+                        if await VerseNotifications.requestPermission() { sync() }
+                    }
+                },
+                onDecline: { offering = false })
+        }
+    }
+
+    /// The day's film has played to the end on Home: offer the 6am
+    /// notification, if it is time to (VerseNotifications.shouldOffer).
+    private func offerNotifications() {
+        guard onScreen, !offering, post != nil else { return }
+        Task {
+            guard await VerseNotifications.shouldOffer(), onScreen, !offering else { return }
+            VerseNotifications.didOffer()
+            offering = true
         }
     }
 
@@ -204,20 +232,43 @@ struct VerseOfTheDayView: View {
         return above >= Self.titleClearance - 0.5
     }
 
-    /// The row's title_ink where it names one, else read off the poster.
+    /// The row's title_ink where it names one; else the picture right behind
+    /// the words as the film plays (ReflectionSampler.inks, the web's
+    /// liveInk), so it turns as the film does; until a frame has been read,
+    /// the film's foot, off its poster.
     private func titleIsBlack(_ post: Post) -> Bool {
         switch post.titleInk {
         case "black": true
         case "white": false
-        default: ArtworkCache.isLightAtBottom(post.artworkURL)
+        default: sampler.inks["title"] ?? ArtworkCache.isLightAtBottom(post.artworkURL)
         }
     }
 
-    private func title(_ post: Post) -> some View {
-        Text("Verse of the day")
+    /// The card's own coordinates, for the title's box.
+    private static let cardSpace = "verseOfTheDayCard"
+
+    /// A short soft shadow in the opposite tone -- the rail's (FeedCardView
+    /// chrome), the web's text-shadow 0 1px 3px -- carries the title over a
+    /// picture half light and half dark, which no one ink can. Black or white
+    /// fades over 0.3s, as the web's transition does.
+    private func title(_ post: Post, _ card: CGSize) -> some View {
+        let black = titleIsBlack(post)
+        return Text("Verse of the day")
             .font(.system(size: 19, weight: .semibold))
             .tracking(-0.38)
-            .foregroundStyle(titleIsBlack(post) ? Color.black : Color.white)
+            .foregroundStyle(black ? Color.black : Color.white)
+            .shadow(color: black ? Color.white.opacity(0.25) : Color.black.opacity(0.35), radius: 3, y: 1)
+            .animation(.easeInOut(duration: 0.3), value: black)
+            // Where the words sit over the film, for the sampler: the card's
+            // box moved down by what the card crops off the film's head, in a
+            // view the film's full height (FeedCardView.artwork).
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.cardSpace)) } action: { box in
+                let film = CGSize(width: card.width,
+                                  height: max(card.height, card.width * CGFloat(post.aspect ?? 16.0 / 9.0)))
+                let crop = FeedCardView.cropTop(post, card, air: Self.titleClearance)
+                sampler.probe("title", box.offsetBy(dx: 0, dy: crop), film: film)
+            }
+            .onDisappear { sampler.probe("title", nil, film: .zero) }
             .padding(.leading, Self.titleInset)
             .padding(.bottom, Self.titleToFilmBottom)
             .allowsHitTesting(false)

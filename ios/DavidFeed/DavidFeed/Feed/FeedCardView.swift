@@ -56,7 +56,7 @@ struct FeedCardView: View {
                     // saying "Tap for sound" over playing narration.
                     .onTapGesture { playback.toggle() }
 
-                bottomBar
+                bottomBar(geo.size)
                 soundBadge
 
                 ForEach(hearts) { heart in
@@ -66,6 +66,7 @@ struct FeedCardView: View {
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .coordinateSpace(.named(Self.cardSpace))
             .accessibilityElement(children: .contain)
             .accessibilityLabel(post.title)
             // Screenshots square the top corners, so a capture starts flush with
@@ -86,9 +87,33 @@ struct FeedCardView: View {
     /// Dark label and icons on a light film, white on a dark one, from how
     /// bright the bottom of the film's poster is.
     private var chrome: (ink: Color, shadow: Color) {
-        ArtworkCache.isLightAtBottom(post.artworkURL)
-            ? (Color.black.opacity(0.82), Color.white.opacity(0.25))
-            : (DF.ink, Color.black.opacity(0.35))
+        Self.chrome(black: ArtworkCache.isLightAtBottom(post.artworkURL))
+    }
+
+    private static func chrome(black: Bool) -> (ink: Color, shadow: Color) {
+        black ? (Color.black.opacity(0.82), Color.white.opacity(0.25))
+              : (DF.ink, Color.black.opacity(0.35))
+    }
+
+    /// On Home, the heart and the bookmark each take their ink from the
+    /// picture right behind them as the film plays (ReflectionSampler.inks,
+    /// the web's useLiveInk), so a light patch passing under one turns it
+    /// black and leaves the other as it is; the poster's ink until a frame
+    /// has been read. The feed's rail keeps the poster's.
+    private func chrome(_ probe: String) -> (ink: Color, shadow: Color) {
+        guard verseOfTheDay, let black = ReflectionSampler.shared.inks[probe] else { return chrome }
+        return Self.chrome(black: black)
+    }
+
+    /// The card's own coordinates, for the rail's boxes.
+    private static let cardSpace = "feedCard"
+
+    /// Tells the sampler where a rail icon sits over the film: its box in the
+    /// card, moved down by what the card crops off the film's head, in a view
+    /// the film's full height (artwork).
+    private func probed(_ name: String, _ size: CGSize) -> some ViewModifier {
+        ProbeModifier(name: name, enabled: verseOfTheDay, space: Self.cardSpace,
+                      crop: cropTop(size), film: CGSize(width: size.width, height: filmHeight(size)))
     }
 
     @ViewBuilder
@@ -155,7 +180,7 @@ struct FeedCardView: View {
         return top
     }
 
-    private var bottomBar: some View {
+    private func bottomBar(_ size: CGSize) -> some View {
         VStack {
             Spacer()
             HStack(alignment: .bottom) {
@@ -181,16 +206,17 @@ struct FeedCardView: View {
                     if verseOfTheDay {
                         RailButton(
                             asset: app.isLiked(post) ? "HeartActive" : "HeartInactive",
-                            tint: app.isLiked(post) ? Color(hex: "#E6066B") : chrome.ink,
-                            shadow: chrome.shadow
+                            tint: app.isLiked(post) ? Color(hex: "#E6066B") : chrome("heart").ink,
+                            shadow: chrome("heart").shadow
                         ) {
                             app.setLiked(post.id, on: !app.isLiked(post))
                         }
+                        .modifier(probed("heart", size))
                     }
                     RailButton(
                         asset: app.isSaved(post) ? "BookmarkActive" : "BookmarkInactive",
-                        tint: app.isSaved(post) ? Color(hex: "#EAC72C") : chrome.ink,
-                        shadow: chrome.shadow
+                        tint: app.isSaved(post) ? Color(hex: "#EAC72C") : chrome("bookmark").ink,
+                        shadow: chrome("bookmark").shadow
                     ) {
                         // An account holds saves, as on the web: signed out,
                         // this opens the sign-in sheet and saves once they're in.
@@ -199,6 +225,7 @@ struct FeedCardView: View {
                             withAnimation(.snappy) { showSavedPop = on }
                         }
                     }
+                    .modifier(probed("bookmark", size))
                 }
             }
             .padding(.horizontal, 20)
@@ -280,6 +307,8 @@ private struct RailButton: View {
         } label: {
             RailIcon(asset: asset, tint: tint, shadow: shadow)
                 .scaleEffect(bumped ? 1.25 : 1)
+                // Black or white fades over 0.3s, as the web's transition does.
+                .animation(.easeInOut(duration: 0.3), value: tint)
         }
         .buttonStyle(.plain)
     }
@@ -336,5 +365,27 @@ extension EnvironmentValues {
     var feedOnScreen: Bool {
         get { self[FeedOnScreenKey.self] }
         set { self[FeedOnScreenKey.self] = newValue }
+    }
+}
+
+/// Puts a view's box over the film into ReflectionSampler as `name`, while
+/// it is on screen. Off where `enabled` is false.
+private struct ProbeModifier: ViewModifier {
+    let name: String
+    let enabled: Bool
+    let space: String
+    let crop: CGFloat
+    let film: CGSize
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(space)) } action: { box in
+                    ReflectionSampler.shared.probe(name, box.offsetBy(dx: 0, dy: crop), film: film)
+                }
+                .onDisappear { ReflectionSampler.shared.probe(name, nil, film: .zero) }
+        } else {
+            content
+        }
     }
 }

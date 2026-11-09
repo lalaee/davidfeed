@@ -41,6 +41,9 @@ final class LoopPlayerUIView: UIView {
     /// can still start once it is.
     private var wantsPlaying = false
     private var statusObservation: NSKeyValueObservation?
+    /// Each time the looper finishes the film and starts it again: the card
+    /// in view has been watched through (Playback.playedThrough).
+    private var loopObservation: NSKeyValueObservation?
     private var isActive = false
 
     init(url: URL) {
@@ -63,6 +66,13 @@ final class LoopPlayerUIView: UIView {
         statusObservation = queuePlayer.observe(\.status, options: [.new]) { [weak self] player, _ in
             guard let self, player.status == .readyToPlay, self.wantsPlaying else { return }
             player.play()
+        }
+        loopObservation = looper?.observe(\.loopCount, options: [.new]) { [weak self] looper, _ in
+            guard looper.loopCount > 0 else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.isActive, self.wantsPlaying else { return }
+                Playback.shared.didPlayThrough()
+            }
         }
     }
 
@@ -101,6 +111,8 @@ final class LoopPlayerUIView: UIView {
         ReflectionSampler.shared.detach(queuePlayer)
         statusObservation?.invalidate()
         statusObservation = nil
+        loopObservation?.invalidate()
+        loopObservation = nil
         queuePlayer.pause()
         queuePlayer.removeAllItems()
         looper?.disableLooping()

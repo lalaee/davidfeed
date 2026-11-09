@@ -28,6 +28,12 @@ final class Playback {
         publishNowPlaying()
     }
     private var duration: Double = 0
+    /// How many times the card in view has played its film to the end, this
+    /// launch. Home waits for the first before it offers the 6am notification
+    /// (VerseOfTheDayView): the offer comes once someone has seen what it
+    /// would bring them.
+    private(set) var playedThrough = 0
+    func didPlayThrough() { playedThrough += 1 }
 
     private init() {}
 

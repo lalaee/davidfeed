@@ -92,6 +92,12 @@ interface FeedItemProps {
    * the rail drops its own, and a double-tap likes.
    */
   variant?: "feed" | "day";
+  /**
+   * Where the card's visible foot falls in the film, as a fraction of its
+   * height: below 1 when a short screen crops the foot off (Home's day card).
+   * The rail's ink is read from the tenth above it. Defaults to the film's foot.
+   */
+  inkFoot?: number;
 }
 
 interface HeartPosition {
@@ -120,6 +126,7 @@ export default function FeedItem({
   restartToken,
   inWindow = true,
   variant = "feed",
+  inkFoot = 1,
 }: FeedItemProps) {
   const isDay = variant === "day";
   // Persisted, not component state: the Library's grid is a list of these,
@@ -702,11 +709,11 @@ export default function FeedItem({
   // see lib/posterInk.ts.
   const inkKind = useSyncExternalStore(
     posterInkStore.subscribe,
-    () => posterInkStore.read(backgroundImage),
+    () => posterInkStore.read(backgroundImage, inkFoot),
     () => "dark-bottom" as const,
   );
   const ink = INK[inkKind];
-  useEffect(() => { measurePoster(backgroundImage); }, [backgroundImage]);
+  useEffect(() => { measurePoster(backgroundImage, inkFoot); }, [backgroundImage, inkFoot]);
 
   return (
     /*

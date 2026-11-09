@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import DesktopChrome from "./DesktopChrome";
 import FeedAmbience from "./FeedAmbience";
@@ -10,7 +10,7 @@ import SoundBadge from "./SoundBadge";
 import { useFilmCatalog } from "./FilmCatalog";
 import { InstagramIcon, ThreadsIcon, TikTokIcon, WhatsAppIcon } from "./icons";
 import { useFeedSound } from "@/hooks/useFeedSound";
-import { posterInkStore } from "@/lib/posterInk";
+import { measurePoster, posterInkStore } from "@/lib/posterInk";
 import { dateOfKey, dayKey, filmForDay } from "@/lib/verseOfTheDay";
 
 /*
@@ -26,8 +26,8 @@ import { dateOfKey, dayKey, filmForDay } from "@/lib/verseOfTheDay";
  *   title    "Verse of the day" (2798:1197), Inter Semi Bold 19, -2% tracking,
  *            bottom-left: 36.8 in from the film's left edge, 27.8 above its
  *            foot. Black over a film whose foot is light, white over a dark
- *            one, judged as the rail's heart and bookmark are
- *            (lib/posterInk.ts), unless the film's row sets its ink by hand
+ *            one, judged by the film's own foot (lib/posterInk.ts) even
+ *            where a short screen crops it off, unless the film's row sets its ink by hand
  *            (title_ink); no shadow. Left off a film whose words would
  *            sit under it (titleFits, below), as the app does
  *   pill     "Share verse" (2790:1055): #8CE4FF, 343x63 (16 in each side),
@@ -81,6 +81,9 @@ const readDay = () => dayKey(new Date());
  */
 const TITLE_CLEAR = 58.8;
 
+/** How far above the span's lowest edge the foot's words can start, as a fraction of the film. */
+const FOOT_LINES = 0.1;
+
 /*
  * Whether "Verse of the day" can sit over this film without covering its
  * words — the app's rule (VerseOfTheDayView). .day-card (globals.css) crops
@@ -89,12 +92,46 @@ const TITLE_CLEAR = 58.8;
  * of their height, which no crop can lift clear, and on those the title is
  * left off. Read off the laid-out card, so it is the crop the CSS resolved:
  * the lowest word at --cap-bottom of the film's 9:16 height, less the crop,
- * must end the title's band above the card's foot. No span: the title shows.
+ * must end the title's band above the card's foot, or the words must start
+ * below the foot, cropped off. No span: the title shows.
  */
 function titleFits(column: HTMLElement | null): boolean {
+  const fit = cardFit(column);
+  if (!fit) return true;
+  const { card, lowest, film, crop, height } = fit;
+  const clear = parseFloat(getComputedStyle(card).getPropertyValue("--title-clear")) || TITLE_CLEAR;
+  // The span carries a hundredth of the film's height of margin past the ink
+  // (data/films.ts); the words themselves may come into it.
+  if ((lowest - 0.01) * film - crop <= height - clear) return true;
+  // A short browser can crop the foot's words off altogether (the crop stops
+  // at the head's words), and then the title covers nothing. The span gives
+  // only the foot's lowest edge; its lines start no higher than a tenth of the
+  // film above it (OCR over every film puts them at 0.80 for a 0.87 foot),
+  // nor above the span's own top.
+  const highest = parseFloat(card.style.getPropertyValue("--cap-top"));
+  const footTop = Math.max(Number.isNaN(highest) ? 0 : highest, lowest - FOOT_LINES);
+  return footTop * film - crop >= height;
+}
+
+/**
+ * Where the card's foot falls in the film, to the hundredth: 1 where the
+ * whole film shows, less where a short screen crops its foot off. The rail
+ * takes its ink from the film just above it (lib/posterInk.ts), which is the
+ * picture, not the film's own cream foot, once that is cropped. The title
+ * keeps the film's own foot's ink, as the app has it: white over a cropped
+ * woodcut's busy picture was unreadable, and the owner asked for it black.
+ */
+function visibleFoot(column: HTMLElement | null): number {
+  const fit = cardFit(column);
+  if (!fit) return 1;
+  return Math.min(1, Math.round(((fit.crop + fit.height) / fit.film) * 100) / 100);
+}
+
+/** The laid-out day card's film height, crop and height, and its words' lowest edge. */
+function cardFit(column: HTMLElement | null) {
   const card = column?.querySelector<HTMLElement>(".day-card");
   const lowest = parseFloat(card?.style.getPropertyValue("--cap-bottom") ?? "");
-  if (!card || Number.isNaN(lowest)) return true;
+  if (!card || Number.isNaN(lowest)) return null;
   const layer = card.querySelector(".film-layer");
   // "50% -46.67px" below the desk; at desk the card is the film's own 9:16
   // and nothing is cropped.
@@ -103,11 +140,7 @@ function titleFits(column: HTMLElement | null): boolean {
   // Fractional sizes: the crop is resolved to the sub-pixel, and a rounded
   // height read the fit wrong by a fraction of a pixel on every film.
   const { width, height } = card.getBoundingClientRect();
-  const film = (width * 16) / 9;
-  const clear = parseFloat(getComputedStyle(card).getPropertyValue("--title-clear")) || TITLE_CLEAR;
-  // The span carries a hundredth of the film's height of margin past the ink
-  // (data/films.ts); the words themselves may come into it.
-  return (lowest - 0.01) * film - crop <= height - clear;
+  return { card, lowest, film: (width * 16) / 9, crop, height };
 }
 
 export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
@@ -133,12 +166,17 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
     [column],
   );
   const showTitle = useSyncExternalStore(watchColumn, () => titleFits(column), () => true);
+  const foot = useSyncExternalStore(watchColumn, () => visibleFoot(column), () => 1);
 
+  // The film's own foot, whatever the crop shows (visibleFoot, above).
   const ink = useSyncExternalStore(
     posterInkStore.subscribe,
     () => posterInkStore.read(post?.backgroundImage),
     () => "dark-bottom" as const,
   );
+  useEffect(() => {
+    if (post) measurePoster(post.backgroundImage);
+  }, [post]);
   // A film's row can set the title's ink by hand; otherwise the foot decides.
   const titleInk = post?.titleInk ?? (ink === "light-bottom" ? "black" : "white");
 
@@ -176,6 +214,7 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
               startAt={post.startAt}
               isActive
               eagerAudio
+              inkFoot={foot}
               soundOn={soundOn}
               onAutoplayBlocked={armUnlock}
               onToggleSound={toggleSound}

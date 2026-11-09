@@ -23,6 +23,11 @@ export interface Post {
    * whole film crops around them (FeedItem, globals.css).
    */
   captions?: CaptionSpan;
+  /**
+   * Home's "Verse of the day" ink, where it is set by hand (Supabase
+   * films.title_ink); otherwise it follows the poster's foot (lib/posterInk.ts).
+   */
+  titleInk?: "black" | "white";
 }
 
 // ARTWORK NO LONGER MATCHES ITS FILENAME. The covers were reassigned to the

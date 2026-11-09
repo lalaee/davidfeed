@@ -2157,11 +2157,15 @@ html, body {
     --film-h: calc(var(--col-w) * 16 / 9);
     --room: calc(var(--app-h) - var(--nav-floor) - 75px - 13px - 63px - 13.6px);
     /* The lowest words also clear "Verse of the day", which sits over the
-     * film's foot: 27.8 up, 23 tall, and 8 of air above it. Where the screen
-     * gives the film its whole height they already do (the films' words end
-     * by 0.88, the title starts at 0.924); a browser's bars and the app strip
-     * take that room away, so the crop takes it back from the head. */
-    --title-clear: 58.8px;
+     * film's foot: 27.8 up and 23 tall. Where the screen gives the film its
+     * whole height they already do (the films' words end by 0.88, the title
+     * starts at 0.924); a browser's bars and the app strip take that room
+     * away, so the crop takes it back from the head. The app keeps 8 of air
+     * above the title as well (58.8); a phone browser has ~75 less film to
+     * spare, and with that air most films lost the title, so here the words
+     * may come right down to it. VerseOfTheDay reads this same value to
+     * decide whether the title shows. */
+    --title-clear: 50.8px;
     --crop-top: clamp(
       0px,
       calc(var(--cap-bottom, 1) * var(--film-h) - (var(--room) - var(--title-clear))),
@@ -2230,6 +2234,9 @@ html, body {
   border-radius: 8px;
 }
 .app-strip-get {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
   border-radius: 9999px;
   background: #ededed;

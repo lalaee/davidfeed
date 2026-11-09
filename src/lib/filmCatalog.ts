@@ -43,6 +43,8 @@ interface FilmRow {
   poster_video_src: string | null;
   video_src: string | null;
   captions: unknown;
+  /** 'black' | 'white' | null; absent until migration 20261109000000 runs. */
+  title_ink?: unknown;
 }
 
 /** "/assets/verses/psalm-23-woodcut.mp4" -> "psalm-23-woodcut". */
@@ -69,6 +71,7 @@ function toPost(row: FilmRow): Post | null {
     posterVideoSrc: `${FILM_DIR}/${stem}.mp4`,
     audioSrc: `${FILM_DIR}/${stem}.m4a`,
     captions: captionSpan(row.captions),
+    titleInk: row.title_ink === "black" || row.title_ink === "white" ? row.title_ink : undefined,
   };
 }
 
@@ -100,10 +103,10 @@ export async function loadFilmCatalog(): Promise<FilmCatalog> {
 
   try {
     const [filmsRes, daysRes] = await Promise.all([
-      fetch(
-        `${base}/rest/v1/films?select=id,title,background_image,poster_video_src,video_src,captions&order=position,id`,
-        init,
-      ),
+      // Every column, not a list: naming one the database does not have yet
+      // (title_ink, before its migration runs) fails the whole query, and the
+      // site would fall back to the built-in films for nothing.
+      fetch(`${base}/rest/v1/films?select=*&order=position,id`, init),
       fetch(`${base}/rest/v1/film_days?select=day,film_id&day=gte.${from}&day=lte.${to}`, init),
     ]);
     if (!filmsRes.ok || !daysRes.ok) throw new Error(`films ${filmsRes.status}, days ${daysRes.status}`);

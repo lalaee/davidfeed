@@ -6,7 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import DesktopNav from "./DesktopNav";
 import LiquidGlass from "./LiquidGlass";
 import { type TabKey } from "./BottomNav";
-import { ChevronIcon } from "./icons";
+import { AppleIcon, ChevronIcon } from "./icons";
 import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
 import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
 import HeroLottie from "./HeroLottie";
@@ -215,9 +215,7 @@ export default function DesktopChrome({
                      text-[18px] font-semibold text-[#0E0E0E] no-underline press"
           style={{ letterSpacing: "-0.3px" }}
         >
-          <svg width="18" height="21" viewBox="0 0 17 20" aria-hidden fill="currentColor">
-            <path d="M14.06 10.62c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.88-1.28 1.24-2.52 1.26-2.59-.03-.01-2.41-.93-2.43-3.65ZM11.78 3.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.09 1.76-.96 2.79 1.02.08 2.06-.52 2.69-1.27Z" />
-          </svg>
+          <AppleIcon height={21} />
           Download app
         </a>
       </section>

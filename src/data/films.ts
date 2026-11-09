@@ -69,6 +69,8 @@ interface Film {
    */
   verses?: string;
   captions: CaptionSpan;
+  /** Home's title ink, overriding the poster's measure (Supabase title_ink). */
+  titleInk?: "black" | "white";
 }
 
 const FILMS: Film[] = [
@@ -96,7 +98,8 @@ const FILMS: Film[] = [
   { id: 304,   chapter: 3,   style: "Painting", file: "psalm-3-1-3",   verses: "1-3",   captions: [0.679, 0.78] },
   { id: 2001,  chapter: 20,  style: "Painting", file: "psalm-20-7-8",  verses: "7-8",   captions: [0.679, 0.779] },
   { id: 9101,  chapter: 91,  style: "Painting", file: "psalm-91-4",    verses: "4",     captions: [0.679, 0.78] },
-  { id: 701,   chapter: 7,   style: "Painting", file: "psalm-7-1-2",   verses: "1-2",   captions: [0.679, 0.78] },
+  // Its foot measures 172, light by the rule, but the title reads white on it.
+  { id: 701,   chapter: 7,   style: "Painting", file: "psalm-7-1-2",   verses: "1-2",   captions: [0.679, 0.78], titleInk: "white" },
   { id: 11801, chapter: 118, style: "Painting", file: "psalm-118-6-7", verses: "6-7",   captions: [0.632, 0.78] },
   { id: 2701,  chapter: 27,  style: "Painting", file: "psalm-27-3",    verses: "3",     captions: [0.679, 0.78] },
   { id: 12101, chapter: 121, style: "Painting", file: "psalm-121-1-2", verses: "1-2",   captions: [0.679, 0.78] },
@@ -105,7 +108,7 @@ const FILMS: Film[] = [
   { id: 40001, book: "Isaiah", chapter: 40, style: "Painting", file: "isaiah-40-30-31", verses: "30-31", captions: [0.632, 0.78] },
 ];
 
-export const filmPosts: Post[] = FILMS.map(({ id, book = "Psalm", chapter, file, verses, captions }) => ({
+export const filmPosts: Post[] = FILMS.map(({ id, book = "Psalm", chapter, file, verses, captions, titleInk }) => ({
   id,
   // The reference, never the style — the style is the picture's to show.
   title: verses ? `${book} ${chapter}:${verses}` : `${book} ${chapter}`,
@@ -113,6 +116,7 @@ export const filmPosts: Post[] = FILMS.map(({ id, book = "Psalm", chapter, file,
   posterVideoSrc: `${DIR}/${file}.mp4`,
   audioSrc: `${DIR}/${file}.m4a`,
   captions,
+  titleInk,
 }));
 
 /*

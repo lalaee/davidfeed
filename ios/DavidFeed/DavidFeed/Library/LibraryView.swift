@@ -49,6 +49,12 @@ struct LibraryView: View {
         .onAppear { preselectFilter() }
         .onChange(of: section) { preselectFilter() }
         .onChange(of: app.highlights) { preselectFilter() }
+        // A film saved on the web, or on a day it was the verse, may not be on
+        // this phone; its tile appears once it has downloaded. Unstructured,
+        // so leaving the tab doesn't cancel a download halfway.
+        .onChange(of: app.savedIDs, initial: true) {
+            Task { await FilmCatalog.shared.prepare(app.savedPostsToFetch) }
+        }
         // Highlights quote their verses in the reading translation, and NIV,
         // NKJV and NLT have to be fetched first (BibleStore.load). Keyed on the
         // chapters held, so a new highlight elsewhere fetches only its own.

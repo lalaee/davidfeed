@@ -17,12 +17,15 @@
 #
 # Source: github.com/lalaee/lemo-opuscar, Bible/no-outro (the films without
 # the "See more at Dafod.app" end card).
+#
+# The app no longer carries films: this encodes into ios/DavidFeed/films,
+# outside the app, and tools/films.py uploads from there to Supabase.
 set -euo pipefail
 
 SRC="${1:-/nonexistent}"   # optional: only needed to (re-)encode
 APP="$(cd "$(dirname "$0")/.." && pwd)"
-RES="$APP/DavidFeed/Resources"
-MEDIA="$RES/media"
+MEDIA="$APP/films"
+RES="$MEDIA"
 mkdir -p "$MEDIA"
 
 # Half the cores and nice'd: a film is a minute of 1080p, and the Mac stays usable.
@@ -80,7 +83,7 @@ for m in re.finditer(r'\{\s*id:\s*(\d+),(.*?)captions:\s*\[([\d.]+),\s*([\d.]+)\
 keep = {r['posterVideoSrc'].split('/')[-1].removesuffix('.mp4') for r in rows}
 for m in list(media.glob('*.mp4')) + list(media.glob('*.jpg')):
     if m.stem not in keep: m.unlink(); print(f'   removed {m.name} (not in films.ts)')
-(res / 'data' / 'shorts.json').write_text(json.dumps(rows, indent=1, ensure_ascii=False) + '\n')
+(res / 'shorts.json').write_text(json.dumps(rows, indent=1, ensure_ascii=False) + '\n')
 print(f'shorts.json: {len(rows)} films')
 PY2
 echo "media: $(du -sh "$MEDIA" | cut -f1)"

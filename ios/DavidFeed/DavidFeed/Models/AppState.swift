@@ -21,6 +21,10 @@ final class AppState {
     private(set) var highlights: [String: String] = [:]
     /// Verses saved from the reader's action bar, distinct from saved cards.
     private(set) var savedVerses: Set<String> = []
+    /// Films liked with the heart, apart from saves (Figma "Feed-Liked-Saved"
+    /// draws the two as separate states). Kept on this phone only: they are not
+    /// in the library row, so no account is needed and nothing is sent.
+    private(set) var likedIDs: Set<Int> = []
 
     /// The films' ids before they took the web's (films.ts), so a film saved
     /// on a phone before then is still saved after. 108 was Psalm 45's impasto,
@@ -31,6 +35,7 @@ final class AppState {
     private static let savedKey = "davidfeed.saved"
     private static let highlightKey = "davidfeed.highlights"
     private static let savedVerseKey = "davidfeed.savedVerses"
+    private static let likedKey = "dafod.liked"
 
     init() {
         let d = UserDefaults.standard
@@ -38,6 +43,16 @@ final class AppState {
         d.set(Array(savedIDs), forKey: Self.savedKey)
         highlights = d.dictionary(forKey: Self.highlightKey) as? [String: String] ?? [:]
         savedVerses = Set(d.array(forKey: Self.savedVerseKey) as? [String] ?? [])
+        likedIDs = Set(d.array(forKey: Self.likedKey) as? [Int] ?? [])
+    }
+
+    // MARK: likes
+
+    func isLiked(_ post: Post) -> Bool { likedIDs.contains(post.id) }
+
+    func setLiked(_ id: Int, on: Bool) {
+        if on { likedIDs.insert(id) } else { likedIDs.remove(id) }
+        UserDefaults.standard.set(Array(likedIDs), forKey: Self.likedKey)
     }
 
     // MARK: verses
@@ -179,7 +194,14 @@ final class AppState {
         return "\(slug)/\(chapter[chapter.index(after: space)...])/\(verse)"
     }
 
+    /// Saved films still published and on the phone. One saved but not yet
+    /// downloaded appears once FilmCatalog has fetched it (LibraryView asks).
     var savedPosts: [Post] {
-        PostStore.shorts.filter { savedIDs.contains($0.id) }
+        FilmCatalog.shared.films.filter { savedIDs.contains($0.id) && FilmCatalog.shared.isReady($0) }
+    }
+
+    /// Saved films the phone doesn't hold yet.
+    var savedPostsToFetch: [Post] {
+        FilmCatalog.shared.films.filter { savedIDs.contains($0.id) && !FilmCatalog.shared.isReady($0) }
     }
 }

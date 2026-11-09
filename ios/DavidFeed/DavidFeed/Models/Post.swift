@@ -33,33 +33,35 @@ struct Post: Codable, Identifiable, Hashable {
     /// its height -- the web's films.ts, measured by OCR. A card too short for
     /// the whole film crops around them (FeedCardView).
     let captions: [Double]?
+    /// The film with its Dafod ending, in the films bucket, for the share
+    /// sheet. Absent for the films that predate the bucket: ShareFilm asks
+    /// dafod.app for those.
+    var shareSrc: String? = nil
 
     /// "Psalm 45:2-8" -> "Psalm 45": what the feed keeps apart (spread).
     var passage: String {
         title.split(separator: ":", maxSplits: 1).first.map(String.init) ?? title
     }
 
-    /// The web app stores absolute web paths ("/assets/shorts/x.mp3"); the app
-    /// bundle is flat, so only the filename carries over.
-    private func bundled(_ path: String?, ext: String) -> URL? {
-        guard let path, let name = path.split(separator: "/").last else { return nil }
-        // Whatever the web's file is called, the bundle may hold it re-encoded
-        // under another extension (mp3 narration ships as m4a), so the stem is
-        // the name with ANY extension removed.
-        let stem = (String(name) as NSString).deletingPathExtension
-        return Bundle.main.url(forResource: stem, withExtension: ext)
+    /// The file on the phone, if FilmCatalog has downloaded it. The app carries
+    /// no films: rows name a file in the Supabase bucket ("/assets/verses/x.mp4"
+    /// from the web's paths, or just "x.mp4"), and only the name counts.
+    private func stored(_ path: String?, ext: String) -> URL? {
+        guard let path, let name = MediaStore.name(path),
+              (name as NSString).pathExtension == ext else { return nil }
+        return MediaStore.local(name)
     }
 
     var artworkURL: URL? {
-        bundled(backgroundImage, ext: "jpg") ?? bundled(backgroundImage, ext: "png")
+        stored(backgroundImage, ext: "jpg") ?? stored(backgroundImage, ext: "png")
     }
     /// Prefer the parallax loop; fall back to the poster loop, then to nothing
     /// (the still artwork carries the card on its own).
     var loopURL: URL? {
-        bundled(videoSrc, ext: "mp4") ?? bundled(posterVideoSrc, ext: "mp4")
+        stored(videoSrc, ext: "mp4") ?? stored(posterVideoSrc, ext: "mp4")
     }
-    /// AAC in the bundle (64k mono; spoken word), the web's mp3 as the fallback.
-    var narrationURL: URL? { bundled(audioSrc, ext: "m4a") ?? bundled(audioSrc, ext: "mp3") }
+    /// A separate narration, for a film whose sound isn't in the film itself.
+    var narrationURL: URL? { stored(audioSrc, ext: "m4a") ?? stored(audioSrc, ext: "mp3") }
 
     /// The clip a share hands over — NOT the card's parallax loop.
     ///
@@ -109,21 +111,4 @@ struct Post: Codable, Identifiable, Hashable {
     func caption(at t: Double) -> Subtitle? {
         subtitles?.first { $0.contains(t) }
     }
-}
-
-enum PostStore {
-    /// Decoded once; the feed is a fixed set shipped with the app.
-    static let shorts: [Post] = {
-        guard let url = Bundle.main.url(forResource: "shorts", withExtension: "json"),
-              let data = try? Data(contentsOf: url) else {
-            assertionFailure("shorts.json missing from the bundle")
-            return []
-        }
-        do {
-            return try JSONDecoder().decode([Post].self, from: data)
-        } catch {
-            assertionFailure("shorts.json did not decode: \(error)")
-            return []
-        }
-    }()
 }

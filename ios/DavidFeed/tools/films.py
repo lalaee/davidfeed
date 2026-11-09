@@ -123,7 +123,8 @@ def cmd_add(a):
         position = max([r["position"] for r in films(False)] or [0]) + 1
     row = {"id": a.id, "title": a.title, "background_image": f"{stem}.jpg", "poster_video_src": f"{stem}.mp4",
            "aspect": round(h / w, 4), "translation": a.translation, "position": position, "published": True,
-           "captions": [float(x) for x in a.captions.split(",")] if a.captions else None, "share_src": share}
+           "captions": [float(x) for x in a.captions.split(",")] if a.captions else None, "share_src": share,
+           "title_ink": a.title_ink}
     request("POST", "/rest/v1/films", body=row, headers={"Prefer": "resolution=merge-duplicates,return=minimal"})
     print(f"   {a.id}  {a.title}  {w}x{h}  position {position}")
     if a.on:
@@ -200,6 +201,8 @@ def main():
     add.add_argument("--captions", help="highest,lowest of the burned-in words, as fractions of the height")
     add.add_argument("--share", help="the film with its Dafod ending, for the share sheet")
     add.add_argument("--position", type=int)
+    add.add_argument("--title-ink", choices=["black", "white"],
+                     help="the Home title's colour over this film, where the automatic one is wrong")
     add.add_argument("--on", help="also make it the verse of the day on this date (YYYY-MM-DD)")
     add.add_argument("--no-encode", action="store_true")
     for name in ("remove", "restore"):

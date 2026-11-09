@@ -123,20 +123,34 @@ struct FeedCardView: View {
         .clipped()
     }
 
+    /// Where the film's lowest burned-in words end on a card of this size,
+    /// measured up from the card's foot; nil for a film without a span.
+    static func wordsAboveFoot(_ post: Post, _ size: CGSize, air: CGFloat) -> CGFloat? {
+        guard let span = post.captions, span.count == 2 else { return nil }
+        let film = max(size.height, size.width * CGFloat(post.aspect ?? 16.0 / 9.0))
+        return size.height - (CGFloat(span[1]) * film - cropTop(post, size, air: air))
+    }
+
     private func filmHeight(_ size: CGSize) -> CGFloat {
         max(size.height, size.width * CGFloat(post.aspect ?? 16.0 / 9.0))
     }
 
-    /// How much of the film's head a short card leaves off: only what its
-    /// lowest burned-in words need to sit inside the card (with a little air),
-    /// never more than the film has to spare -- the web's .feed-card rule. A
-    /// film whose words span more than the card keeps its head.
     private func cropTop(_ size: CGSize) -> CGFloat {
-        let film = filmHeight(size), spare = film - size.height
+        Self.cropTop(post, size, air: verseOfTheDay ? VerseOfTheDayView.titleClearance : 12)
+    }
+
+    /// How much of the film's head a short card leaves off: only what its
+    /// lowest burned-in words need to sit `air` above the card's foot, never
+    /// more than the film has to spare -- the web's .feed-card rule. A film
+    /// whose words span more than the card keeps its head. Home asks for room
+    /// for its title as the air, as the web's Home card does.
+    static func cropTop(_ post: Post, _ size: CGSize, air: CGFloat) -> CGFloat {
+        let film = max(size.height, size.width * CGFloat(post.aspect ?? 16.0 / 9.0))
+        let spare = film - size.height
         guard spare > 0.5 else { return 0 }
         guard let span = post.captions, span.count == 2 else { return spare / 2 }
         let lowest = CGFloat(span[1]) * film, highest = CGFloat(span[0]) * film
-        var top = min(max(lowest + 12 - size.height, 0), spare)
+        var top = min(max(lowest + air - size.height, 0), spare)
         if top > highest { top = highest }   // can't keep both ends: keep the head's words
         return top
     }
@@ -151,11 +165,13 @@ struct FeedCardView: View {
                 Spacer(minLength: 16)
                 VStack(spacing: 32) {
                     // The film as the web shares it -- with its Dafod ending,
-                    // over the white strip -- fetched when a destination asks
-                    // for it (ShareFilm).
+                    // over the white strip -- fetched before the sheet opens
+                    // (ShareFilm), a spinner over the glyph while it comes.
                     if !verseOfTheDay {
-                        ShareLink(item: ShareFilm(post: post), preview: SharePreview(post.title)) {
+                        ShareFilmButton(post: post) { progress in
                             RailIcon(asset: "Send", tint: chrome.ink, shadow: chrome.shadow)
+                                .opacity(progress == nil ? 1 : 0.3)
+                                .overlay { if progress != nil { ProgressView().tint(chrome.ink) } }
                         }
                         .buttonStyle(.plain)
                     }

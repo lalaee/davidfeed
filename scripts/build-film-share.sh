@@ -12,7 +12,8 @@
 # What it makes, from Figma "Dafod Reels" › New Feed UI (2753:935):
 #   the whole 1080x1920 film, uncropped, its bottom corners rounded 20 (at the
 #   frame's 375 width; 57.6 here), over a white strip 212 tall holding the
-#   Dafod icon and "Dafod.app" — 1080x2132 overall, the strip there for the
+#   Dafod icon and "Dafod.app" at its left and "Verse of the day" at its
+#   right (Inter Medium 16, -3%) — 1080x2132 overall, the strip there for the
 #   whole video, the ending included. No title on the film.
 #
 # The strip and the corners are one PNG, scripts/assets/share/strip-overlay.png:

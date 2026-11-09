@@ -106,6 +106,22 @@ const FILMS: Film[] = [
   { id: 4601,  chapter: 46,  style: "Painting", file: "psalm-46-7",    verses: "7",     captions: [0.679, 0.78] },
   { id: 20001, book: "2 Chronicles", chapter: 20, style: "Painting", file: "2-chronicles-20-15", verses: "15", captions: [0.679, 0.78] },
   { id: 40001, book: "Isaiah", chapter: 40, style: "Painting", file: "isaiah-40-30-31", verses: "30-31", captions: [0.632, 0.78] },
+
+  // The LemoLab woodcuts the app had not carried yet (lemo-opuscar
+  // Bible/no-outro), all NIV. Spans measured by the iOS session, by OCR at a
+  // frame every 2 s, rounded outward. Joshua is 10001, not 1001, which is
+  // Proverbs 18:10's (web-verses.ts).
+  { id: 41002, book: "Isaiah",      chapter: 41,  style: "Woodcut", file: "isaiah-41-10-13-woodcut", verses: "10-13", captions: [0.089, 0.882] },
+  { id: 29001, book: "Jeremiah",    chapter: 29,  style: "Woodcut", file: "jeremiah-29-woodcut",     verses: "11-13", captions: [0.053, 0.886] },
+  { id: 10001, book: "Joshua",      chapter: 1,   style: "Woodcut", file: "joshua-1-woodcut",        verses: "6-9",   captions: [0.053, 0.887] },
+  { id: 3001,  book: "John",        chapter: 3,   style: "Woodcut", file: "john-3-woodcut",          verses: "16-17", captions: [0.051, 0.886] },
+  { id: 6001,  book: "Matthew",     chapter: 6,   style: "Woodcut", file: "matthew-6-woodcut",       verses: "28-34", captions: [0.053, 0.884] },
+  { id: 4001,  book: "Philippians", chapter: 4,   style: "Woodcut", file: "philippians-4-woodcut",   verses: "4-9",   captions: [0.06, 0.887] },
+  { id: 3002,  book: "Proverbs",    chapter: 3,   style: "Woodcut", file: "proverbs-3-woodcut",      verses: "1-6",   captions: [0.053, 0.887] },
+  { id: 12102,                      chapter: 121, style: "Woodcut", file: "psalm-121-woodcut",                        captions: [0.053, 0.888] },
+  { id: 9102,                       chapter: 91,  style: "Woodcut", file: "psalm-91-woodcut",        verses: "1-8",   captions: [0.054, 0.885] },
+  { id: 12001, book: "Romans",      chapter: 12,  style: "Woodcut", file: "romans-12-woodcut",       verses: "1-2",   captions: [0.051, 0.889] },
+  { id: 8001,  book: "Romans",      chapter: 8,   style: "Woodcut", file: "romans-8-woodcut",        verses: "35-39", captions: [0.06, 0.889] },
 ];
 
 export const filmPosts: Post[] = FILMS.map(({ id, book = "Psalm", chapter, file, verses, captions, titleInk }) => ({

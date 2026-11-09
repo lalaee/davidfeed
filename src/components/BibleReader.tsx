@@ -35,10 +35,11 @@ import { reportScriptureView } from "@/lib/fums";
  *
  *   page margin   24 for the header, 27 for the verses (the design insets the
  *                 verse column 3px further than the header pill)
- *   header row    y=40, 72 tall
+ *   header row    y=40, 72 tall in the frame; 16 on the phone web, asked
+ *                 for less air above the pills
  *   title pill    158x72, radius 22, #0E0E0E, artwork inset 12, 12 gap
  *   version pill  61x38, #0E0E0E
- *   verses top    144  (header row y=40 + 104)
+ *   verses top    144  (header row y=40 + 104); 120 with the 16
  *   verse         Inter Regular 21/31.5 #FFFFFF; number Inter Medium 20, line
  *                 height auto (24 at that size), #999999. The gutter is 20 in
  *                 the design and is widened here to fit two- and three-digit
@@ -410,7 +411,7 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
       <div className={`app-shell relative mx-auto flex h-[var(--app-h)] w-full flex-col overflow-hidden bg-black
                        md:max-w-[390px] reader-column ${recede}`}>
         {/* Header Section — absolutely overlaid so the verses scroll behind it */}
-        <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[40px] desk:pt-[121px]">
+        <div className="absolute top-0 left-0 right-0 z-10 px-[24px] pt-[16px] desk:pt-[121px]">
           {/* Verse Artwork + Title Row — iOS 26 morph: scales with scroll */}
           <div ref={morphRef} className="app-header-morph flex items-center justify-between h-[72px]">
             {/* Both header pills are LiquidGlass, with dafod-2's own numbers
@@ -486,9 +487,10 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
           <div
             role="listbox"
             aria-label="Versions"
-            // 120 = the header's 40 top padding + its 72 row + 8 of gap, so
+            // 96 = the header's 16 top padding + its 72 row + 8 of gap, so
             // the panel clears the pill it drops from instead of covering it.
-            className={`absolute right-[24px] top-[120px] z-[600] w-[190px] overflow-hidden rounded-[20px] p-[6px]
+            // (120 at desk, as it was.)
+            className={`absolute right-[24px] top-[96px] desk:top-[120px] z-[600] w-[190px] overflow-hidden rounded-[20px] p-[6px]
                         origin-top-right transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
                         ${versionOpen
                           ? "pointer-events-auto scale-100 opacity-100"
@@ -534,7 +536,7 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
           // under them; 165 is that 149 plus the 16 of air the design gives
           // its other floating surfaces. At desk there is no bottom nav and
           // the buttons sit at 32, so 100 is the same clearance there.
-          className="flex-1 overflow-y-auto px-[27px] pt-[144px] pb-[165px] scrollbar-hide
+          className="flex-1 overflow-y-auto px-[27px] pt-[120px] pb-[165px] scrollbar-hide
                      desk:px-[24px] desk:pt-[225px] desk:pb-[100px]"
           // A tap on the column itself, rather than on a verse, dismisses the
           // bar — the bar occupies the nav's slot, so there has to be a way back.

@@ -152,7 +152,8 @@ export default function BottomNav() {
     navHiddenStore.serverSnapshot,
   );
   // Keyed on the path so a new page starts at rest, expanded.
-  const scrolledDown = useScrolledDown(pathname ?? "/");
+  // On the reader the chapter's end counts as rest too (data-scroll-away).
+  const scrolledDown = useScrolledDown(pathname ?? "/", { atEnd: activeTab === "bible" });
   // One key, not one flag per tab: only one finger is down at a time.
   const [pressed, setPressed] = useState<TabKey | null>(null);
 
@@ -183,6 +184,9 @@ export default function BottomNav() {
       // above. DesktopNav renders a <nav> too, and earlier in the document.
       data-bottom-nav
       data-scrolled={scrolledDown ? "" : undefined}
+      // The reader steps the nav out of the way while you read on, rather than
+      // shrinking it, and brings it back the moment you scroll up (globals.css).
+      data-scroll-away={activeTab === "bible" ? "" : undefined}
       aria-label="Main"
       // Low as it can sit: on the home indicator's inset where there is one,
       // 2px off the edge where a browser's own toolbar is the floor. Every px

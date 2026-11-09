@@ -23,14 +23,15 @@ export default function AppStrip() {
       {/* The app icon, as the home screen shows it (app/icon.png). */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icon.png" alt="" width={36} height={36} className="app-strip-icon" />
-      <span className="flex min-w-0 flex-1 flex-col">
+      {/* A container, so the second line can drop "every morning" where the
+          text has less than the 242 the whole sentence takes (all phones but
+          the widest) instead of wrapping or being cut. */}
+      <span className="@container flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[15px] font-semibold leading-[19px] text-white">
           Start your day with hope
         </span>
-        {/* Two lines where a phone is too narrow for one, at 16 a line so
-            the three still sit inside the strip's 56. */}
-        <span className="line-clamp-2 text-[13px] font-medium leading-[16px]" style={{ color: "#999999" }}>
-          Wake up to a new verse every morning
+        <span className="truncate text-[13px] font-medium leading-[17px]" style={{ color: "#999999" }}>
+          Wake up to a new verse<span className="hidden @[242px]:inline"> every morning</span>
         </span>
       </span>
       <a href={APP_STORE_URL} className="app-strip-get press">

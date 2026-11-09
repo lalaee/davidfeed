@@ -27,6 +27,7 @@ import {
 import { gated } from "@/lib/auth";
 import { formatVerseRange } from "@/lib/verseRef";
 import { navHiddenStore } from "@/lib/uiStore";
+import { useScrolledDown } from "@/hooks/useScrolledDown";
 import { reportScriptureView } from "@/lib/fums";
 
 /*
@@ -329,6 +330,10 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
 
   // Null at Genesis 1 and Revelation 22, where that button is not rendered.
   // Everywhere else it crosses book boundaries: Psalms 150 -> Proverbs 1.
+  // Reading on (scrolling down) takes the chapter arrows away with the nav;
+  // scrolling up, or reaching the chapter's end, brings both back. A new
+  // chapter opens with them showing.
+  const readingOn = useScrolledDown(`${book} ${chapter}`, { atEnd: true });
   const prevChapter = adjacentChapter(book, chapter, -1);
   const nextChapter = adjacentChapter(book, chapter, 1);
 
@@ -376,7 +381,8 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
       // at desk — hence the height check rather than a null check.
       const navEl = document.querySelector<HTMLElement>("[data-bottom-nav]");
       const navRect = navEl?.getBoundingClientRect();
-      const floor = navRect && navRect.height > 0 ? navRect.top : window.innerHeight;
+      // Capped at the screen's foot: reading on slides the nav off below it.
+      const floor = Math.min(navRect && navRect.height > 0 ? navRect.top : window.innerHeight, window.innerHeight);
       // The ceiling is the floating header's bottom edge. The verses scroll
       // BEHIND it, so a bar placed above a verse near the top of the column
       // does not run out of screen — it slides underneath the header and comes
@@ -658,12 +664,14 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
               label="Previous chapter"
               side="left"
               target={prevChapter}
+              away={readingOn}
               onGo={(b, c) => router.push(`/bible/${bookSlug(b)}/${c}`)}
             />
             <ChapterPagerButton
               label="Next chapter"
               side="right"
               target={nextChapter}
+              away={readingOn}
               onGo={(b, c) => router.push(`/bible/${bookSlug(b)}/${c}`)}
             />
           </>
@@ -709,11 +717,14 @@ function ChapterPagerButton({
   label,
   side,
   target,
+  away,
   onGo,
 }: {
   label: string;
   side: "left" | "right";
   target: { book: string; chapter: number } | null;
+  /** Scrolled away with the nav while the reader reads on. */
+  away: boolean;
   onGo: (book: string, chapter: number) => void;
 }) {
   // Nothing to page to means no button, rather than a dimmed one. There are
@@ -727,10 +738,13 @@ function ChapterPagerButton({
       type="button"
       aria-label={`${label}: ${target.book} ${target.chapter}`}
       onClick={() => onGo(target.book, target.chapter)}
+      aria-hidden={away || undefined}
+      tabIndex={away ? -1 : undefined}
       className={`absolute z-[60] flex h-[52px] w-[52px] items-center justify-center rounded-full
                   border-none text-white
                   bottom-[calc(97px+env(safe-area-inset-bottom))] desk:bottom-[32px]
                   press
+                  ${away ? "pointer-events-none opacity-0" : "opacity-100"}
                   ${side === "left" ? "left-[47px]" : "right-[47px]"}`}
       style={{ backgroundColor: "#0E0E0E" }}
     >

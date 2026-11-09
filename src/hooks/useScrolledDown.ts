@@ -22,7 +22,14 @@ import { useEffect, useState } from "react";
 const TRAVEL = 24;
 const TOP = 40;
 
-export function useScrolledDown(key: string): boolean {
+/*
+ * `atEnd`: also at rest within END of a scroller's foot. The Bible reader
+ * asks for it — reading to the end of a chapter brings the nav and the chapter
+ * arrows back, which is where the next chapter is wanted.
+ */
+const END = 24;
+
+export function useScrolledDown(key: string, { atEnd = false }: { atEnd?: boolean } = {}): boolean {
   const [down, setDown] = useState(false);
 
   // React's documented "adjust state when a prop changes" pattern, as Feed and
@@ -65,7 +72,7 @@ export function useScrolledDown(key: string): boolean {
       const delta = top - prev;
       if (delta === 0) return;
 
-      if (top <= TOP) {
+      if (top <= TOP || (atEnd && top >= max - END)) {
         travel = 0;
         setDown(false);
         return;
@@ -79,7 +86,7 @@ export function useScrolledDown(key: string): boolean {
     document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     return () => document.removeEventListener("scroll", onScroll, true);
     // Re-armed per route, which also clears the accumulator and the WeakMap.
-  }, [key]);
+  }, [key, atEnd]);
 
   return down;
 }

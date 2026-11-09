@@ -179,34 +179,24 @@ struct VerseOfTheDayView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// The film's byline, bottom-left -- Figma "Frame 37020" (2798:1215): the
-    /// Dafod badge, a 37pt circle of the icon's gradient with the white D
-    /// (exported whole from 2798:1206, DafodBadge), then "Verse of the day"
-    /// 11.5 on, Inter Semi Bold 16, -2% tracking, shadow 0/1 blur 3 at 38%.
-    /// The row sits 23 in from the left and 21.8 above the film's rounded
-    /// edge (y 513.6-550.6 on a film that ends at 572.4). Black in the frame,
-    /// which sits on a light film; over a dark foot it goes white, read from
-    /// the poster the same way as the heart and bookmark (FeedCardView.chrome).
-    private static let bylineInset: CGFloat = 23
-    private static let bylineToFilmBottom: CGFloat = 21.8
+    /// "Verse of the day", bottom-left of the film -- Figma 2798:1197: Inter
+    /// Semi Bold 19, -2% tracking, 36.8 in from the left and 27.8 above the
+    /// film's rounded edge (y 521.5-544.5 on a film that ends at 572.4). Black
+    /// in the frame, which sits on a light film; over a dark foot it goes
+    /// white, read from the poster the same way as the heart and bookmark
+    /// (FeedCardView.chrome).
+    private static let titleInset: CGFloat = 36.8
+    private static let titleToFilmBottom: CGFloat = 27.8
 
     private func title(_ post: Post) -> some View {
-        HStack(spacing: 11.5) {
-            Image("DafodBadge")
-                .resizable()
-                .frame(width: 37, height: 37)
-                .clipShape(.circle)
-                .accessibilityHidden(true)
-            Text("Verse of the day")
-                .font(.system(size: 16, weight: .semibold))
-                .tracking(-0.32)
-                .foregroundStyle(ArtworkCache.isLightAtBottom(post.artworkURL) ? Color.black : Color.white)
-                .shadow(color: .black.opacity(0.38), radius: 1.5, y: 1)
-                .accessibilityAddTraits(.isHeader)
-        }
-        .padding(.leading, Self.bylineInset)
-        .padding(.bottom, Self.bylineToFilmBottom)
-        .allowsHitTesting(false)
+        Text("Verse of the day")
+            .font(.system(size: 19, weight: .semibold))
+            .tracking(-0.38)
+            .foregroundStyle(ArtworkCache.isLightAtBottom(post.artworkURL) ? Color.black : Color.white)
+            .padding(.leading, Self.titleInset)
+            .padding(.bottom, Self.titleToFilmBottom)
+            .allowsHitTesting(false)
+            .accessibilityAddTraits(.isHeader)
     }
 
     /// "Share verse": a #8CE4FF pill, black. Figma "Extract button" (2790:1055):

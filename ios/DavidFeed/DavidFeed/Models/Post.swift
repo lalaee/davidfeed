@@ -37,6 +37,9 @@ struct Post: Codable, Identifiable, Hashable {
     /// sheet. Absent for the films that predate the bucket: ShareFilm asks
     /// dafod.app for those.
     var shareSrc: String? = nil
+    /// "black" or "white": the Home title's colour over this film, where the
+    /// automatic one (ArtworkCache.isLightAtBottom) is wrong for it.
+    var titleInk: String? = nil
 
     /// "Psalm 45:2-8" -> "Psalm 45": what the feed keeps apart (spread).
     var passage: String {

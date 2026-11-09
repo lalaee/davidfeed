@@ -133,13 +133,17 @@ struct VerseOfTheDayView: View {
                     offline
                 }
                 if let post {
+                    let card = CGSize(width: geo.size.width,
+                                      height: min(geo.size.width * CGFloat(post.aspect ?? 16.0 / 9.0), filmRoom))
                     VStack(spacing: Self.filmToButton) {
                         // The film at its own shape where it fits; on a shorter
                         // screen it is cut from the head, keeping its words
                         // (FeedCardView.cropTop).
                         FeedCardView(post: post, isActive: true, playsLoop: true, verseOfTheDay: true)
-                            .frame(height: min(geo.size.width * CGFloat(post.aspect ?? 16.0 / 9.0), filmRoom))
-                            .overlay(alignment: .bottomLeading) { title(post) }
+                            .frame(height: card.height)
+                            .overlay(alignment: .bottomLeading) {
+                                if titleFits(post, card) { title(post) }
+                            }
                             .id(post.id)
                         shareButton(post)
                             .padding(.horizontal, Self.buttonInset)
@@ -187,12 +191,33 @@ struct VerseOfTheDayView: View {
     /// (FeedCardView.chrome).
     private static let titleInset: CGFloat = 36.8
     private static let titleToFilmBottom: CGFloat = 27.8
+    /// The film's foot up to 8 above the title's top (23 tall): the room a
+    /// film's own words must leave it. The card crops up for it where it can.
+    static let titleClearance: CGFloat = titleToFilmBottom + 23 + 8
+
+    /// Whether the title sits clear of the film's burned-in words. Four of the
+    /// first nine (Psalm 3 stained glass and woodcut, both Psalm 45s) put
+    /// their words right at the foot, where no crop can lift them far enough;
+    /// they go without the title rather than have it written over the verse.
+    private func titleFits(_ post: Post, _ card: CGSize) -> Bool {
+        guard let above = FeedCardView.wordsAboveFoot(post, card, air: Self.titleClearance) else { return true }
+        return above >= Self.titleClearance - 0.5
+    }
+
+    /// The row's title_ink where it names one, else read off the poster.
+    private func titleIsBlack(_ post: Post) -> Bool {
+        switch post.titleInk {
+        case "black": true
+        case "white": false
+        default: ArtworkCache.isLightAtBottom(post.artworkURL)
+        }
+    }
 
     private func title(_ post: Post) -> some View {
         Text("Verse of the day")
             .font(.system(size: 19, weight: .semibold))
             .tracking(-0.38)
-            .foregroundStyle(ArtworkCache.isLightAtBottom(post.artworkURL) ? Color.black : Color.white)
+            .foregroundStyle(titleIsBlack(post) ? Color.black : Color.white)
             .padding(.leading, Self.titleInset)
             .padding(.bottom, Self.titleToFilmBottom)
             .allowsHitTesting(false)
@@ -202,13 +227,14 @@ struct VerseOfTheDayView: View {
     /// "Share verse": a #8CE4FF pill, black. Figma "Extract button" (2790:1055):
     /// the Instagram, WhatsApp, TikTok and Threads glyphs, 24pt, 2 apart, then
     /// the label 8 on -- Inter Medium 20 / 22, -0.43 tracking; padding 13 by 16.
-    /// The glyphs say where the film can go; the button itself opens the share
-    /// sheet with the film from dafod.app (ShareFilm), which offers all of them
-    /// that are installed.
+    /// The glyphs say where the film can go; the button fetches the film from
+    /// dafod.app and then opens the share sheet with it (ShareFilm), which
+    /// offers all of them that are installed. While it fetches, the pill fills
+    /// from the left and the label counts up, as the web's share sheet does.
     private static let shareGlyphs = ["Instagram", "WhatsApp", "TikTok", "Threads"]
 
     private func shareButton(_ post: Post) -> some View {
-        ShareLink(item: ShareFilm(post: post), preview: SharePreview(post.title)) {
+        ShareFilmButton(post: post) { progress in
             HStack(spacing: 8) {
                 HStack(spacing: 2) {
                     ForEach(Self.shareGlyphs, id: \.self) { glyph in
@@ -220,16 +246,28 @@ struct VerseOfTheDayView: View {
                     }
                 }
                 .accessibilityHidden(true)
-                Text("Share verse")
+                Text(progress.map { "Getting video \(Int($0 * 100))%" } ?? "Share verse")
                     .font(.system(size: 20, weight: .medium))
                     .tracking(-0.43)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
             }
             .foregroundStyle(Color.black)
             .padding(.vertical, 13)
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity, minHeight: Self.buttonHeight)
-            .background(Color(hex: "#8CE4FF"), in: .capsule)
+            .background {
+                GeometryReader { pill in
+                    Color(hex: "#8CE4FF")
+                        .overlay(alignment: .leading) {
+                            Color.black.opacity(0.1)
+                                .frame(width: pill.size.width * (progress ?? 0))
+                        }
+                }
+                .clipShape(.capsule)
+            }
             .contentShape(.capsule)
+            .animation(.linear(duration: 0.15), value: progress)
         }
         .buttonStyle(.plain)
     }

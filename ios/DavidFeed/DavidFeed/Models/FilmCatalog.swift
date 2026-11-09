@@ -91,17 +91,20 @@ final class FilmCatalog {
         guard !refreshing else { return }
         refreshing = true
         defer { refreshing = false; attempted = true }
-        // The table's columns under the names Post decodes (PostgREST's alias:column).
-        let columns = "id,title,backgroundImage:background_image,posterVideoSrc:poster_video_src,"
-            + "videoSrc:video_src,audioSrc:audio_src,shareSrc:share_src,subtitles,effect,"
-            + "startAt:start_at,aspect,translation,captions"
         let cal = Calendar.current
         let from = Self.dayKey(cal.date(byAdding: .day, value: -14, to: Date()) ?? Date())
         let to = Self.dayKey(cal.date(byAdding: .day, value: 31, to: Date()) ?? Date())
         do {
-            async let filmsData = Supabase.get("rest/v1/films?select=\(columns)&order=position,id")
+            // Every column, snake_case turned into the names Post decodes. Not a
+            // list of them: naming a column the table doesn't have yet fails the
+            // whole fetch, so an app build would have to wait on its migration.
+            // This way a column the app doesn't know is ignored, and one it knows
+            // that isn't there yet (title_ink) reads as absent.
+            async let filmsData = Supabase.get("rest/v1/films?select=*&published=eq.true&order=position,id")
             async let daysData = Supabase.get("rest/v1/film_days?select=day,film_id&day=gte.\(from)&day=lte.\(to)")
-            let posts = try JSONDecoder().decode([Post].self, from: try await filmsData)
+            let rows = JSONDecoder()
+            rows.keyDecodingStrategy = .convertFromSnakeCase
+            let posts = try rows.decode([Post].self, from: try await filmsData)
             struct Day: Decodable { let day: String; let film_id: Int }
             let schedule = try JSONDecoder().decode([Day].self, from: try await daysData)
             films = posts

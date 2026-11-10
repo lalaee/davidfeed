@@ -12,11 +12,17 @@ const nextConfig: NextConfig = {
         source: "/.well-known/apple-app-site-association",
         headers: [{ key: "Content-Type", value: "application/json" }],
       },
-      // The films' picture, sound and share copies are reached from the page's
-      // film catalog, and Google was crawling them as pages ("crawled, not
-      // indexed"). They are media, not results.
+      // The films' sound and share copies are reached from the page's film
+      // catalog, and Google was crawling them as pages ("crawled, not
+      // indexed"). They are media, not results. The films' pictures (.mp4 in
+      // /assets/films) stay indexable: each is the video of its film page
+      // (app/film), and a noindexed file can't be.
       {
-        source: "/assets/:path(.*\\.(?:mp4|m4a|mp3)$)",
+        source: "/assets/:path(.*\\.(?:m4a|mp3)$)",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
+      {
+        source: "/assets/share/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex" }],
       },
     ];

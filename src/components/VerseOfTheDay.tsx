@@ -149,12 +149,27 @@ function cardFit(column: HTMLElement | null) {
   return { card, lowest, film: (width * 16) / 9, crop, height };
 }
 
-export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
+interface VerseOfTheDayProps {
+  serverDay: string;
+  /**
+   * A film page (app/film/[slug]): this film rather than the day's, titled
+   * with its reference instead of "Verse of the day", and `copy` beside it at
+   * desk in place of the hero's (DesktopChrome).
+   */
+  filmId?: number;
+  heading?: string;
+  copy?: React.ReactNode;
+}
+
+export default function VerseOfTheDay({ serverDay, filmId, heading = "Verse of the day", copy }: VerseOfTheDayProps) {
   const { films, days } = useFilmCatalog();
   // The server renders the day it had (UTC, at most five minutes old); the
   // browser then renders its own local day, which may be a different film.
   const day = useSyncExternalStore(subscribeDay, readDay, () => serverDay);
-  const post = useMemo(() => filmForDay(films, days, dateOfKey(day)), [films, days, day]);
+  const post = useMemo(
+    () => (filmId ? films.find((p) => p.id === filmId) : filmForDay(films, days, dateOfKey(day))),
+    [films, days, day, filmId],
+  );
 
   const { soundOn, enableSound, toggleSound, armUnlock } = useFeedSound();
   const [shareOpen, setShareOpen] = useState(false);
@@ -218,6 +233,7 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
         canNext={false}
         ambienceSrc={post?.backgroundImage}
         paging={false}
+        copy={copy}
       />
 
       {post && (
@@ -254,7 +270,7 @@ export default function VerseOfTheDay({ serverDay }: { serverDay: string }) {
                   textShadow: `0 1px 3px ${INK[titleInk === "black" ? "light-bottom" : "dark-bottom"].shadow}`,
                 }}
               >
-                Verse of the day
+                {heading}
               </h1>
             )}
             <SoundBadge inFilm visible={!soundOn} onEnable={enableSound} />

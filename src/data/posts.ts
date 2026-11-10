@@ -28,6 +28,8 @@ export interface Post {
    * films.title_ink); otherwise it follows the poster's foot (lib/posterInk.ts).
    */
   titleInk?: "black" | "white";
+  /** When the film's Supabase row was made: a film page's uploadDate (app/film). */
+  createdAt?: string;
 }
 
 // ARTWORK NO LONGER MATCHES ITS FILENAME. The covers were reassigned to the

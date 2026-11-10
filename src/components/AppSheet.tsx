@@ -24,8 +24,8 @@ import { AppleIcon } from "./icons";
  * THE CONTAINER is AuthSheet's: the column less 21 a side, 740 at desk,
  * floating 8 above the bottom, the slide-up, the page receding behind it, the
  * nav stepping aside. Drag the grabber down, tap outside or press Escape to
- * close. Android goes straight to its own step from "get"'s second button,
- * which on an Android phone is the first.
+ * close. Android goes to its own step from "get"'s second button; the App
+ * Store is first and primary on every phone.
  */
 export default function AppSheet() {
   const step = useSyncExternalStore(appSheetStore.subscribe, appSheetStore.read, appSheetStore.serverSnapshot);
@@ -207,21 +207,17 @@ function Offer() {
   );
 }
 
-const isAndroid = () => /android/i.test(navigator.userAgent);
-
-/* Every Get app button's sheet. */
+/* Every Get app button's sheet: the App Store first, on every phone. */
 function GetApp() {
-  const android = isAndroid();
   const appStore = (
     <a
-      key="ios"
       href={APP_STORE_URL}
       onClick={() => {
         wentToAppStore();
         closeAppSheet();
       }}
       className={`${pill} text-[#111111]`}
-      style={{ backgroundColor: android ? "rgba(255,255,255,0.1)" : "#EDEDED", color: android ? "#FFFFFF" : undefined }}
+      style={{ backgroundColor: "#EDEDED" }}
     >
       <AppleIcon height={20} />
       Download on the App Store
@@ -229,11 +225,10 @@ function GetApp() {
   );
   const androidList = (
     <button
-      key="android"
       type="button"
       onClick={() => appSheetStore.set("android")}
-      className={`${pill} ${android ? "text-black" : "text-white"}`}
-      style={{ backgroundColor: android ? BLUE : "rgba(255,255,255,0.1)" }}
+      className={`${pill} text-white`}
+      style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
     >
       <AndroidIcon />
       On Android? Get notified
@@ -248,7 +243,10 @@ function GetApp() {
         <Title>Get the Dafod app</Title>
       </div>
       <Body>A new verse every morning, saved films and the whole Bible, free on iPhone. Android is on its way.</Body>
-      <div className="mt-[28px] flex flex-col gap-[10px]">{android ? [androidList, appStore] : [appStore, androidList]}</div>
+      <div className="mt-[28px] flex flex-col gap-[10px]">
+        {appStore}
+        {androidList}
+      </div>
       <NotNow />
     </div>
   );

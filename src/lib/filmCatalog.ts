@@ -45,6 +45,7 @@ interface FilmRow {
   captions: unknown;
   /** 'black' | 'white' | null; absent until migration 20261109000000 runs. */
   title_ink?: unknown;
+  created_at?: string;
 }
 
 /** "/assets/verses/psalm-23-woodcut.mp4" -> "psalm-23-woodcut". */
@@ -72,6 +73,7 @@ function toPost(row: FilmRow): Post | null {
     audioSrc: `${FILM_DIR}/${stem}.m4a`,
     captions: captionSpan(row.captions),
     titleInk: row.title_ink === "black" || row.title_ink === "white" ? row.title_ink : undefined,
+    createdAt: row.created_at,
   };
 }
 

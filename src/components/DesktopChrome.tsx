@@ -95,6 +95,11 @@ interface DesktopChromeProps {
   ambienceSrc?: string;
   /** Off on Home's verse of the day: one film, nothing to page to. */
   paging?: boolean;
+  /**
+   * In place of the hero's headline and line, what a film page says beside
+   * its film (app/film): the passage, a way to the chapter. Download app stays.
+   */
+  copy?: React.ReactNode;
 }
 
 export default function DesktopChrome({
@@ -109,6 +114,7 @@ export default function DesktopChrome({
   canNext,
   ambienceSrc,
   paging = true,
+  copy,
 }: DesktopChromeProps) {
   // The Hopescrolling face's colour, kept at 4.5:1 against the ambience
   // behind it (lib/heroContrast.ts). Brand teal until a poster is measured.
@@ -182,31 +188,35 @@ export default function DesktopChrome({
          *
          *  Each slot takes its line's colour: grey on Doom, and the frame's
          *  teal on Hope, where a plain white face would lose the heart. */}
-        <h1
-          className="flex flex-col gap-[16px] text-[56px] font-normal"
-          style={{ lineHeight: "50.35px", letterSpacing: "-2.398px" }}
-        >
-          <span className="text-white">
-            Stop D<HeroLottie sources={DOOM_FACES} offset={0} />
-            <HeroLottie
-              sources={DOOM_FACES}
-              offset={2}
-              style={{ marginLeft: `-${GLYPH_PAIR_OVERLAP_EM}em` }}
-            />mscrolling
-          </span>
-          <span className="text-white">
-            {/* The colour eases with the ambience's own 500ms crossfade. */}
-            Start H
-            <HeroLottie
-              sources={HOPE_FACES}
-              style={{ color: hopeColour, transition: "color 500ms cubic-bezier(0.32, 0.72, 0, 1)" }}
-            />
-            pescrolling
-          </span>
-        </h1>
-        <p className="text-[24px] font-medium leading-[150%]" style={{ color: "rgba(255, 255, 255, 0.9)" }}>
-          Experience a collection of short verses that brings hope.
-        </p>
+        {copy ?? (
+          <>
+            <h1
+              className="flex flex-col gap-[16px] text-[56px] font-normal"
+              style={{ lineHeight: "50.35px", letterSpacing: "-2.398px" }}
+            >
+              <span className="text-white">
+                Stop D<HeroLottie sources={DOOM_FACES} offset={0} />
+                <HeroLottie
+                  sources={DOOM_FACES}
+                  offset={2}
+                  style={{ marginLeft: `-${GLYPH_PAIR_OVERLAP_EM}em` }}
+                />mscrolling
+              </span>
+              <span className="text-white">
+                {/* The colour eases with the ambience's own 500ms crossfade. */}
+                Start H
+                <HeroLottie
+                  sources={HOPE_FACES}
+                  style={{ color: hopeColour, transition: "color 500ms cubic-bezier(0.32, 0.72, 0, 1)" }}
+                />
+                pescrolling
+              </span>
+            </h1>
+            <p className="text-[24px] font-medium leading-[150%]" style={{ color: "rgba(255, 255, 255, 0.9)" }}>
+              Experience a collection of short verses that brings hope.
+            </p>
+          </>
+        )}
         {/* The section ignores the pointer so the feed behind stays reachable;
             the button takes it back. */}
         {/* The app sheet (AppSheet.tsx): the App Store, and the Android list. */}

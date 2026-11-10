@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import DesktopNav from "./DesktopNav";
@@ -25,6 +26,7 @@ import {
   versionsStore,
 } from "@/lib/stores";
 import { gated } from "@/lib/auth";
+import type { ChapterFilm } from "@/lib/filmPages";
 import { formatVerseRange } from "@/lib/verseRef";
 import { navHiddenStore } from "@/lib/uiStore";
 import { useScrolledDown } from "@/hooks/useScrolledDown";
@@ -74,9 +76,11 @@ interface BibleReaderProps {
   /** Book name as it appears in BOOKS, e.g. "Psalms". */
   book: string;
   chapter: number;
+  /** The films made of this chapter, linked under its text (app/bible). */
+  films?: ChapterFilm[];
 }
 
-export default function BibleReader({ book, chapter }: BibleReaderProps) {
+export default function BibleReader({ book, chapter, films = [] }: BibleReaderProps) {
   const router = useRouter();
   const chapterTitle = makeChapterTitle(book, chapter);
 
@@ -625,6 +629,33 @@ export default function BibleReader({ book, chapter }: BibleReaderProps) {
             <p className="mt-[16px] text-[13px] font-medium leading-[18px]" style={{ color: "#8A8A8A" }}>
               {reading.copyright}
             </p>
+          )}
+          {/* The chapter's films, each to its own page. In the served HTML so
+              search follows them, and held invisible until the text is in, as
+              they would otherwise stand at the top of an empty column. */}
+          {films.length > 0 && (
+            <section className={`mt-[40px] ${ready ? "" : "invisible"}`}>
+              <h2 className="text-[17px] font-semibold leading-[22px] tracking-[-0.408px] text-white">
+                {films.length > 1 ? "Watch the films" : "Watch the film"}
+              </h2>
+              <div className="mt-[16px] flex flex-wrap gap-[12px]">
+                {films.map((film) => (
+                  <Link key={film.slug} href={`/film/${film.slug}`} className="press-soft flex w-[96px] flex-col gap-[8px]">
+                    <img
+                      src={film.image}
+                      alt={`${film.title}, a short Bible film`}
+                      width={96}
+                      height={171}
+                      loading="lazy"
+                      className="aspect-[9/16] w-full rounded-[12px] bg-[#0E0E0E] object-cover"
+                    />
+                    <span className="text-[15px] font-medium leading-[20px]" style={{ color: "#999999" }}>
+                      {film.title}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
           )}
         </div>
 

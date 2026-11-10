@@ -16,7 +16,8 @@ import { SITE } from "./site";
  * screen (FilmText). Where API.Bible can't be had, the World English Bible
  * from the site's own public-domain files, so the page never stands empty.
  *
- * SERVER ONLY, for the API.Bible key: app/film and app/sitemap import it.
+ * SERVER ONLY, for the API.Bible key: app/film, app/bible and app/sitemap
+ * import it.
  */
 
 /** "/assets/films/no-outro/psalm-23-woodcut.mp4" -> "psalm-23-woodcut". */
@@ -41,6 +42,23 @@ export function filmRef(title: string): FilmRef | null {
   if (!BOOKS.some((b) => b.name === book)) return null;
   const from = m[3] ? Number(m[3]) : undefined;
   return { book, chapter: Number(m[2]), from, to: m[4] ? Number(m[4]) : from };
+}
+
+/** A chapter's films, for its page in the reader to link to (app/bible). */
+export interface ChapterFilm {
+  slug: string;
+  title: string;
+  image: string;
+}
+
+/** Every film whose reference falls in this chapter, in the catalog's order. */
+export function chapterFilms(films: Post[], book: string, chapter: number): ChapterFilm[] {
+  return films
+    .filter((post) => {
+      const ref = filmRef(post.title);
+      return ref?.book === book && ref.chapter === chapter;
+    })
+    .map((post) => ({ slug: filmSlug(post), title: post.title, image: post.backgroundImage }));
 }
 
 export interface Passage {

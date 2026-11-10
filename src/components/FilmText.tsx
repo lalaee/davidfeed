@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { bookSlug } from "@/data/bible";
-import type { Passage } from "@/lib/filmPages";
+import { type Passage, filmRef } from "@/lib/filmPages";
 
 import ScriptureViewed from "./ScriptureViewed";
 
@@ -21,6 +21,8 @@ export default function FilmText({
   passage: Passage | null;
   desk?: boolean;
 }) {
+  // The chapter, linked even when its text couldn't be had.
+  const ref = passage?.ref ?? filmRef(title);
   return (
     <div className={`flex flex-col ${desk ? "gap-[24px]" : "gap-[16px]"}`}>
       <h2
@@ -51,9 +53,9 @@ export default function FilmText({
           ) : (
             <>World English Bible (public domain). </>
           ))}
-        {passage && (
+        {ref && (
           <Link
-            href={`/bible/${bookSlug(passage.ref.book)}/${passage.ref.chapter}`}
+            href={`/bible/${bookSlug(ref.book)}/${ref.chapter}`}
             className="pointer-events-auto text-white underline"
           >
             Read the whole chapter

@@ -1,5 +1,7 @@
 import BibleReader from "@/components/BibleReader";
 import { BOOKS, DEFAULT_BOOK, DEFAULT_CHAPTER, bookSlug, parseRef } from "@/data/bible";
+import { loadFilmCatalog } from "@/lib/filmCatalog";
+import { chapterFilms } from "@/lib/filmPages";
 
 /*
  * /bible, /bible/psalms, /bible/psalms/46 — all the same reader.
@@ -41,12 +43,13 @@ export async function generateMetadata({ params }: { params: Promise<{ ref?: str
 export default async function BiblePage({ params }: { params: Promise<{ ref?: string[] }> }) {
   const { book, chapter } = parseRef((await params).ref);
   const known = BOOKS.some((b) => b.name === book);
+  const [b, c] = known ? [book, chapter] : [DEFAULT_BOOK, DEFAULT_CHAPTER];
+  // The films made of this chapter, matched by their titles' references, so
+  // the chapter links to each one's page (app/film) in the served HTML.
+  const { films } = await loadFilmCatalog();
   return (
     <main className="h-[var(--app-h)] bg-black">
-      <BibleReader
-        book={known ? book : DEFAULT_BOOK}
-        chapter={known ? chapter : DEFAULT_CHAPTER}
-      />
+      <BibleReader book={b} chapter={c} films={chapterFilms(films, b, c)} />
     </main>
   );
 }

@@ -235,6 +235,10 @@ struct BibleView: View {
             Text("\(n)")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(DF.inkDim)
+                // One line always: in an 18pt column Psalm 119's "171" wrapped
+                // to "17 / 1". A wider number runs out into the left margin,
+                // so every verse's text still starts at the same place.
+                .fixedSize()
                 .frame(width: 18, alignment: .trailing)
             Text(text)
                 .font(.system(size: 21))

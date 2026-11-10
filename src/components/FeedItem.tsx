@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect, useSyncExternalStore } from "
 import HeartAnimation from "./HeartAnimation";
 import VideoSubtitles from "./VideoSubtitles";
 import IconButton from "./IconButton";
+import SharePill from "./SharePill";
 import { BookmarkIcon, HeartIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { filmPlayedThrough } from "@/lib/appOffer";
@@ -93,8 +94,13 @@ interface FeedItemProps {
    * meets the screen's edge and rounded 40 below (Figma "New Feed UI"). Its
    * rail likes and saves; sharing is the "Share verse" pill under the film, so
    * the rail drops its own, and a double-tap likes.
+   *
+   * "saved" is a film opened from Saved (app/library/[psalm]): below the desk
+   * it stands on the screen's foot with Home's pill under it, sized as Home's
+   * card is (.saved-card, globals.css), and the rail is the bookmark alone.
+   * At desk it is the feed's card, rail share and all.
    */
-  variant?: "feed" | "day";
+  variant?: "feed" | "day" | "saved";
   /**
    * Where the card's visible foot falls in the film, as a fraction of its
    * height: below 1 when a short screen crops the foot off (Home's day card).
@@ -132,6 +138,7 @@ export default function FeedItem({
   inkFoot = 1,
 }: FeedItemProps) {
   const isDay = variant === "day";
+  const inSaved = variant === "saved";
   // Persisted, not component state: the Library's grid is a list of these,
   // and a bookmark that dies with the component has nothing to list. Read
   // through the store so a save made here shows up there without a reload.
@@ -696,7 +703,8 @@ export default function FeedItem({
    * (ShareSheet.tsx) only opens where the browser has no sheet for a file.
    */
   const { menu: shareMenu, share: shareFile, phase: sharePhase, progress: shareProgress } =
-    useShareVideo(postId, title);
+    // Saved's pill fetches its film ahead, as Home's does.
+    useShareVideo(postId, title, { prefetch: inSaved && isActive });
   const [shareOpen, setShareOpen] = useState(false);
   // A sheet belongs to the card that opened it. Scroll away and the card is no
   // longer the one on screen, so its sheet has to go with it — otherwise two
@@ -754,6 +762,7 @@ export default function FeedItem({
      * is kept, unused, if it is wanted back; the column still carries the
      * --desk-lean room it needed (globals.css), so nothing shifts.
      */
+    <>
     <div
       // The phone card is the film's 9:16 at the column's width, 12 between
       // films (iOS's DF.filmGap is 24; the web was asked for more film). Where
@@ -768,7 +777,10 @@ export default function FeedItem({
       className={
         isDay
           ? "day-card relative w-full flex-shrink-0"
-          : `feed-card relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[12px]
+          : inSaved
+            ? `saved-card relative w-full flex-shrink-0
+               desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]`
+            : `feed-card relative w-full aspect-[9/16] snap-start snap-always flex-shrink-0 mb-[12px]
              desk:aspect-auto desk:h-[var(--desk-card-h)] desk:min-h-[var(--desk-card-h)] desk:mb-[24px]`
       }
     >
@@ -900,6 +912,8 @@ export default function FeedItem({
             </span>
           </IconButton>
         ) : (
+          // In Saved the pill shares below the desk; the rail's keeps it at desk.
+          <div className={inSaved ? "hidden desk:block" : "contents"}>
           <IconButton
             onClick={handleShare}
             label={
@@ -931,6 +945,7 @@ export default function FeedItem({
               )}
             </span>
           </IconButton>
+          </div>
         )}
 
         <IconButton
@@ -956,5 +971,15 @@ export default function FeedItem({
       {/* No title on the card: it was asked off. The passage still names the
           film for screen readers (the cover's alt) and in the share sheet. */}
     </div>
+    {/* Saved's share, Home's pill under the film (below the desk only). */}
+    {inSaved && (
+      <SharePill
+        phase={sharePhase}
+        progress={shareProgress}
+        onClick={() => (shareMenu ? setShareOpen(true) : shareFile())}
+        className="desk:hidden"
+      />
+    )}
+    </>
   );
 }

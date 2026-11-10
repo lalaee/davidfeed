@@ -127,6 +127,8 @@ interface FeedProps {
    * viewer explicitly saved.
    */
   collectionLabel?: string;
+  /** "saved": each film a page of its own, Home's pill under it (FeedItem). */
+  variant?: "feed" | "saved";
   /** Where the collection's back control returns to. */
   collectionBackHref?: string;
   /** Which card to open on. Defaults to the first. */
@@ -137,6 +139,7 @@ export default function Feed({
   posts: allPosts = chapterPosts,
   activeTab = "home",
   collectionLabel,
+  variant = "feed",
   collectionBackHref,
   initialPostId,
 }: FeedProps) {
@@ -553,8 +556,10 @@ export default function Feed({
           <div
             key={post.id}
             ref={(el) => { itemRefs.current[index] = el; }}
+            className={variant === "saved" ? "saved-page" : undefined}
           >
             <FeedItem
+              variant={variant}
               postId={post.id}
               title={post.title}
               backgroundImage={post.backgroundImage}

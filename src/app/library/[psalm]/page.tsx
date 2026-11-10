@@ -55,6 +55,7 @@ export default function SavedFeedPage() {
         posts={posts}
         activeTab="you"
         collectionLabel="Saved"
+        variant="saved"
         collectionBackHref="/you"
         initialPostId={psalm}
       />

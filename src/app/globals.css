@@ -2167,6 +2167,48 @@ html, body {
 }
 
 
+/* A FILM OPENED FROM SAVED (app/library/[psalm], FeedItem's "saved" variant).
+ *
+ * Below the desk each film is a page of its own, a screen tall, and stands on
+ * its foot as Home's does: the film, 13.6, Home's 63 "Share verse" pill, then
+ * 13 to the nav (75 on --nav-floor). The film is Home's card: its 9:16 where
+ * the room allows, else cropped as the feed crops (THE PHONE CARD FITS THE
+ * SCREEN), off the head just enough that the lowest words clear its foot,
+ * never past the highest. A film shorter than the room leaves the spare at the
+ * top, on black under the header's back button, not over the picture.
+ * At desk the page is the feed's card and nothing here applies. */
+@media (max-width: 1027px) {
+  .saved-page {
+    --nav-floor: max(2px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: var(--app-h);
+    padding-bottom: calc(var(--nav-floor) + 75px + 13px);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .saved-card {
+    --col-w: 100vw;
+    --film-h: calc(var(--col-w) * 16 / 9);
+    --room: calc(var(--app-h) - var(--nav-floor) - 75px - 13px - 63px - 13.6px);
+    --crop-top: clamp(
+      0px,
+      calc(var(--cap-bottom, 1) * var(--film-h) - var(--room)),
+      calc(var(--cap-top, 0) * var(--film-h))
+    );
+    height: min(var(--film-h), var(--room));
+  }
+  .saved-card .film-layer {
+    object-position: 50% calc(-1 * var(--crop-top));
+  }
+}
+@media (min-width: 768px) and (max-width: 1027px) {
+  .saved-card {
+    --col-w: 375px;
+  }
+}
+
 /* HOME'S VERSE OF THE DAY (components/VerseOfTheDay.tsx).
  *
  * Below the desk the film runs the column's width from the top of the page

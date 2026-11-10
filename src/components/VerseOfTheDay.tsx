@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import DesktopChrome from "./DesktopChrome";
 import FeedAmbience from "./FeedAmbience";
 import FeedItem from "./FeedItem";
+import SharePill from "./SharePill";
 import ShareSheet from "./ShareSheet";
 import SoundBadge from "./SoundBadge";
 import { useFilmCatalog } from "./FilmCatalog";
-import { InstagramIcon, ThreadsIcon, TikTokIcon, WhatsAppIcon } from "./icons";
 import { useFeedSound } from "@/hooks/useFeedSound";
 import { useShareVideo } from "@/hooks/useShareVideo";
 import { useLiveInk } from "@/lib/liveInk";
@@ -178,14 +178,6 @@ export default function VerseOfTheDay({ serverDay, filmId, heading = "Verse of t
   const { menu, share, phase, progress } = useShareVideo(post?.id ?? 0, post?.title ?? "", {
     prefetch: Boolean(post),
   });
-  const shareLabel =
-    phase === "preparing"
-      ? `Preparing… ${Math.round(progress * 100)}%`
-      : phase === "armed"
-        ? "Tap to share"
-        : phase === "failed"
-          ? "Couldn't load. Try again"
-          : "Share verse";
 
   // The column, held in state from a callback ref so the title's fit can be
   // read off it (and re-read as it resizes) without touching a ref in render.
@@ -276,22 +268,7 @@ export default function VerseOfTheDay({ serverDay, filmId, heading = "Verse of t
             <SoundBadge inFilm visible={!soundOn} onEnable={enableSound} />
           </div>
 
-          <button
-            type="button"
-            onClick={() => (menu ? setShareOpen(true) : share())}
-            aria-busy={phase === "preparing" || undefined}
-            className="press mx-[16px] mt-[13.6px] flex h-[63px] flex-shrink-0 items-center justify-center
-                       gap-[8px] rounded-[100px] border-none px-[16px] py-[13px] text-black"
-            style={{ backgroundColor: "#8CE4FF" }}
-          >
-            <span className="flex gap-[2px]">
-              <InstagramIcon size={24} />
-              <WhatsAppIcon size={24} />
-              <TikTokIcon size={24} />
-              <ThreadsIcon size={24} />
-            </span>
-            <span className="text-[20px] font-medium leading-[22px] tracking-[-0.43px] tabular-nums">{shareLabel}</span>
-          </button>
+          <SharePill phase={phase} progress={progress} onClick={() => (menu ? setShareOpen(true) : share())} />
         </div>
       )}
 

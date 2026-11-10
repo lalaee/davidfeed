@@ -337,7 +337,7 @@ private struct SavedFeedScreen: View {
     // is the way out, so it is sized and layered to be reliable.
 
     var body: some View {
-        FeedView(allPosts: posts, fixedSet: true, startAt: startAt)
+        FeedView(allPosts: posts, fixedSet: true, startAt: startAt, sharePill: true)
             .background(DF.ground)
             .overlay(alignment: .topLeading) {
                 Button { dismiss() } label: {

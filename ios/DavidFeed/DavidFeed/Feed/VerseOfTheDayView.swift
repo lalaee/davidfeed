@@ -114,13 +114,14 @@ struct VerseOfTheDayView: View {
     }
 
     // Figma measurements, at the frame's 375 width.
+    // Saved lays out its films and pills by the same numbers.
     /// Film bottom (572.4) to the button's top (586).
-    private static let filmToButton: CGFloat = 13.6
+    static let filmToButton: CGFloat = 13.6
     /// The button: 343x63, 16 in from each side of 375.
-    private static let buttonHeight: CGFloat = 63
-    private static let buttonInset: CGFloat = 16
+    static let buttonHeight: CGFloat = 63
+    static let buttonInset: CGFloat = 16
     /// The button's bottom (649) to the nav's top (662).
-    private static let buttonToBar: CGFloat = 13
+    static let buttonToBar: CGFloat = 13
 
     var body: some View {
         GeometryReader { geo in
@@ -275,16 +276,25 @@ struct VerseOfTheDayView: View {
             .accessibilityAddTraits(.isHeader)
     }
 
-    /// "Share verse": a #8CE4FF pill, black. Figma "Extract button" (2790:1055):
-    /// the Instagram, WhatsApp, TikTok and Threads glyphs, 24pt, 2 apart, then
-    /// the label 8 on -- Inter Medium 20 / 22, -0.43 tracking; padding 13 by 16.
-    /// The glyphs say where the film can go; the button fetches the film from
-    /// dafod.app and then opens the share sheet with it (ShareFilm), which
-    /// offers all of them that are installed. While it fetches, the pill fills
-    /// from the left and the label counts up, as the web's share sheet does.
+    private func shareButton(_ post: Post) -> some View {
+        ShareVersePill(post: post)
+    }
+}
+
+/// "Share verse": a #8CE4FF pill, black. Figma "Extract button" (2790:1055):
+/// the Instagram, WhatsApp, TikTok and Threads glyphs, 24pt, 2 apart, then
+/// the label 8 on -- Inter Medium 20 / 22, -0.43 tracking; padding 13 by 16.
+/// The glyphs say where the film can go; the button fetches the film from
+/// dafod.app and then opens the share sheet with it (ShareFilm), which
+/// offers all of them that are installed. While it fetches, the pill fills
+/// from the left and the label counts up, as the web's share sheet does.
+/// Under the film on Home, and under each film in Saved.
+struct ShareVersePill: View {
+    let post: Post
+
     private static let shareGlyphs = ["Instagram", "WhatsApp", "TikTok", "Threads"]
 
-    private func shareButton(_ post: Post) -> some View {
+    var body: some View {
         ShareFilmButton(post: post) { progress in
             HStack(spacing: 8) {
                 HStack(spacing: 2) {
@@ -306,7 +316,7 @@ struct VerseOfTheDayView: View {
             .foregroundStyle(Color.black)
             .padding(.vertical, 13)
             .padding(.horizontal, 16)
-            .frame(maxWidth: .infinity, minHeight: Self.buttonHeight)
+            .frame(maxWidth: .infinity, minHeight: VerseOfTheDayView.buttonHeight)
             .background {
                 GeometryReader { pill in
                     Color(hex: "#8CE4FF")

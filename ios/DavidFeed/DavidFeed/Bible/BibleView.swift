@@ -31,6 +31,18 @@ struct BibleView: View {
     @State private var showBooks = false
     @State private var comparing: Int?
 
+    /// The tab bar and the pager, put away while the reader scrolls down the
+    /// chapter and brought back when they scroll up, are at the top, or reach
+    /// the end of it. The book and translation pills stay throughout.
+    @State private var chromeHidden = false
+    /// Where the current scroll direction last turned: hiding or showing
+    /// waits for this much travel from it, so a small drag doesn't flicker.
+    @State private var turnedAt: CGFloat = 0
+    /// Set while the reader is scrolled for them (to a verse from a card), so
+    /// arriving doesn't count as scrolling down.
+    @State private var scrollingForThem = false
+    private static let chromeTravel: CGFloat = 24
+
     private var verses: [String] { store.verses(book: store.book, chapter: store.chapter) }
 
     var body: some View {
@@ -57,6 +69,11 @@ struct BibleView: View {
                     .onPreferenceChange(SelectedVerseFrame.self) { barAnchor = $0 }
                 }
                 .scrollIndicators(.hidden)
+                .onScrollGeometryChange(for: ReaderScroll.self) { g in
+                    ReaderScroll(y: g.contentOffset.y + g.contentInsets.top,
+                                 end: g.contentSize.height + g.contentInsets.top + g.contentInsets.bottom
+                                     - g.containerSize.height)
+                } action: { _, scroll in scrolled(scroll) }
                 // iOS 26's own treatment for content passing under the toolbar.
                 // No dissolve at the bottom, by choice: the reader carried the
                 // feed's edge blur for a while and it was taken out --
@@ -94,8 +111,12 @@ struct BibleView: View {
             // do with a verse selected, and having the controls vanish on tap
             // made the reader feel like it had changed mode.
             pager
+                .offset(y: chromeHidden ? 120 : 0)
+                .opacity(chromeHidden ? 0 : 1)
+                .allowsHitTesting(!chromeHidden)
         }
         .toolbar { chrome }
+        .toolbarVisibility(chromeHidden ? .hidden : .visible, for: .tabBar)
         // Reverted to the pill by preference. Worth recording what that costs:
         // a LARGE navigationTitle is the top nav's only native size reduction —
         // iOS collapses it to inline on scroll — and a leading toolbar item does
@@ -141,6 +162,7 @@ struct BibleView: View {
     private func reveal(_ verse: Int?, _ proxy: ScrollViewProxy) {
         guard let verse, verse >= 1 else { return }
         store.pendingVerse = nil
+        scrollingForThem = true
         Task {
             // A licensed chapter has to arrive before there is a verse to go to.
             await store.load(book: store.book, chapter: store.chapter, translations: [store.translation])
@@ -154,6 +176,35 @@ struct BibleView: View {
                 proxy.scrollTo(verseAnchor(verse), anchor: .center)
             }
             selected = verse
+            // Until the scroll there has settled.
+            try? await Task.sleep(for: .milliseconds(600))
+            scrollingForThem = false
+        }
+    }
+
+    /// Down past the dead zone hides the tab bar and pager, back up shows them,
+    /// and the top and the end of the chapter always show them.
+    private func scrolled(_ scroll: ReaderScroll) {
+        let atTop = scroll.y < 40
+        let atEnd = scroll.end > 0 && scroll.y > scroll.end - Self.chromeTravel
+        let hide: Bool
+        if scrollingForThem || atTop || atEnd {
+            hide = false
+            turnedAt = scroll.y
+        } else if scroll.y - turnedAt > Self.chromeTravel {
+            hide = true
+            turnedAt = scroll.y
+        } else if turnedAt - scroll.y > Self.chromeTravel {
+            hide = false
+            turnedAt = scroll.y
+        } else {
+            // Still going the way it was: keep the turning point at the
+            // furthest it has got, so a reversal is measured from there.
+            turnedAt = chromeHidden ? max(turnedAt, scroll.y) : min(turnedAt, scroll.y)
+            return
+        }
+        if hide != chromeHidden {
+            withAnimation(.snappy(duration: 0.3)) { chromeHidden = hide }
         }
     }
 
@@ -345,6 +396,13 @@ struct BibleView: View {
         store.book = b
         store.chapter = c
     }
+}
+
+/// How far down the chapter the reader is, from 0 at the top, and how far
+/// down it can go.
+private struct ReaderScroll: Equatable {
+    var y: CGFloat
+    var end: CGFloat
 }
 
 /// The selected verse's frame, in the column's coordinate space.

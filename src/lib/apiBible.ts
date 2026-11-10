@@ -46,6 +46,12 @@ export interface LicensedChapter {
   c: number;
   /** Verse n is v[n - 1]; "" for a verse the translation omits (Matt 17:21). */
   v: string[];
+  /**
+   * Section headings within the chapter, keyed by the verse each stands
+   * before: Psalm 119's acrostic letters ("א Aleph" before 1, "ב Beth" before
+   * 9…). Absent where the chapter has none.
+   */
+  headings?: Record<number, string>;
   copyright: string;
   fums: string | null;
 }
@@ -97,12 +103,13 @@ export async function fetchLicensedChapter(
   };
   if (!body.data?.content) return null;
 
-  const verses = collectVerses(body.data.content, chapter);
+  const { verses, headings } = collectVerses(body.data.content, chapter);
   if (!verses.length) return null;
   return {
     b: bookName,
     c: chapter,
     v: verses,
+    ...(headings && { headings }),
     copyright: body.data.copyright?.trim() ?? "",
     fums: body.meta?.fumsToken ?? null,
   };
@@ -120,12 +127,22 @@ export async function fetchLicensedChapter(
  * The small caps themselves become capitals, which is how the KJV files already
  * set the divine name. NIV and NLT mark it as the divine name (style nd), NKJV
  * as plain small caps (sc); both are read the same way.
+ *
+ * Except the acrostic headings (para style qa: Psalm 119's "א Aleph", "ב
+ * Beth"…). Their text carries a verse id too, the verse BEFORE them, so read
+ * as Scripture they ended the previous verse ("…forsake me. ב Beth") and
+ * opened verse 1, where the Hebrew letter also turned its punctuation
+ * right-to-left. They are kept apart instead, as headings, each filed under
+ * the next verse to begin. All three translations mark them so; no other
+ * chapter does.
  */
-function collectVerses(content: Node[], chapter: number): string[] {
+function collectVerses(content: Node[], chapter: number) {
   const parts = new Map<number, string>();
+  const headings: Record<number, string> = {};
+  let pending = "";
   let paraStart = false;
 
-  const walk = (nodes: Node[], style?: string) => {
+  const walk = (nodes: Node[], style?: string, heading = false) => {
     for (const n of nodes) {
       if (n.type === "text") {
         // Anchored at the start only: where a translation joins verses the id
@@ -134,12 +151,21 @@ function collectVerses(content: Node[], chapter: number): string[] {
         if (!m || Number(m[1]) !== chapter || !n.text) continue;
         const verse = Number(m[2]);
         const text = style === "nd" || style === "sc" ? n.text.toUpperCase() : n.text;
+        if (heading) {
+          pending += text;
+          continue;
+        }
         const before = parts.get(verse);
+        if (before === undefined && pending.trim()) {
+          headings[verse] = pending.replace(/\s+/g, " ").trim();
+          pending = "";
+        }
         parts.set(verse, before === undefined ? text : before + (paraStart ? " " : "") + text);
         paraStart = false;
       } else if (n.name !== "verse" && n.items) {
         if (n.name === "para") paraStart = true;
-        walk(n.items, n.name === "char" ? n.attrs?.style : style);
+        const isHeading = heading || (n.name === "para" && n.attrs?.style === "qa");
+        walk(n.items, n.name === "char" ? n.attrs?.style : style, isHeading);
       }
     }
   };
@@ -155,5 +181,5 @@ function collectVerses(content: Node[], chapter: number): string[] {
         .trim(),
     );
   }
-  return out;
+  return { verses: out, headings: Object.keys(headings).length ? headings : undefined };
 }

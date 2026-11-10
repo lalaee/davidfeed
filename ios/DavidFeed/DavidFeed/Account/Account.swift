@@ -78,11 +78,15 @@ final class Account: NSObject {
         }
         session = saved
         status = .signedIn
-        await startSync()
+        await serialized { await self.startSync() }
     }
 
     /// The app came back to the front: the web's visibilitychange.
     func foreground() async {
+        await serialized { await self.foregroundSync() }
+    }
+
+    private func foregroundSync() async {
         guard status == .signedIn else { return }
         guard syncedFor == session?.userID else { await startSync(); return }
         if dirty { await push(); return }
@@ -138,7 +142,7 @@ final class Account: NSObject {
         status = .signedIn
         busy = nil
         errorMessage = nil
-        await startSync()
+        await serialized { await self.startSync() }
         pending?()
         pending = nil
         sheetShown = false
@@ -312,6 +316,23 @@ final class Account: NSObject {
 
     private var syncedFor: String?
     private var pushTask: Task<Void, Never>?
+    /// The last sync queued, which the next one waits for.
+    private var syncing: Task<Void, Never>?
+
+    /// One sync at a time. The main actor alone doesn't keep them apart: on a
+    /// cold launch start() and the first foreground() interleave at every
+    /// await, and a foreground pull taken before start's merge was pushed
+    /// would put the older row back on the phone. Each runs in its own Task,
+    /// so a caller going away doesn't cut a sync off half done.
+    private func serialized(_ work: @escaping @MainActor () async -> Void) async {
+        let previous = syncing
+        let task = Task { @MainActor in
+            await previous?.value
+            await work()
+        }
+        syncing = task
+        await task.value
+    }
 
     private var dirty: Bool {
         get { UserDefaults.standard.bool(forKey: Self.dirtyKey) }
@@ -345,8 +366,8 @@ final class Account: NSObject {
         pushTask?.cancel()
         pushTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(400))
-            guard !Task.isCancelled else { return }
-            await self?.push()
+            guard !Task.isCancelled, let self else { return }
+            await self.serialized { await self.push() }
         }
     }
 

@@ -8,20 +8,20 @@ The current set (9 Nov 2026): the woodcut films alone, no app around them -- no 
 status bar, no title or buttons -- each caught on a well-known line:
 
 1. Jeremiah 29:11 -- "For I know the plans I have for you," declares the LORD,
-2. John 3:16 -- For God so loved the world
-3. Psalm 23:1 -- The Lord is my shepherd, I lack nothing.
-4. Isaiah 41:10 -- So do not fear, for I am with you;
-5. Proverbs 3:5 -- Trust in the LORD with all your heart
-6. Philippians 4:6 -- Do not be anxious about anything,
-7. Joshua 1:9 -- Have I not commanded you? Be strong and courageous.
-8. Romans 12:2 -- Do not conform to the pattern of this world,
+2. Psalm 23:1 -- The Lord is my shepherd, I lack nothing.
+3. Isaiah 41:10 -- So do not fear, for I am with you;
+4. Philippians 4:6 -- Do not be anxious about anything,
+5. Romans 12:2 -- Do not conform to the pattern of this world,
+
+(John 3:16, Proverbs 3:5 and Joshua 1:9 were in the first cut and taken out on 10 Nov 2026; their
+times were 3.5, 38.8 and 53.4.)
 
 How they were made, so the set can be redone:
 
 1. The frame: from lemo-opuscar's `Bible/no-outro/<passage>-woodcut.mp4` (1080x1920), at a time the
    film's own .srt (`dafod/<passage>/woodcut/*.srt`) shows the line, near the end of the caption so it
    has fully come in: `ffmpeg -ss <t> -i <film>.mp4 -frames:v 1 frame.png`. Times used: Jeremiah 5.6,
-   John 3.5, Psalm 23 4.9, Isaiah 4.3, Proverbs 38.8, Philippians 17.0, Joshua 53.4, Romans 12 22.9.
+   Psalm 23 4.9, Isaiah 4.3, Philippians 17.0, Romans 12 22.9.
 2. The shot (6.9"; the 6.3" set is the same at 1206 wide: film 1206x2144, a 200-row band from row
    1937, 239 rows above from row 161 of the doubled band and 239 below): the frame scaled to the full
    1320 width (1320x2347), and the 521 rows the 6.9" screen has

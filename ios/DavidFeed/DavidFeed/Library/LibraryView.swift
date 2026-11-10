@@ -337,7 +337,7 @@ private struct SavedFeedScreen: View {
     // is the way out, so it is sized and layered to be reliable.
 
     var body: some View {
-        FeedView(allPosts: posts, fixedSet: true, startAt: startAt)
+        FeedView(allPosts: posts, fixedSet: true, startAt: startAt, sharePill: true)
             .background(DF.ground)
             .overlay(alignment: .topLeading) {
                 Button { dismiss() } label: {
@@ -367,5 +367,13 @@ private struct SavedFeedScreen: View {
             // feed, which is meant to keep playing, and wrong here: this is a
             // modal session and dismissing it is the reader saying they are done.
             .onDisappear { Playback.shared.pause() }
+            // The film runs under the clock here as on Home, so the clock
+            // follows it the same way: dark over a light head (the woodcuts'
+            // paper), white over a dark one. Back to white on the way out --
+            // You, underneath, is dark.
+            .onChange(of: ReflectionSampler.shared.topIsLight, initial: true) { _, light in
+                StatusBar.set(dark: light)
+            }
+            .onDisappear { StatusBar.set(dark: false) }
     }
 }

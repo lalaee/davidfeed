@@ -15,6 +15,12 @@ struct FeedView: View {
     /// would drop the very cards you saved".
     var fixedSet = false
     var startAt: Int? = nil
+    /// Saved: each film a screen of its own with Home's "Share verse" pill
+    /// under it by Home's numbers (VerseOfTheDayView). The film fills all the
+    /// room above the pill from the top of the screen, with nothing spare: a
+    /// film taller than the room is cropped as Home crops it, one shorter is
+    /// drawn a little larger, losing a sliver at each side.
+    var sharePill = false
 
     @Environment(AppState.self) private var app
     @State private var topic: Topic = TopicStore.initial
@@ -83,10 +89,26 @@ struct FeedView: View {
             // From the top of the screen to the top of the tab bar, less the gap.
             let room = geo.safeAreaInsets.top + geo.size.height - DF.filmGap
             let lastHeight = posts.last.map { cardHeight($0, width: geo.size.width, room: room) } ?? 0
+            // Saved: from the top of the screen to the film's foot, over the
+            // pill and its spacing down to the home indicator.
+            let pillFloor = geo.safeAreaInsets.bottom + VerseOfTheDayView.buttonToBar
+            let filmRoom = viewport - pillFloor - VerseOfTheDayView.buttonHeight - VerseOfTheDayView.filmToButton
 
             ScrollView(.vertical) {
-                LazyVStack(spacing: DF.filmGap) {
+                LazyVStack(spacing: sharePill ? 0 : DF.filmGap) {
                     ForEach(posts) { post in
+                        if sharePill {
+                            VStack(spacing: VerseOfTheDayView.filmToButton) {
+                                FeedCardView(post: post, isActive: activeID == post.id,
+                                             playsLoop: activeID == post.id, shareBelow: true)
+                                    .frame(height: max(filmRoom, 320))
+                                ShareVersePill(post: post)
+                                    .padding(.horizontal, VerseOfTheDayView.buttonInset)
+                            }
+                            .padding(.bottom, pillFloor)
+                            .frame(height: viewport)
+                            .id(post.id)
+                        } else {
                         FeedCardView(
                             post: post,
                             isActive: activeID == post.id,
@@ -101,12 +123,14 @@ struct FeedView: View {
                         )
                             .frame(height: cardHeight(post, width: geo.size.width, room: room))
                             .id(post.id)
+                        }
                     }
                 }
                 .scrollTargetLayout()
                 // Room under the last card for its top to reach the top of
-                // the screen, so it snaps like the rest.
-                .padding(.bottom, max(DF.cardInsetBottom, viewport - lastHeight))
+                // the screen, so it snaps like the rest. A Saved page is
+                // already a screen tall.
+                .padding(.bottom, sharePill ? 0 : max(DF.cardInsetBottom, viewport - lastHeight))
             }
             // One card per gesture, and no flinging past one. Plain
             // `.viewAligned` snaps to card edges but lets momentum carry across

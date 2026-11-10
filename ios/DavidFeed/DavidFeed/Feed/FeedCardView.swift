@@ -16,6 +16,9 @@ struct FeedCardView: View {
     /// like (the heart button, and the double-tap); its share is the button
     /// under the film, so the rail drops its own.
     var verseOfTheDay = false
+    /// Shown with Home's "Share verse" pill under it (Saved), so the rail
+    /// drops its own share, as on Home.
+    var shareBelow = false
 
     @Environment(AppState.self) private var app
     /// Not @State: a player owned by a view dies with the view, which is what
@@ -192,7 +195,7 @@ struct FeedCardView: View {
                     // The film as the web shares it -- with its Dafod ending,
                     // over the white strip -- fetched before the sheet opens
                     // (ShareFilm), a spinner over the glyph while it comes.
-                    if !verseOfTheDay {
+                    if !verseOfTheDay && !shareBelow {
                         ShareFilmButton(post: post) { progress in
                             RailIcon(asset: "Send", tint: chrome.ink, shadow: chrome.shadow)
                                 .opacity(progress == nil ? 1 : 0.3)

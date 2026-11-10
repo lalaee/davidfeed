@@ -24,9 +24,18 @@ export function generateStaticParams() {
   return [{ ref: [] as string[] }, { ref: [bookSlug(DEFAULT_BOOK), String(DEFAULT_CHAPTER)] }];
 }
 
+// Each chapter is its own search result: its own title, description and
+// canonical. /bible, and any URL parseRef had to correct, point at the
+// chapter they show.
 export async function generateMetadata({ params }: { params: Promise<{ ref?: string[] }> }) {
   const { book, chapter } = parseRef((await params).ref);
-  return { title: `${book} ${chapter} — Dafod` };
+  const known = BOOKS.some((b) => b.name === book);
+  const [b, c] = known ? [book, chapter] : [DEFAULT_BOOK, DEFAULT_CHAPTER];
+  return {
+    title: `${b} ${c} — Read the Bible on Dafod`,
+    description: `Read ${b} chapter ${c} in the NIV, NKJV, NLT, KJV, ASV or WEB. Free, with no ads, on Dafod.`,
+    alternates: { canonical: `/bible/${bookSlug(b)}/${c}` },
+  };
 }
 
 export default async function BiblePage({ params }: { params: Promise<{ ref?: string[] }> }) {

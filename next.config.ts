@@ -12,13 +12,20 @@ const nextConfig: NextConfig = {
         source: "/.well-known/apple-app-site-association",
         headers: [{ key: "Content-Type", value: "application/json" }],
       },
+      // The films' picture, sound and share copies are reached from the page's
+      // film catalog, and Google was crawling them as pages ("crawled, not
+      // indexed"). They are media, not results.
+      {
+        source: "/assets/:path(.*\\.(?:mp4|m4a|mp3)$)",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
     ];
   },
   async redirects() {
     return [
-      // The Library became You, the account centre, at /you. Saved sets
-      // still play at /library/[id], so only the index moves.
-      { source: "/library", destination: "/you", permanent: false },
+      // The Library became You, the account centre, at /you, for good (308).
+      // Saved sets still play at /library/[id], so only the index moves.
+      { source: "/library", destination: "/you", permanent: true },
     ];
   },
 };

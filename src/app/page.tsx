@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
+
 import VerseOfTheDay from "@/components/VerseOfTheDay";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 /*
  * Home is the verse of the day: one film, the same one the iPhone app shows on

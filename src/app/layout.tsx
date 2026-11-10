@@ -9,6 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import { FilmCatalogProvider } from "@/components/FilmCatalog";
 import RouteTrail from "@/components/RouteTrail";
 import { loadFilmCatalog } from "@/lib/filmCatalog";
+import { SITE } from "@/lib/site";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,6 +24,10 @@ export const metadata: Metadata = {
   // homepage carries the same name the consent screen does.
   title: "Dafod",
   description: "Stop doomscrolling, start hopescrolling: short films of the Bible's verses.",
+  // Resolves every page's relative canonical against the www address, which
+  // the apex and http variants redirect to. Each page names its own; one here
+  // would be inherited by every page that doesn't.
+  metadataBase: new URL(SITE),
 };
 
 export const viewport: Viewport = {

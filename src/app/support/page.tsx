@@ -7,6 +7,7 @@ import { APP_STORE_URL } from "@/lib/appStore";
 export const metadata: Metadata = {
   title: "Support — Dafod",
   description: "Help with Dafod on the web, iPhone and Android, and how to reach us.",
+  alternates: { canonical: "/support" },
 };
 
 /*
@@ -43,14 +44,15 @@ export default function SupportPage() {
         <Section title="Do I need an account?">
           No. Watching the films and reading the Bible work without one. An account, made by signing in
           with Apple or Google, keeps the films you save and the verses you highlight on every device.
+          The Android app signs in with Google only, so an account made with Apple on iPhone or the web
+          can&apos;t be opened there.
         </Section>
 
         <Section title="How do I delete my account?">
           In the iPhone or Android app or on the web, go to You › Delete account. It deletes your account
           and everything saved to it straight away, on every device. If you signed in with Apple on
           iPhone, you will confirm with Apple and Dafod&apos;s access to your Apple Account is removed too.
-          On Android or the web, remove Dafod yourself under Sign in with Apple in your Apple Account
-          settings.
+          On the web, remove Dafod yourself under Sign in with Apple in your Apple Account settings.
         </Section>
 
         <Section title="There's no sound">

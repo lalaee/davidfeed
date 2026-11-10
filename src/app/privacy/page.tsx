@@ -6,6 +6,7 @@ import BackLink from "@/components/BackLink";
 export const metadata: Metadata = {
   title: "Privacy — Dafod",
   description: "What Dafod keeps about you, why, and how to have it deleted.",
+  alternates: { canonical: "/privacy" },
 };
 
 /*
@@ -20,13 +21,12 @@ export const metadata: Metadata = {
  * lib/fums.ts. App Review and Google Play both link here, so the apps are
  * covered too.
  *
- * Android, as its session described it: sign-in by Google (Credential
- * Manager, an ID token for the web client) or Apple (Supabase's OAuth in a
- * Custom Tab), the same `library` row; the session in the app's private
+ * Android, as its session described it: sign-in by Google only (Credential
+ * Manager, an ID token for the web client), the same `library` row, so an
+ * account made with Apple cannot be opened there; the session in the app's private
  * storage with backups off; likes, translation and cached films on the phone;
  * a local 6:00 alarm after opting in, no push; permissions INTERNET,
  * POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED; sharing through a FileProvider.
- * It cannot revoke Sign in with Apple on deletion, which the iPhone does.
  *
  * Set in the Library's type on its #000 column: Inter Semi Bold 17 headings,
  * Regular 18/150% body in #999999, white for emphasis.
@@ -69,7 +69,8 @@ export default function PrivacyPage() {
             <li>
               <span className="text-white">Your account details from Apple or Google:</span> your name,
               your email address (with Apple this may be a private relay address) and the account ID
-              they give us. We never see your Apple or Google password.
+              they give us. We never see your Apple or Google password. The Android app signs in
+              with Google only.
             </li>
             <li>
               <span className="text-white">What you save:</span> the films and verses you save and the
@@ -161,10 +162,7 @@ export default function PrivacyPage() {
         <Section title="Keeping and deleting it">
           We keep your account and what you save for as long as you have an account. On the website
           or in the iPhone or Android app, You › Delete account deletes your account and everything
-          saved to it straight away, on every device. If you signed in with Apple on Android, the app
-          cannot also remove Dafod from your Apple Account as the iPhone app does; your account is
-          still deleted, and you can remove Dafod under Sign in with Apple in your Apple Account
-          settings. You can also email{" "}
+          saved to it straight away, on every device. You can also email{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a> from the address
           you signed in with, and we will delete both within 30 days.
         </Section>

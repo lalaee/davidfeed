@@ -6,6 +6,7 @@ import BackLink from "@/components/BackLink";
 export const metadata: Metadata = {
   title: "Terms — Dafod",
   description: "The terms for using Dafod on the web and on iPhone.",
+  alternates: { canonical: "/terms" },
 };
 
 /*

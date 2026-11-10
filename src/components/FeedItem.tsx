@@ -6,6 +6,7 @@ import VideoSubtitles from "./VideoSubtitles";
 import IconButton from "./IconButton";
 import { BookmarkIcon, HeartIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
+import { filmPlayedThrough } from "@/lib/appOffer";
 import { gated } from "@/lib/auth";
 import { likedPostStore, savedPostStore } from "@/lib/stores";
 import { useLiveInk } from "@/lib/liveInk";
@@ -437,6 +438,23 @@ export default function FeedItem({
       art.removeEventListener("pause", onArtPause);
       art.removeEventListener("play", onArtPlay);
     };
+  }, []);
+
+  // A film watched to its end offers the app (lib/appOffer.ts). The picture
+  // loops, so `ended` never fires: the end is the clock wrapping back from the
+  // last second while this card is the one playing. The picture rather than
+  // the narration, which does not run with the sound off.
+  useEffect(() => {
+    const art = videoRef.current ?? posterVideoRef.current;
+    if (!art) return;
+    let last = 0;
+    const onTime = () => {
+      const t = art.currentTime;
+      if (isActiveRef.current && art.duration && last > art.duration - 1 && t < last - 1) filmPlayedThrough();
+      last = t;
+    };
+    art.addEventListener("timeupdate", onTime);
+    return () => art.removeEventListener("timeupdate", onTime);
   }, []);
 
   // Track playing state (of the sound-bearing element) for subtitles

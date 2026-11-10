@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AgentationWrapper from "@/components/AgentationWrapper";
+import AppSheet from "@/components/AppSheet";
 import AppStrip from "@/components/AppStrip";
 import AuthSheet from "@/components/AuthSheet";
 import BottomNav from "@/components/BottomNav";
@@ -55,6 +56,7 @@ export default async function RootLayout({
         {/* Also once, here: it restores the session on every page and is the
             sheet any save made while signed out opens. See lib/auth.ts. */}
         <AuthSheet />
+        <AppSheet />
         <RouteTrail />
         {/* Development only: the feedback toolbar is a tool for building,
             not part of the site. */}

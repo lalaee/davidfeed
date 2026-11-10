@@ -12,10 +12,12 @@
  * tall — 100dvh less the strip — so nothing is covered and the feed's card
  * still fits above the nav.
  *
- * "Get app", with the Apple mark, opens the App Store page (lib/appStore.ts).
+ * "Get app" opens the app sheet (AppSheet.tsx): the App Store for iPhone,
+ * and the Android list. No Apple mark, since it no longer leads only there.
  */
-import { AppleIcon } from "./icons";
-import { APP_STORE_URL } from "@/lib/appStore";
+"use client";
+
+import { openGetApp } from "@/lib/appOffer";
 
 export default function AppStrip() {
   return (
@@ -36,10 +38,9 @@ export default function AppStrip() {
           Wake up to a new verse<span className="hidden @[242px]:inline"> every morning</span>
         </span>
       </span>
-      <a href={APP_STORE_URL} className="app-strip-get press">
-        <AppleIcon height={16} />
+      <button type="button" onClick={openGetApp} className="app-strip-get press border-none">
         Get app
-      </a>
+      </button>
     </aside>
   );
 }

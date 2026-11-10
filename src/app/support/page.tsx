@@ -6,7 +6,7 @@ import { APP_STORE_URL } from "@/lib/appStore";
 
 export const metadata: Metadata = {
   title: "Support — Dafod",
-  description: "Help with Dafod on the web and on iPhone, and how to reach us.",
+  description: "Help with Dafod on the web, iPhone and Android, and how to reach us.",
 };
 
 /*
@@ -36,8 +36,8 @@ export default function SupportPage() {
 
         <Section title="Where do I get the app?">
           Dafod for iPhone is on the{" "}
-          <a href={APP_STORE_URL} className="text-white underline">App Store</a>. The films and the Bible are here
-          on the web too.
+          <a href={APP_STORE_URL} className="text-white underline">App Store</a>. Dafod for Android is coming
+          to Google Play. The films and the Bible are here on the web too.
         </Section>
 
         <Section title="Do I need an account?">
@@ -46,13 +46,16 @@ export default function SupportPage() {
         </Section>
 
         <Section title="How do I delete my account?">
-          In the iPhone app or on the web, go to You › Delete account. It deletes your account and
-          everything saved to it straight away, on every device. If you signed in with Apple, you will
-          confirm with Apple and Dafod&apos;s access to your Apple Account is removed too.
+          In the iPhone or Android app or on the web, go to You › Delete account. It deletes your account
+          and everything saved to it straight away, on every device. If you signed in with Apple on
+          iPhone, you will confirm with Apple and Dafod&apos;s access to your Apple Account is removed too.
+          On Android or the web, remove Dafod yourself under Sign in with Apple in your Apple Account
+          settings.
         </Section>
 
         <Section title="There's no sound">
-          Tap the film to turn sound on or off. On iPhone, check the ringer switch and the volume. The film
+          Tap the film to turn sound on or off. On iPhone, check the ringer switch and the volume; on
+          Android, the media volume. The film
           pauses when you leave the Home tab and carries on when you come back.
         </Section>
 

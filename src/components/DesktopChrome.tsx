@@ -11,7 +11,7 @@ import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
 import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
 import HeroLottie from "./HeroLottie";
 import { hopeColourStore } from "@/lib/heroContrast";
-import { APP_STORE_URL } from "@/lib/appStore";
+import { openGetApp } from "@/lib/appOffer";
 
 /*
  * The animated glyphs, four per line, cycling.
@@ -209,15 +209,17 @@ export default function DesktopChrome({
         </p>
         {/* The section ignores the pointer so the feed behind stays reachable;
             the button takes it back. */}
-        <a
-          href={APP_STORE_URL}
-          className="pointer-events-auto flex h-[56px] w-fit items-center gap-[10px] rounded-full bg-white px-[28px]
-                     text-[18px] font-semibold text-[#0E0E0E] no-underline press"
+        {/* The app sheet (AppSheet.tsx): the App Store, and the Android list. */}
+        <button
+          type="button"
+          onClick={openGetApp}
+          className="pointer-events-auto flex h-[56px] w-fit items-center gap-[10px] rounded-full border-none bg-white
+                     px-[28px] text-[18px] font-semibold text-[#0E0E0E] no-underline press"
           style={{ letterSpacing: "-0.3px" }}
         >
           <AppleIcon height={21} />
           Download app
-        </a>
+        </button>
       </section>
 
       {/* The privacy policy, under the copy on its left edge. Google's brand

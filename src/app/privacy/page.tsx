@@ -13,14 +13,25 @@ export const metadata: Metadata = {
  * Google" consent screen, and owed to anyone who makes an account here.
  *
  * Written to what the code actually does — lib/auth.ts, lib/stores.ts and the
- * `library` migration, and the iPhone app (ios/: Account/, PrivacyInfo.xcprivacy)
- * — so it must change when they do: a new field stored, a new service added, or
- * analytics switched on. The API.Bible paragraphs follow lib/fums.ts. App Review reads it, so the app is covered here too.
+ * `library` migration, the iPhone app (ios/: Account/, PrivacyInfo.xcprivacy)
+ * and the Android app (~/Downloads/Code/davidfeed-android, package app.dafod)
+ * — so it must change when they do: a new field stored, a new service added, a
+ * new permission, or analytics switched on. The API.Bible paragraphs follow
+ * lib/fums.ts. App Review and Google Play both link here, so the apps are
+ * covered too.
+ *
+ * Android, as its session described it: sign-in by Google (Credential
+ * Manager, an ID token for the web client) or Apple (Supabase's OAuth in a
+ * Custom Tab), the same `library` row; the session in the app's private
+ * storage with backups off; likes, translation and cached films on the phone;
+ * a local 6:00 alarm after opting in, no push; permissions INTERNET,
+ * POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED; sharing through a FileProvider.
+ * It cannot revoke Sign in with Apple on deletion, which the iPhone does.
  *
  * Set in the Library's type on its #000 column: Inter Semi Bold 17 headings,
  * Regular 18/150% body in #999999, white for emphasis.
  */
-const UPDATED = "24 October 2026";
+const UPDATED = "10 November 2026";
 const CONTACT = "lakesofmotion@gmail.com";
 
 export default function PrivacyPage() {
@@ -44,14 +55,14 @@ export default function PrivacyPage() {
 
         <Section title="Who we are">
           Dafod (<Link href="/" className="text-white underline">dafod.app</Link>) is a feed of short
-          Bible films and a Bible reader, on the web and as an iPhone app, run by Olalekan Isaac. This
-          policy covers both. You can reach us at{" "}
+          Bible films and a Bible reader, on the web and as iPhone and Android apps, run by Olalekan
+          Isaac. This policy covers all three. You can reach us at{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a>.
         </Section>
 
         <Section title="What we keep">
           <p>
-            Watching the feed and reading the Bible need no account, on the web or in the app, and we
+            Watching the feed and reading the Bible need no account, on the web or in the apps, and we
             keep nothing about you while you do. If you sign in, we keep:
           </p>
           <ul className="mt-[12px] flex list-disc flex-col gap-[8px] pl-[22px]">
@@ -66,16 +77,16 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p className="mt-[12px]">
-            Your reading preferences (translation, sound on or off) stay in your browser or on your
-            iPhone and are never sent to us.
+            The films you like and your reading preferences (translation, sound on or off) stay in
+            your browser or on your phone and are never sent to us.
           </p>
         </Section>
 
         <Section title="How we use it">
           Only to sign you in and to keep what you save the same on every device you use. We do not
           show ads, sell or rent your information, or use it to profile you. There are no analytics
-          or tracking cookies on the website, and no analytics, advertising or tracking code in the
-          app.
+          or tracking cookies on the website, and no analytics, crash reporting, advertising or
+          tracking code in the apps. There are no purchases.
         </Section>
 
         <Section title="Licensed Bible translations">
@@ -84,8 +95,9 @@ export default function PrivacyPage() {
           time one of them is shown, your browser tells API.Bible which passage it was, so the
           publishers know what is being read. That report carries a random ID for your browser and
           another for the visit. It never includes your name, email address or account, and nothing
-          is sent while you read the KJV, ASV or WEB. The iPhone app fetches the same three
-          translations from dafod.app and reports nothing.
+          is sent while you read the KJV, ASV or WEB. The iPhone and Android apps fetch the same
+          three translations from dafod.app, send nothing about you with the request, and report
+          nothing.
         </Section>
 
         <Section title="Google user data">
@@ -104,11 +116,12 @@ export default function PrivacyPage() {
         <Section title="Who else handles it">
           <ul className="flex list-disc flex-col gap-[8px] pl-[22px]">
             <li>
-              <span className="text-white">Supabase</span> stores your account and what you save.
+              <span className="text-white">Supabase</span> stores your account and what you save,
+              and serves the films and the verse-of-the-day schedule to the apps.
             </li>
             <li>
-              <span className="text-white">Vercel</span> hosts the website, and the films and Bible
-              chapters the app fetches.
+              <span className="text-white">Vercel</span> hosts the website, and the share videos and
+              Bible chapters the apps fetch.
             </li>
             <li>
               <span className="text-white">Apple and Google</span> handle signing in, under their own
@@ -124,15 +137,34 @@ export default function PrivacyPage() {
 
         <Section title="On your device">
           On the web we use your browser&apos;s local storage to keep you signed in, to make Dafod
-          quick to load what you have saved, and to hold the random ID for the reading reports. In the iPhone app, your sign-in is kept in the iPhone&apos;s
-          Keychain and a copy of what you have saved is kept on the phone for the same reason. Signing
-          out clears your sign-in and that copy from the browser or phone.
+          quick to load what you have saved, and to hold the random ID for the reading reports. In the
+          iPhone app, your sign-in is kept in the iPhone&apos;s Keychain. In the Android app, it is kept
+          in the app&apos;s private storage, which is left out of Android backups. Both apps keep a
+          copy of what you have saved on the phone for the same reason, and the films and share videos
+          they have downloaded, so they play without waiting. Signing out clears your sign-in and that
+          copy from the browser or phone.
+        </Section>
+
+        <Section title="Notifications">
+          If you turn them on, the iPhone and Android apps show a &ldquo;Verse of the day&rdquo;
+          notification at 6:00 each morning. It is booked on your phone itself: we use no push service
+          and keep no device token. You can turn it off in your phone&apos;s settings at any time.
+        </Section>
+
+        <Section title="Android permissions">
+          The Android app asks for internet access, permission to show notifications (only once you
+          have said yes to the morning verse), and to run after your phone restarts, so it can book the
+          6:00 notification again. It does not ask for your photos or storage: sharing a film goes
+          through Android&apos;s own share sheet.
         </Section>
 
         <Section title="Keeping and deleting it">
           We keep your account and what you save for as long as you have an account. On the website
-          or in the iPhone app, You › Delete account deletes your account and everything saved to it
-          straight away, on every device. You can also email{" "}
+          or in the iPhone or Android app, You › Delete account deletes your account and everything
+          saved to it straight away, on every device. If you signed in with Apple on Android, the app
+          cannot also remove Dafod from your Apple Account as the iPhone app does; your account is
+          still deleted, and you can remove Dafod under Sign in with Apple in your Apple Account
+          settings. You can also email{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a> from the address
           you signed in with, and we will delete both within 30 days.
         </Section>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import VerseOfTheDay from "@/components/VerseOfTheDay";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/appStore";
-import { SITE, YOUTUBE_CHANNEL } from "@/lib/site";
+import { INSTAGRAM, SITE, YOUTUBE_CHANNEL } from "@/lib/site";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -41,7 +41,7 @@ const IDENTITY = {
       url: SITE,
       logo: `${SITE}/icon.png`,
       description: "Short films of the Bible's verses, a verse of the day and the whole Bible, free on the web, iPhone and Android.",
-      sameAs: [YOUTUBE_CHANNEL, APP_STORE_URL, PLAY_STORE_URL],
+      sameAs: [YOUTUBE_CHANNEL, INSTAGRAM, APP_STORE_URL, PLAY_STORE_URL],
     },
     {
       "@type": "WebSite",

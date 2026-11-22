@@ -4,6 +4,9 @@ export const SITE = "https://www.dafod.app";
 /** Dafod's YouTube channel (＠dafodapp). */
 export const YOUTUBE_CHANNEL = "https://www.youtube.com/@dafodapp";
 
+/** Dafod's Instagram (＠dafod.app). */
+export const INSTAGRAM = "https://www.instagram.com/dafod.app/";
+
 /**
  * Each film's YouTube Short, by film page slug, and when it goes public. A
  * Short is private until then, so a film page names it only from that moment:

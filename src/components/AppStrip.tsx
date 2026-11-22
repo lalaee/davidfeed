@@ -7,13 +7,13 @@
  * morning (ios/…/Feed/VerseNotifications.swift). The copy is the owner's.
  *
  * Phone widths only (globals.css hides it at desk, where the hero carries
- * its own Download app pill). It takes real room rather than floating over
+ * its own store buttons). It takes real room rather than floating over
  * the page: --strip-h is its height there, and every page shell is --app-h
  * tall — 100dvh less the strip — so nothing is covered and the feed's card
  * still fits above the nav.
  *
- * "Get app" opens the app sheet (AppSheet.tsx): the App Store for iPhone,
- * and the Android list. No Apple mark, since it no longer leads only there.
+ * "Get app" opens the app sheet (AppSheet.tsx): the App Store and Google
+ * Play. No Apple mark, since it leads to both.
  */
 "use client";
 

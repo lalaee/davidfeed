@@ -48,7 +48,7 @@ import { dateOfKey, dayKey, filmForDay } from "@/lib/verseOfTheDay";
  * browser has no sheet for a file.
  *
  * At desk the page keeps its desktop chrome — the nav, the "Stop Doomscrolling
- * / Start Hopescrolling" copy with Download app on the left, Privacy — and the
+ * / Start Hopescrolling" copy with the store buttons on the left, Privacy — and the
  * film stands where the feed's card stood, right of the copy, at the height
  * the window allows and rounded all round, since its top no longer meets the
  * screen's edge. Only the paging chevrons go: there is one film. The ambience

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import BackLink from "@/components/BackLink";
-import { APP_STORE_URL } from "@/lib/appStore";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/appStore";
 
 export const metadata: Metadata = {
   title: "Support — Dafod",
@@ -37,8 +37,9 @@ export default function SupportPage() {
 
         <Section title="Where do I get the app?">
           Dafod for iPhone is on the{" "}
-          <a href={APP_STORE_URL} className="text-white underline">App Store</a>. Dafod for Android is coming
-          to Google Play. The films and the Bible are here on the web too.
+          <a href={APP_STORE_URL} className="text-white underline">App Store</a>, and Dafod for Android is on{" "}
+          <a href={PLAY_STORE_URL} className="text-white underline">Google Play</a>. The films and the Bible
+          are here on the web too.
         </Section>
 
         <Section title="Do I need an account?">

@@ -2,30 +2,27 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { appSheetStore, closeAppSheet, joinAndroidList, openGetApp, wentToAppStore, type AppSheet as Step } from "@/lib/appOffer";
-import { APP_STORE_URL } from "@/lib/appStore";
+import { appSheetStore, closeAppSheet, openGetApp, wentToAppStore, type AppSheet as Step } from "@/lib/appOffer";
+import { APP_STORE_URL, onAndroid, PLAY_STORE_URL } from "@/lib/appStore";
 import { navHiddenStore } from "@/lib/uiStore";
 
-import { AppleIcon } from "./icons";
+import { AndroidIcon, AppleIcon } from "./icons";
 
 /*
  * THE APP SHEET — mounted once in the root layout, like AuthSheet, and
- * driven by appSheetStore (lib/appOffer.ts). Three steps:
+ * driven by appSheetStore (lib/appOffer.ts). Two steps:
  *
  *   offer    after a film has played through: the iPhone app's notification
  *            offer (NotificationOfferSheet.swift), its preview of the 6am
  *            notification, its words, its blue yes — which here gets the app,
  *            since the app is what sends it.
- *   get      what every Get app button opens: the App Store for iPhone, and
- *            a way onto the Android list.
- *   android  Android has no app yet: an email, kept in android_waitlist, so
- *            we can write the day it's out.
+ *   get      what every Get app button opens: the App Store and Google
+ *            Play, the reader's own store first (Google Play on Android).
  *
  * THE CONTAINER is AuthSheet's: the column less 21 a side, 740 at desk,
  * floating 8 above the bottom, the slide-up, the page receding behind it, the
  * nav stepping aside. Drag the grabber down, tap outside or press Escape to
- * close. Android goes to its own step from "get"'s second button; the App
- * Store is first and primary on every phone.
+ * close.
  */
 export default function AppSheet() {
   const step = useSyncExternalStore(appSheetStore.subscribe, appSheetStore.read, appSheetStore.serverSnapshot);
@@ -119,7 +116,7 @@ function Frame({ step }: { step: NonNullable<Step> }) {
           <span className="block h-[5px] w-[40px] rounded-full" style={{ backgroundColor: "#4A4A4A" }} />
         </button>
 
-        {step === "offer" ? <Offer /> : step === "get" ? <GetApp /> : <Android />}
+        {step === "offer" ? <Offer /> : <GetApp />}
       </div>
     </>
   );
@@ -207,32 +204,30 @@ function Offer() {
   );
 }
 
-/* Every Get app button's sheet: the App Store first, on every phone. */
+/*
+ * Every Get app button's sheet: both stores, the reader's own first. The
+ * buttons are plain pills in the sheet's own style, not the stores' badges.
+ */
 function GetApp() {
+  const android = onAndroid();
+  const went = () => {
+    wentToAppStore();
+    closeAppSheet();
+  };
+  const primary = { className: `${pill} text-[#111111]`, style: { backgroundColor: "#EDEDED" } };
+  const secondary = { className: `${pill} text-white`, style: { backgroundColor: "rgba(255,255,255,0.1)" } };
+
   const appStore = (
-    <a
-      href={APP_STORE_URL}
-      onClick={() => {
-        wentToAppStore();
-        closeAppSheet();
-      }}
-      className={`${pill} text-[#111111]`}
-      style={{ backgroundColor: "#EDEDED" }}
-    >
+    <a key="ios" href={APP_STORE_URL} onClick={went} {...(android ? secondary : primary)}>
       <AppleIcon height={20} />
       Download on the App Store
     </a>
   );
-  const androidList = (
-    <button
-      type="button"
-      onClick={() => appSheetStore.set("android")}
-      className={`${pill} text-white`}
-      style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-    >
+  const googlePlay = (
+    <a key="android" href={PLAY_STORE_URL} onClick={went} {...(android ? primary : secondary)}>
       <AndroidIcon />
-      On Android? Get notified
-    </button>
+      Get it on Google Play
+    </a>
   );
 
   return (
@@ -242,105 +237,11 @@ function GetApp() {
       <div className="mt-[20px]">
         <Title>Get the Dafod app</Title>
       </div>
-      <Body>A new verse every morning, saved films and the whole Bible, free on iPhone. Android is on its way.</Body>
+      <Body>A new verse every morning, saved films and the whole Bible, free on iPhone and Android.</Body>
       <div className="mt-[28px] flex flex-col gap-[10px]">
-        {appStore}
-        {androidList}
+        {android ? [googlePlay, appStore] : [appStore, googlePlay]}
       </div>
       <NotNow />
     </div>
-  );
-}
-
-/* Android has no app yet: an email, to write once the day it's out. */
-function Android() {
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
-
-  if (state === "done") {
-    return (
-      <div className="mt-[12px] flex flex-col">
-        <CheckRing />
-        <div className="mt-[20px]">
-          <Title>You&rsquo;re on the list</Title>
-        </div>
-        <Body>We&rsquo;ll email you once, the day Dafod is out on Android.</Body>
-        <button
-          type="button"
-          onClick={closeAppSheet}
-          className={`${pill} mt-[28px] text-[#111111]`}
-          style={{ backgroundColor: "#EDEDED" }}
-        >
-          Done
-        </button>
-      </div>
-    );
-  }
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setState("busy");
-    setState((await joinAndroidList(email)) ? "done" : "error");
-  };
-
-  return (
-    <form className="mt-[12px] flex flex-col" onSubmit={submit}>
-      <AndroidIcon size={40} />
-      <div className="mt-[20px]">
-        <Title>Dafod is coming to Android</Title>
-      </div>
-      <Body>Leave your email and we&rsquo;ll write immediately it&rsquo;s out.</Body>
-
-      <input
-        type="email"
-        required
-        autoComplete="email"
-        inputMode="email"
-        placeholder="you@example.com"
-        aria-label="Email"
-        value={email}
-        onChange={(e) => {
-          setEmail(e.target.value);
-          if (state === "error") setState("idle");
-        }}
-        className="mt-[24px] h-[54px] w-full rounded-[16px] border px-[18px] text-[17px] text-white outline-none
-                   placeholder:text-white/40 focus:border-white/50"
-        style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.14)" }}
-      />
-      {state === "error" && (
-        <p role="alert" className="mt-[10px] text-[15px] font-medium" style={{ color: "#FF8A80" }}>
-          Couldn&rsquo;t add you. Try again.
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={state === "busy"}
-        className={`${pill} mt-[16px] text-black disabled:opacity-60`}
-        style={{ backgroundColor: BLUE }}
-      >
-        {state === "busy" ? "Adding…" : "Notify me"}
-      </button>
-      <NotNow onClick={openGetApp}>Back</NotNow>
-    </form>
-  );
-}
-
-/* AuthSheet's green check ring, larger. */
-function CheckRing() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="10.25" stroke="#30D158" strokeWidth="1.5" />
-      <path d="M7.75 12.25l2.75 2.75 5.75-5.75" stroke="#30D158" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/* The Android robot's head, drawn plain (the mark itself is Google's). */
-function AndroidIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden className="flex-shrink-0">
-      <path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.4 11.4 0 0 0 12 8.08c-1.77 0-3.43.4-4.92 1.06L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z" />
-    </svg>
   );
 }

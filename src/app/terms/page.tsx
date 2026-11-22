@@ -5,7 +5,7 @@ import BackLink from "@/components/BackLink";
 
 export const metadata: Metadata = {
   title: "Terms — Dafod",
-  description: "The terms for using Dafod on the web and on iPhone.",
+  description: "The terms for using Dafod on the web, iPhone and Android.",
   alternates: { canonical: "/terms" },
 };
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  *
  * Same shell and type as the privacy page.
  */
-const UPDATED = "23 October 2026";
+const UPDATED = "22 November 2026";
 const CONTACT = "lakesofmotion@gmail.com";
 
 export default function TermsPage() {
@@ -33,15 +33,16 @@ export default function TermsPage() {
         <p className="mt-[8px] text-[15px] font-medium text-[#999999]">Last updated {UPDATED}</p>
 
         <Section title="Using Dafod">
-          Dafod (<Link href="/" className="text-white underline">dafod.app</Link> and the Dafod iPhone app)
-          is a feed of short Bible films and a Bible reader, run by Olalekan Isaac. By using it you agree
+          Dafod (<Link href="/" className="text-white underline">dafod.app</Link> and the Dafod apps for
+          iPhone and Android) is a feed of short Bible films and a Bible reader, run by Olalekan Isaac. By using it you agree
           to these terms. Dafod is free: there are no ads, subscriptions or purchases.
         </Section>
 
         <Section title="Your account">
           You don&apos;t need an account to watch or read. An account, made by signing in with Apple or
-          Google, keeps the films and verses you save and the verses you highlight, on every device. You
-          can delete it at any time from You › Delete account, in the app or on the web; that removes it
+          Google, keeps the films and verses you save and the verses you highlight, on every device. The
+          Android app signs in with Google only. You can delete your account at any time from You › Delete
+          account, in either app or on the web; that removes it
           and everything saved to it. How we handle your information is in the{" "}
           <Link href="/privacy" className="text-white underline">privacy policy</Link>.
         </Section>

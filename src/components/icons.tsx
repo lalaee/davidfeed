@@ -196,8 +196,8 @@ export function InstagramIcon({ size = 24, className }: IconProps) {
 }
 
 /*
- * The Apple mark, for the "get the app" buttons: Download app at desk and the
- * phone's app strip. Its own 17x20 box, so the height leads.
+ * The Apple mark, for the "get the app" buttons: the App Store button at desk
+ * and in the app sheet. Its own 17x20 box, so the height leads.
  */
 export function AppleIcon({ height = 21, className }: { height?: number; className?: string }) {
   return (
@@ -487,6 +487,15 @@ export function ChevronIcon({ size = 25, className }: IconProps) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+/* The Android robot's head, drawn plain (the mark itself is Google's). */
+export function AndroidIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden className="flex-shrink-0">
+      <path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.4 11.4 0 0 0 12 8.08c-1.77 0-3.43.4-4.92 1.06L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z" />
     </svg>
   );
 }

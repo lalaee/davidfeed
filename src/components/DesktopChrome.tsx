@@ -6,12 +6,13 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import DesktopNav from "./DesktopNav";
 import LiquidGlass from "./LiquidGlass";
 import { type TabKey } from "./BottomNav";
-import { AppleIcon, ChevronIcon } from "./icons";
+import { AndroidIcon, AppleIcon, ChevronIcon } from "./icons";
 import { TOPICS, TOPICS_ENABLED } from "@/data/topics";
 import { GLYPH_PAIR_OVERLAP_EM } from "./HeroGlyphs";
 import HeroLottie from "./HeroLottie";
 import { hopeColourStore } from "@/lib/heroContrast";
-import { openGetApp } from "@/lib/appOffer";
+import { wentToAppStore } from "@/lib/appOffer";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/appStore";
 
 /*
  * The animated glyphs, four per line, cycling.
@@ -97,10 +98,18 @@ interface DesktopChromeProps {
   paging?: boolean;
   /**
    * In place of the hero's headline and line, what a film page says beside
-   * its film (app/film): the passage, a way to the chapter. Download app stays.
+   * its film (app/film): the passage, a way to the chapter. The store buttons stay.
    */
   copy?: React.ReactNode;
 }
+
+/*
+ * The hero's store buttons: iPhone the house white pill the single "Download
+ * app" was, Android the app sheet's secondary, a white wash with white text.
+ */
+const STORE_PILL =
+  "flex h-[56px] flex-shrink-0 items-center justify-center gap-[10px] whitespace-nowrap rounded-full border-none " +
+  "px-[28px] text-[18px] font-semibold no-underline press";
 
 export default function DesktopChrome({
   activeTab = "home",
@@ -166,11 +175,11 @@ export default function DesktopChrome({
        * carried entirely by colour — #999999 against #FFFFFF — not by weight,
        * which is why the light/extrabold pair that used to sit here was wrong.
        *
-       * The "Download app" button is now asked for. The frame always carried
-       * one — laid out at y=250 inside a container only 189 tall, so it fell
-       * outside the bounds and never rendered — and it is restored here as the
-       * page's primary call to action: the house white pill with the Apple
-       * mark, 32 below the subtitle like the frame's other blocks. */}
+       * The frame's "Download app" button (laid out at y=250 inside a
+       * container only 189 tall, so it never rendered) was restored as the
+       * page's call to action, and with Android live it is now two: App Store
+       * and Google Play, each the house white pill with its mark, 32 below
+       * the subtitle like the frame's other blocks. */}
       <section className="pointer-events-none desk-copy fixed top-1/2 z-[500] hidden -translate-y-1/2 flex-col gap-[32px] desk:flex">
         {/* The o's are ANIMATED icons — eight Iconly Lotties, four cycling in
          *  the o's of Doomscrolling and four in the o of Hopescrolling. They
@@ -218,18 +227,29 @@ export default function DesktopChrome({
           </>
         )}
         {/* The section ignores the pointer so the feed behind stays reachable;
-            the button takes it back. */}
-        {/* The app sheet (AppSheet.tsx): the App Store, and the Android list. */}
-        <button
-          type="button"
-          onClick={openGetApp}
-          className="pointer-events-auto flex h-[56px] w-fit items-center gap-[10px] rounded-full border-none bg-white
-                     px-[28px] text-[18px] font-semibold text-[#0E0E0E] no-underline press"
-          style={{ letterSpacing: "-0.3px" }}
-        >
-          <AppleIcon height={21} />
-          Download app
-        </button>
+            the buttons take it back. */}
+        {/* Both stores, side by side, straight to each: iPhone first and
+            primary, Android secondary. */}
+        <div className="pointer-events-auto flex w-fit gap-[12px]">
+          <a
+            href={APP_STORE_URL}
+            onClick={wentToAppStore}
+            className={`${STORE_PILL} bg-white text-[#0E0E0E]`}
+            style={{ letterSpacing: "-0.3px" }}
+          >
+            <AppleIcon height={21} />
+            Download on iPhone
+          </a>
+          <a
+            href={PLAY_STORE_URL}
+            onClick={wentToAppStore}
+            className={`${STORE_PILL} text-white`}
+            style={{ letterSpacing: "-0.3px", backgroundColor: "rgba(255,255,255,0.1)" }}
+          >
+            <AndroidIcon size={22} />
+            Get it on Android
+          </a>
+        </div>
       </section>
 
       {/* The privacy policy, under the copy on its left edge. Google's brand

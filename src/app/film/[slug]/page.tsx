@@ -5,7 +5,7 @@ import FilmText from "@/components/FilmText";
 import VerseOfTheDay from "@/components/VerseOfTheDay";
 import { loadFilmCatalog } from "@/lib/filmCatalog";
 import { filmDescription, filmPassage, filmSlug } from "@/lib/filmPages";
-import { SITE } from "@/lib/site";
+import { SITE, publicShort } from "@/lib/site";
 
 /*
  * /film/psalm-23-woodcut — one film at its own address, for search
@@ -59,6 +59,8 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
 
   // Google's video result: name, description, thumbnail, upload date, file.
   // Without a date (the built-in films, when Supabase is down) it is left out.
+  // The same film as a YouTube Short, named once the Short is public.
+  const short = publicShort(slug);
   const video = post.createdAt && post.posterVideoSrc && {
     "@context": "https://schema.org",
     "@type": "VideoObject",
@@ -67,6 +69,7 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
     thumbnailUrl: [`${SITE}${post.backgroundImage}`],
     uploadDate: post.createdAt,
     contentUrl: `${SITE}${post.posterVideoSrc}`,
+    ...(short && { sameAs: [short] }),
   };
 
   return (

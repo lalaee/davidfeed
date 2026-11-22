@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import VerseOfTheDay from "@/components/VerseOfTheDay";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/appStore";
+import { SITE, YOUTUBE_CHANNEL } from "@/lib/site";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -19,6 +21,34 @@ export default function Home() {
   return (
     <main className="h-[var(--app-h)] bg-black">
       <VerseOfTheDay serverDay={serverDay} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(IDENTITY) }} />
     </main>
   );
 }
+
+/*
+ * Who Dafod is, for search and answer engines: the site, and the profiles
+ * that are also Dafod (sameAs), so the channel, the apps and the site are
+ * read as one name rather than as strangers who share it.
+ */
+const IDENTITY = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE}/#organization`,
+      name: "Dafod",
+      url: SITE,
+      logo: `${SITE}/icon.png`,
+      description: "Short films of the Bible's verses, a verse of the day and the whole Bible, free on the web, iPhone and Android.",
+      sameAs: [YOUTUBE_CHANNEL, APP_STORE_URL, PLAY_STORE_URL],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE}/#website`,
+      name: "Dafod",
+      url: SITE,
+      publisher: { "@id": `${SITE}/#organization` },
+    },
+  ],
+};

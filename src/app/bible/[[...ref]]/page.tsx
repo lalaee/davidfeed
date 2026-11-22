@@ -1,7 +1,9 @@
 import BibleReader from "@/components/BibleReader";
-import { BOOKS, DEFAULT_BOOK, DEFAULT_CHAPTER, bookSlug, parseRef } from "@/data/bible";
+import { BOOKS, DEFAULT_BOOK, DEFAULT_CHAPTER, TRANSLATIONS, bookSlug, parseRef, versesOf, type Translation } from "@/data/bible";
+import { fetchLicensedChapter } from "@/lib/apiBible";
 import { loadFilmCatalog } from "@/lib/filmCatalog";
 import { chapterFilms } from "@/lib/filmPages";
+import { READING_KEY } from "@/lib/stores";
 
 /*
  * /bible, /bible/psalms, /bible/psalms/46 — all the same reader.
@@ -45,11 +47,41 @@ export default async function BiblePage({ params }: { params: Promise<{ ref?: st
   const known = BOOKS.some((b) => b.name === book);
   const [b, c] = known ? [book, chapter] : [DEFAULT_BOOK, DEFAULT_CHAPTER];
   // The films made of this chapter, matched by their titles' references, so
-  // the chapter links to each one's page (app/film) in the served HTML.
-  const { films } = await loadFilmCatalog();
+  // the chapter links to each one's page (app/film) in the served HTML. And
+  // the chapter's text in the translation the reader opens on, so the served
+  // HTML carries what the reader shows rather than an empty column: search
+  // had been judging chapters thin, some as soft 404s. The same cached
+  // API.Bible call the reader's own fetch makes (lib/apiBible.ts), so it
+  // costs the allowance nothing more.
+  const [{ films }, text] = await Promise.all([loadFilmCatalog(), openingText(b, c)]);
   return (
-    <main className="h-[var(--app-h)] bg-black">
-      <BibleReader book={b} chapter={c} films={chapterFilms(films, b, c)} />
-    </main>
+    <>
+      {/* A reader who picked another translation must not see this one
+          painted before the page wakes up; their column waits blank for
+          theirs, as it always has (globals.css, .verses-from-server). */}
+      <script dangerouslySetInnerHTML={{ __html: PICKED_ANOTHER }} />
+      <main className="h-[var(--app-h)] bg-black">
+        <BibleReader book={b} chapter={c} films={chapterFilms(films, b, c)} initial={text ?? undefined} />
+      </main>
+    </>
   );
+}
+
+const OPENING = TRANSLATIONS[0];
+
+const PICKED_ANOTHER =
+  `try{var r=JSON.parse(localStorage.getItem(${JSON.stringify(READING_KEY)})||"null");` +
+  `if(r&&r!==${JSON.stringify(OPENING.id)})document.documentElement.setAttribute("data-reading-picked","")}catch(e){}`;
+
+/** The chapter in the reader's first translation, as the reader's own fetch would shape it. */
+async function openingText(book: string, chapter: number): Promise<Translation | null> {
+  const found = await fetchLicensedChapter(OPENING.id, BOOKS.findIndex((x) => x.name === book), book, chapter);
+  if (!found) return null;
+  return {
+    id: OPENING.id,
+    label: OPENING.label,
+    verses: versesOf(found.v),
+    copyright: found.copyright || undefined,
+    fums: found.fums ?? undefined,
+  };
 }

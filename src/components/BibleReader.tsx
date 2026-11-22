@@ -78,9 +78,15 @@ interface BibleReaderProps {
   chapter: number;
   /** The films made of this chapter, linked under its text (app/bible). */
   films?: ChapterFilm[];
+  /**
+   * The chapter in the translation the reader opens on, fetched by the page
+   * so the served HTML carries the text (app/bible). The rest still arrive
+   * from the fetch below, which replaces this.
+   */
+  initial?: Translation;
 }
 
-export default function BibleReader({ book, chapter, films = [] }: BibleReaderProps) {
+export default function BibleReader({ book, chapter, films = [], initial }: BibleReaderProps) {
   const router = useRouter();
   const chapterTitle = makeChapterTitle(book, chapter);
 
@@ -122,10 +128,26 @@ export default function BibleReader({ book, chapter, films = [] }: BibleReaderPr
    * synchronous setState inside an effect, which is the cascading render this
    * project rejects at build time. Comparing costs nothing and reads the same.
    */
-  const ready = loaded?.key === chapterTitle;
+  // Null until the reader picks one, so the default stays whatever the chapter
+  // ships rather than a snapshot of it frozen at first run.
+  const readingId = useSyncExternalStore(
+    readingStore.subscribe,
+    readingStore.read,
+    readingStore.serverSnapshot,
+  );
+
+  /*
+   * Until the fetch lands, the page's own copy of the opening translation
+   * stands in, so the column is not empty in the served HTML or while the
+   * rest arrive. Not for a reader who picked another translation: they wait
+   * for theirs, as before, rather than reading the wrong one for a moment.
+   */
+  const fetched = loaded?.key === chapterTitle;
+  const fromPage = !fetched && !!initial && (readingId === null || readingId === initial.id);
+  const ready = fetched || fromPage;
   const allTranslations = useMemo(
-    () => (ready && loaded ? loaded.translations : NO_TRANSLATIONS),
-    [ready, loaded],
+    () => (fetched && loaded ? loaded.translations : fromPage && initial ? [initial] : NO_TRANSLATIONS),
+    [fetched, loaded, fromPage, initial],
   );
   // Every translation failed to load — offline, most likely. Worth saying, as
   // an empty column otherwise reads as an empty chapter.
@@ -137,13 +159,6 @@ export default function BibleReader({ book, chapter, films = [] }: BibleReaderPr
     migrateLegacyChapterKeys();
   }, []);
 
-  // Null until the reader picks one, so the default stays whatever the chapter
-  // ships rather than a snapshot of it frozen at first run.
-  const readingId = useSyncExternalStore(
-    readingStore.subscribe,
-    readingStore.read,
-    readingStore.serverSnapshot,
-  );
   const reading = allTranslations.find((t) => t.id === readingId) ?? allTranslations[0];
   const [versionOpen, setVersionOpen] = useState(false);
 
@@ -546,8 +561,8 @@ export default function BibleReader({ book, chapter, films = [] }: BibleReaderPr
           // under them; 165 is that 149 plus the 16 of air the design gives
           // its other floating surfaces. At desk there is no bottom nav and
           // the buttons sit at 32, so 100 is the same clearance there.
-          className="flex-1 overflow-y-auto px-[27px] pt-[120px] pb-[165px] scrollbar-hide
-                     desk:px-[24px] desk:pt-[225px] desk:pb-[100px]"
+          className={`flex-1 overflow-y-auto px-[27px] pt-[120px] pb-[165px] scrollbar-hide
+                     desk:px-[24px] desk:pt-[225px] desk:pb-[100px] ${fromPage ? "verses-from-server" : ""}`}
           // A tap on the column itself, rather than on a verse, dismisses the
           // bar — the bar occupies the nav's slot, so there has to be a way back.
           onClick={(e) => {

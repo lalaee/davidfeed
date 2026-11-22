@@ -2321,3 +2321,13 @@ html, body {
   color: #111111;
   text-decoration: none;
 }
+
+/* THE CHAPTER TEXT IN THE SERVED HTML (app/bible, BibleReader's `initial`).
+ * The page carries the chapter in the translation the reader opens on. For a
+ * reader who picked another, a script in the page marks <html> before the
+ * column is parsed, and the column stays hidden until the page wakes up and
+ * hands it their own translation, as it always did. Unlayered, like the
+ * other display rules here. */
+html[data-reading-picked] .verses-from-server {
+  visibility: hidden;
+}

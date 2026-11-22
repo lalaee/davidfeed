@@ -18,7 +18,7 @@ const HIGHLIGHT_KEY = "dafod.highlights";
 const SAVED_KEY = "dafod.saved";
 const VERSIONS_KEY = "dafod.versions";
 /* Which translation the READER shows, as opposed to which ones compare lists. */
-const READING_KEY = "dafod.reading";
+export const READING_KEY = "dafod.reading";
 /* Feed cards the reader bookmarked, keyed by psalm id. */
 const SAVED_POSTS_KEY = "dafod.savedPosts";
 const LIKED_POSTS_KEY = "dafod.liked";

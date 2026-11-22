@@ -267,6 +267,15 @@ export async function fetchChapterIn(
   return found.verses;
 }
 
+/** A chapter file's verse list as verse number -> text, omitted verses left out. */
+export function versesOf(v: string[]): Record<number, string> {
+  const verses: Record<number, string> = {};
+  v.forEach((text, i) => {
+    if (text) verses[i + 1] = text;
+  });
+  return verses;
+}
+
 async function loadChapter(
   translationId: string,
   book: string,
@@ -277,12 +286,8 @@ async function loadChapter(
     const res = await fetch(chapterUrl(translationId, book, chapter), { signal });
     if (!res.ok) return null;
     const data = (await res.json()) as ChapterFile;
-    const verses: Record<number, string> = {};
-    data.v.forEach((text, i) => {
-      if (text) verses[i + 1] = text;
-    });
     return {
-      verses,
+      verses: versesOf(data.v),
       copyright: data.copyright || undefined,
       fums: data.fums ?? undefined,
     };

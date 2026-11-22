@@ -50,6 +50,8 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} h-full antialiased`}
+      // The Bible page's script marks <html> before React wakes (app/bible).
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <AppStrip />

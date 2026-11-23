@@ -193,7 +193,7 @@ function Offer() {
 
       <button
         type="button"
-        onClick={openGetApp}
+        onClick={() => openGetApp("offer")}
         className={`${pill} mt-[28px] text-black`}
         style={{ backgroundColor: BLUE }}
       >
@@ -210,21 +210,21 @@ function Offer() {
  */
 function GetApp() {
   const android = onAndroid();
-  const went = () => {
-    wentToAppStore();
+  const went = (store: "app_store" | "google_play") => () => {
+    wentToAppStore(store, "sheet");
     closeAppSheet();
   };
   const primary = { className: `${pill} text-[#111111]`, style: { backgroundColor: "#EDEDED" } };
   const secondary = { className: `${pill} text-white`, style: { backgroundColor: "rgba(255,255,255,0.1)" } };
 
   const appStore = (
-    <a key="ios" href={APP_STORE_URL} onClick={went} {...(android ? secondary : primary)}>
+    <a key="ios" href={APP_STORE_URL} onClick={went("app_store")} {...(android ? secondary : primary)}>
       <AppleIcon height={20} />
       Download on the App Store
     </a>
   );
   const googlePlay = (
-    <a key="android" href={PLAY_STORE_URL} onClick={went} {...(android ? primary : secondary)}>
+    <a key="android" href={PLAY_STORE_URL} onClick={went("google_play")} {...(android ? primary : secondary)}>
       <AndroidIcon />
       Get it on Google Play
     </a>

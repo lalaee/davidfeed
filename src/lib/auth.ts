@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 
+import { forgetReader, identifyReader, track } from "./analytics";
 import { supabase } from "./supabase";
 import {
   EMPTY_POSTS,
@@ -94,6 +95,7 @@ export type Intent =
 const PENDING_KEY = "dafod.pendingIntent";
 
 function applyIntent(intent: Intent) {
+  trackIntent(intent);
   switch (intent.kind) {
     case "savePost": {
       const next = { ...savedPostStore.read() };
@@ -125,6 +127,18 @@ function applyIntent(intent: Intent) {
   }
 }
 
+/* Saves and highlights as analytics events (lib/analytics.ts): only what was
+   put on, and with where it was, never the verses' text. */
+function trackIntent(intent: Intent) {
+  if (intent.kind === "savePost") {
+    if (intent.on) track("film_saved", { film_id: intent.id });
+  } else if (intent.kind === "saveVerses") {
+    if (intent.on) track("verses_saved", { chapter: intent.chapter, verse_count: intent.verses.length });
+  } else if (intent.colour) {
+    track("verses_highlighted", { chapter: intent.chapter, verse_count: intent.verses.length, colour: intent.colour });
+  }
+}
+
 /**
  * Do it if the reader is signed in; otherwise hold it and ask them to sign in.
  * Returns whether it was done, so a caller can play its confirmation (the
@@ -138,6 +152,7 @@ export function gated(intent: Intent): boolean {
   try {
     sessionStorage.setItem(PENDING_KEY, JSON.stringify(intent));
   } catch {}
+  track("sign_in_prompted", { reason: intent.kind });
   authSheetStore.set(true);
   return false;
 }
@@ -374,6 +389,7 @@ export function startAuth() {
     // they wait on the lock the callback is holding. Deferred a tick instead.
     setTimeout(() => {
       if (!session) {
+        if (event === "SIGNED_OUT") forgetReader();
         authStore.set(SIGNED_OUT);
         // INITIAL_SESSION with nobody signed in is a visitor, whose
         // pre-accounts saves must survive to be merged; only a real sign-out
@@ -383,6 +399,17 @@ export function startAuth() {
       }
       const reader = readerOf(session);
       const current = authStore.read();
+      identifyReader(reader.id);
+      // A sign-in that happened just now, not a returning session restored.
+      // Supabase stamps a new account's creation and first sign-in together.
+      if (event === "SIGNED_IN" && current.status !== "signedIn") {
+        const made = Date.parse(session.user.created_at ?? "");
+        const last = Date.parse(session.user.last_sign_in_at ?? "");
+        track("signed_in", {
+          provider: session.user.app_metadata?.provider ?? null,
+          new_account: Number.isFinite(made) && Number.isFinite(last) && Math.abs(last - made) < 60_000,
+        });
+      }
       if (current.status !== "signedIn" || current.reader.id !== reader.id) {
         authStore.set({ status: "signedIn", reader });
       }

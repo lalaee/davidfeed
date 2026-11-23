@@ -38,7 +38,7 @@ export default function AppStrip() {
           Wake up to a new verse<span className="hidden @[242px]:inline"> every morning</span>
         </span>
       </span>
-      <button type="button" onClick={openGetApp} className="app-strip-get press border-none">
+      <button type="button" onClick={() => openGetApp("strip")} className="app-strip-get press border-none">
         Get app
       </button>
     </aside>

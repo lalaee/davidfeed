@@ -31,6 +31,7 @@ import { formatVerseRange } from "@/lib/verseRef";
 import { navHiddenStore } from "@/lib/uiStore";
 import { useScrolledDown } from "@/hooks/useScrolledDown";
 import { reportScriptureView } from "@/lib/fums";
+import { track } from "@/lib/analytics";
 
 /*
  * Geometry, type and colour follow Figma "Bible" — 2641:1161 (reading) and
@@ -181,6 +182,25 @@ export default function BibleReader({ book, chapter, films = [], initial }: Bibl
   }, [reading?.fums]);
 
   /*
+   * Analytics (lib/analytics.ts): a chapter opened, and read to its end —
+   * the column scrolled to within a line of its foot, once per chapter. A
+   * chapter short enough not to scroll never counts as finished. Where it
+   * was, never what it says.
+   */
+  useEffect(() => {
+    track("chapter_viewed", { book, chapter, chapter_title: makeChapterTitle(book, chapter) });
+    const el = versesScrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollTop + el.clientHeight < el.scrollHeight - 40) return;
+      track("chapter_finished", { book, chapter, chapter_title: makeChapterTitle(book, chapter) });
+      el.removeEventListener("scroll", onScroll);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [book, chapter]);
+
+  /*
    * The verse-number gutter has to fit the widest number in the CHAPTER, not
    * the widest the design happened to draw.
    *
@@ -298,11 +318,15 @@ export default function BibleReader({ book, chapter, films = [], initial }: Bibl
     const picked = shownVerses.filter((v) => selected.includes(v.number));
     const body = picked.map((v) => v.text).join(" ");
     const ref = `${chapterTitle} ${formatVerseRange(selected)}`;
-    navigator.share({
-      title: ref,
-      text: `"${body}" - ${ref} (${shownVersion})`,
-      url: window.location.href,
-    });
+    navigator
+      .share({
+        title: ref,
+        text: `"${body}" - ${ref} (${shownVersion})`,
+        url: window.location.href,
+      })
+      .then(() => track("verse_shared", { chapter: chapterTitle, verse_count: selected.length, translation: shownVersion }))
+      // Closing the sheet is the reader's answer, not a failure.
+      .catch(() => {});
   }, [chapterTitle, selected, shownVerses, shownVersion]);
 
   // The three the design carries. It clips Save at the frame edge because the
@@ -532,6 +556,7 @@ export default function BibleReader({ book, chapter, films = [], initial }: Bibl
                   aria-selected={current}
                   tabIndex={versionOpen ? 0 : -1}
                   onClick={() => {
+                    if (!current) track("translation_changed", { from: shownVersion, to: t.label });
                     readingStore.write(t.id);
                     setVersionOpen(false);
                   }}

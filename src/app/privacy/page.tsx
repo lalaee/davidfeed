@@ -17,8 +17,9 @@ export const metadata: Metadata = {
  * `library` migration, the iPhone app (ios/: Account/, PrivacyInfo.xcprivacy)
  * and the Android app (~/Downloads/Code/davidfeed-android, package app.dafod)
  * — so it must change when they do: a new field stored, a new service added, a
- * new permission, or analytics switched on. The API.Bible paragraphs follow
- * lib/fums.ts. App Review and Google Play both link here, so the apps are
+ * new permission, or a new analytics event. The API.Bible paragraphs follow
+ * lib/fums.ts; "Usage statistics" follows lib/analytics.ts (PostHog, web
+ * only — the apps have none). App Review and Google Play both link here, so the apps are
  * covered too.
  *
  * Android, as its session described it: sign-in by Google only (Credential
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
  * Set in the Library's type on its #000 column: Inter Semi Bold 17 headings,
  * Regular 18/150% body in #999999, white for emphasis.
  */
-const UPDATED = "10 November 2026";
+const UPDATED = "23 November 2026";
 const CONTACT = "lakesofmotion@gmail.com";
 
 export default function PrivacyPage() {
@@ -62,8 +63,9 @@ export default function PrivacyPage() {
 
         <Section title="What we keep">
           <p>
-            Watching the feed and reading the Bible need no account, on the web or in the apps, and we
-            keep nothing about you while you do. If you sign in, we keep:
+            Watching the feed and reading the Bible need no account, on the web or in the apps. On the
+            website we count how Dafod is used without knowing who you are (see Usage statistics
+            below). If you sign in, we keep:
           </p>
           <ul className="mt-[12px] flex list-disc flex-col gap-[8px] pl-[22px]">
             <li>
@@ -85,9 +87,28 @@ export default function PrivacyPage() {
 
         <Section title="How we use it">
           Only to sign you in and to keep what you save the same on every device you use. We do not
-          show ads, sell or rent your information, or use it to profile you. There are no analytics
-          or tracking cookies on the website, and no analytics, crash reporting, advertising or
-          tracking code in the apps. There are no purchases.
+          show ads, sell or rent your information, or use it to profile you. We use no cookies. The
+          website keeps the usage statistics described below; the apps have no analytics, crash
+          reporting, advertising or tracking code. There are no purchases.
+        </Section>
+
+        <Section title="Usage statistics">
+          <p>
+            On the website we record what happens, so we can tell which films and features help people
+            and whether they come back: the pages you open, the films you watch and watch to the end,
+            the chapters you open and read to the end, a change of translation, films and verses you
+            share (which way, never with whom), what you save or highlight (which chapter and how many
+            verses, never the text), taps on the App Store and Google Play buttons, and signing in.
+            With each comes the kind of browser and device, the screen size, the site that sent you
+            and your country, worked out from your IP address.
+          </p>
+          <p className="mt-[12px]">
+            These are tied to a random ID kept in your browser&apos;s local storage, not to your name.
+            We do not keep your IP address, and nothing you read or type is recorded. If you sign in,
+            the ID is linked to your account ID, never your name or email address. Signing out starts
+            a new random ID. If your browser sends Do Not Track, nothing is recorded. The apps record
+            none of this.
+          </p>
         </Section>
 
         <Section title="Licensed Bible translations">
@@ -129,6 +150,10 @@ export default function PrivacyPage() {
               privacy policies.
             </li>
             <li>
+              <span className="text-white">PostHog</span>, in the United States, stores the
+              website&apos;s usage statistics.
+            </li>
+            <li>
               <span className="text-white">API.Bible</span> supplies the NIV, NKJV and NLT, and
               receives the anonymous reading reports described above.
             </li>
@@ -138,7 +163,8 @@ export default function PrivacyPage() {
 
         <Section title="On your device">
           On the web we use your browser&apos;s local storage to keep you signed in, to make Dafod
-          quick to load what you have saved, and to hold the random ID for the reading reports. In the
+          quick to load what you have saved, and to hold the random IDs for the reading reports and the
+          usage statistics. In the
           iPhone app, your sign-in is kept in the iPhone&apos;s Keychain. In the Android app, it is kept
           in the app&apos;s private storage, which is left out of Android backups. Both apps keep a
           copy of what you have saved on the phone for the same reason, and the films and share videos
@@ -164,7 +190,8 @@ export default function PrivacyPage() {
           or in the iPhone or Android app, You › Delete account deletes your account and everything
           saved to it straight away, on every device. You can also email{" "}
           <a href={`mailto:${CONTACT}`} className="text-white underline">{CONTACT}</a> from the address
-          you signed in with, and we will delete both within 30 days.
+          you signed in with, and we will delete both, and the usage statistics linked to your
+          account, within 30 days.
         </Section>
 
         <Section title="Children">

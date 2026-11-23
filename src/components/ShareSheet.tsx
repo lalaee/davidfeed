@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { navHiddenStore } from "@/lib/uiStore";
+import { track } from "@/lib/analytics";
 import { SOCIAL_PATHS } from "@/lib/socialIcons";
 import { fetchShareFile, readCanShareFiles, shareFileName } from "@/lib/shareVideo";
 
@@ -119,16 +120,23 @@ export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) 
     setTimeout(() => URL.revokeObjectURL(href), 10_000);
   }, [title]);
 
+  /* Each way out of the sheet that passes the film on (lib/analytics.ts). */
+  const shared = useCallback(
+    (method: string) => track("film_shared", { film_id: postId, title, method }),
+    [postId, title],
+  );
+
   /* The system sheet with the video. Called straight from a tap. */
   const shareVideo = useCallback(async (video: File) => {
     try {
       await navigator.share({ files: [video] });
+      shared("share_sheet");
       onClose();
     } catch (err) {
       // Dismissing the sheet is the reader answering, not a failure.
       if ((err as Error)?.name !== "AbortError") setNote("Couldn't open the share sheet. Download the video instead.");
     }
-  }, [onClose]);
+  }, [onClose, shared]);
 
   const sendTo = (app: App) => {
     if (!file) return;
@@ -137,6 +145,7 @@ export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) 
       return;
     }
     download(file);
+    shared(app.id);
     window.open(app.site, "_blank", "noopener,noreferrer");
     setNote(`Video downloaded. Attach it in ${app.label} to post it.`);
   };
@@ -144,6 +153,7 @@ export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) 
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(pageUrl);
+      shared("copy_link");
       setCopied(true);
       setTimeout(onClose, 700);
     } catch {
@@ -210,7 +220,16 @@ export default function ShareSheet({ postId, title, onClose }: ShareSheetProps) 
               </svg>
             </Tile>
           )}
-          <Tile label="Download" bg="#3A3A3C" onClick={() => file && download(file)} disabled={!ready}>
+          <Tile
+            label="Download"
+            bg="#3A3A3C"
+            onClick={() => {
+              if (!file) return;
+              download(file);
+              shared("download");
+            }}
+            disabled={!ready}
+          >
             <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden>
               <path d="M10 3v10m0 0l-4-4m4 4l4-4M3 16h14" stroke="white" strokeWidth="1.8"
                     strokeLinecap="round" strokeLinejoin="round" />

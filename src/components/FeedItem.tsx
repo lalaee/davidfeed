@@ -8,6 +8,7 @@ import SharePill from "./SharePill";
 import { BookmarkIcon, HeartIcon, SendIcon } from "./icons";
 import { Subtitle } from "@/data/psalm23-subtitles";
 import { filmPlayedThrough } from "@/lib/appOffer";
+import { track } from "@/lib/analytics";
 import { gated } from "@/lib/auth";
 import { likedPostStore, savedPostStore } from "@/lib/stores";
 import { useLiveInk } from "@/lib/liveInk";
@@ -264,6 +265,17 @@ export default function FeedItem({
     isActiveRef.current = isActive;
   }, [isActive]);
 
+  // Analytics (lib/analytics.ts): this card coming on screen is a view, and
+  // its first time through while on screen is a completion — once per view,
+  // however many times it loops after.
+  const filmRef = useRef({ film_id: postId, title, variant });
+  const completedRef = useRef(false);
+  useEffect(() => {
+    filmRef.current = { film_id: postId, title, variant };
+    completedRef.current = false;
+    if (isActive) track("film_viewed", filmRef.current);
+  }, [isActive, postId, title, variant]);
+
   // Play/pause media based on active state. Only the focused card may make sound.
   useEffect(() => {
     const cleanups: Array<() => void> = [];
@@ -457,7 +469,13 @@ export default function FeedItem({
     let last = 0;
     const onTime = () => {
       const t = art.currentTime;
-      if (isActiveRef.current && art.duration && last > art.duration - 1 && t < last - 1) filmPlayedThrough();
+      if (isActiveRef.current && art.duration && last > art.duration - 1 && t < last - 1) {
+        if (!completedRef.current) {
+          completedRef.current = true;
+          track("film_completed", filmRef.current);
+        }
+        filmPlayedThrough();
+      }
       last = t;
     };
     art.addEventListener("timeupdate", onTime);
@@ -595,6 +613,7 @@ export default function FeedItem({
   const setLiked = useCallback(
     (on: boolean) => {
       const current = likedPostStore.read();
+      if (on && !current[postId]) track("film_liked", { film_id: postId, title, variant });
       if (on) likedPostStore.write({ ...current, [postId]: true });
       else {
         const next = { ...current };
@@ -609,7 +628,7 @@ export default function FeedItem({
       likeTimerRef.current = setTimeout(() => setLikeAnimating(false), 1250);
       if (navigator.vibrate) navigator.vibrate(10);
     },
-    [postId],
+    [postId, title, variant],
   );
 
   const handleDoubleTap = useCallback(

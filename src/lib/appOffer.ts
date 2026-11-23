@@ -1,3 +1,4 @@
+import { track } from "./analytics";
 import { authSheetStore } from "./auth";
 import { navHiddenStore } from "./uiStore";
 
@@ -40,8 +41,19 @@ function makeStore<T>(initial: T) {
 
 export const appSheetStore = makeStore<AppSheet>(null);
 
-export const openGetApp = () => appSheetStore.set("get");
-export const closeAppSheet = () => appSheetStore.set(null);
+/** Where a Get app came from, for the install funnel (lib/analytics.ts). */
+export type GetAppSource = "strip" | "offer";
+
+export function openGetApp(source: GetAppSource) {
+  track("get_app_opened", { source });
+  appSheetStore.set("get");
+}
+
+export function closeAppSheet() {
+  // The offer closed any way but its yes: grabber, scrim, Escape, Not now.
+  if (appSheetStore.read() === "offer") track("app_offer_declined");
+  appSheetStore.set(null);
+}
 
 const OFFERS_KEY = "dafod.appOffers";
 const OFFERED_AT_KEY = "dafod.appOfferedAt";
@@ -73,10 +85,15 @@ export function filmPlayedThrough() {
   if (Date.now() - readNumber(OFFERED_AT_KEY) < SNOOZE_MS) return;
   writeNumber(OFFERS_KEY, offers + 1);
   writeNumber(OFFERED_AT_KEY, Date.now());
+  track("app_offer_shown", { offer_number: offers + 1 });
   appSheetStore.set("offer");
 }
 
-/** The reader went to a store: the offer has done its work. */
-export function wentToAppStore() {
+/**
+ * The reader went to a store: the offer has done its work. `from` is the
+ * phone's sheet or the desk hero's own buttons.
+ */
+export function wentToAppStore(store: "app_store" | "google_play", from: "sheet" | "desk") {
+  track("store_clicked", { store, from });
   writeNumber(OFFERS_KEY, MAX_OFFERS);
 }

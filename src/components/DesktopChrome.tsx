@@ -233,7 +233,7 @@ export default function DesktopChrome({
         <div className="pointer-events-auto flex w-fit gap-[12px]">
           <a
             href={APP_STORE_URL}
-            onClick={wentToAppStore}
+            onClick={() => wentToAppStore("app_store", "desk")}
             className={`${STORE_PILL} bg-white text-[#0E0E0E]`}
             style={{ letterSpacing: "-0.3px" }}
           >
@@ -242,7 +242,7 @@ export default function DesktopChrome({
           </a>
           <a
             href={PLAY_STORE_URL}
-            onClick={wentToAppStore}
+            onClick={() => wentToAppStore("google_play", "desk")}
             className={`${STORE_PILL} text-white`}
             style={{ letterSpacing: "-0.3px", backgroundColor: "rgba(255,255,255,0.1)" }}
           >

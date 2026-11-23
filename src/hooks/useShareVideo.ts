@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 import { fetchShareFile, readCanShareFiles, serverCanShareFiles, subscribeNever } from "@/lib/shareVideo";
+import { track } from "@/lib/analytics";
 
 /*
  * SHARING STRAIGHT TO THE SYSTEM SHEET — no menu of our own in between.
@@ -119,6 +120,7 @@ export function useShareVideo(postId: number, title: string, { prefetch = false 
   const open = useCallback(async (file: File) => {
     try {
       await navigator.share({ files: [file] });
+      track("film_shared", { film_id: postId, title, method: "share_sheet" });
     } catch (err) {
       // Refused for want of a fresh tap: the next one opens it.
       if ((err as Error)?.name === "NotAllowedError") {
@@ -128,7 +130,7 @@ export function useShareVideo(postId: number, title: string, { prefetch = false 
       // AbortError is the reader closing the sheet, which is an answer.
     }
     setArmed(null);
-  }, [postId]);
+  }, [postId, title]);
 
   /** Call straight from a tap. */
   const share = useCallback(() => {
